@@ -5,19 +5,20 @@ import { TodayView } from './components/TodayView';
 import { WeekView } from './components/WeekView';
 import { RequestsView } from './components/RequestsView';
 import { EditShiftModal } from './components/EditShiftModal';
-import { InstallPWAButton } from './components/InstallPWAButton';
+import { LoginScreen } from './components/LoginScreen';
 import { INITIAL_EMPLOYEES, generateWeeklyMockShifts, INITIAL_REQUESTS } from './mockData';
-import { ActiveTab, Employee, Shift, ShiftRequest } from './types';
+import { ActiveTab, Employee, Shift, ShiftRequest, UserSession } from './types';
 
 export const App: React.FC = () => {
-  // Persistenza LocalStorage per turni e richieste
+  // Sessione utente loggato
+  const [session, setSession] = useState<UserSession | null>(() => {
+    const saved = localStorage.getItem('nicora_session');
+    return saved ? JSON.parse(saved) : null;
+  });
+
   const [employees] = useState<Employee[]>(() => {
     const saved = localStorage.getItem('nicora_employees');
     return saved ? JSON.parse(saved) : INITIAL_EMPLOYEES;
-  });
-
-  const [currentEmployeeId, setCurrentEmployeeId] = useState<string>(() => {
-    return localStorage.getItem('nicora_current_emp') || INITIAL_EMPLOYEES[0].id;
   });
 
   const [shifts, setShifts] = useState<Shift[]>(() => {
@@ -34,7 +35,6 @@ export const App: React.FC = () => {
   const [isManagerMode, setIsManagerMode] = useState<boolean>(false);
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
 
-  // Data di oggi in formato ISO YYYY-MM-DD
   const todayStr = new Date().toISOString().split('T')[0];
 
   // Sincronizzazione LocalStorage
@@ -47,17 +47,30 @@ export const App: React.FC = () => {
   }, [requests]);
 
   useEffect(() => {
-    localStorage.setItem('nicora_current_emp', currentEmployeeId);
-  }, [currentEmployeeId]);
+    if (session) {
+      localStorage.setItem('nicora_session', JSON.stringify(session));
+      // Se è manager, attiva le funzioni di modifica
+      setIsManagerMode(session.role === 'manager');
+    } else {
+      localStorage.removeItem('nicora_session');
+      setIsManagerMode(false);
+    }
+  }, [session]);
 
-  // Handler per aggiornare turno
+  const handleLoginSuccess = (newSession: UserSession) => {
+    setSession(newSession);
+  };
+
+  const handleLogout = () => {
+    setSession(null);
+  };
+
   const handleSaveShift = (updatedShift: Shift) => {
     setShifts((prev) =>
       prev.map((s) => (s.id === updatedShift.id ? updatedShift : s))
     );
   };
 
-  // Handler per invio nuova richiesta
   const handleSubmitRequest = (newReq: Omit<ShiftRequest, 'id' | 'createdAt' | 'status'>) => {
     const created: ShiftRequest = {
       ...newReq,
@@ -68,24 +81,29 @@ export const App: React.FC = () => {
     setRequests((prev) => [created, ...prev]);
   };
 
-  // Handler per aggiornare stato richiesta (Responsabile)
   const handleUpdateRequestStatus = (id: string, status: 'approved' | 'rejected') => {
     setRequests((prev) =>
       prev.map((r) => (r.id === id ? { ...r, status } : r))
     );
   };
 
+  // Se l'utente non è ancora loggato, mostra la schermata di login
+  if (!session) {
+    return <LoginScreen employees={employees} onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  const currentEmployeeId = session.user.id;
   const pendingRequestsCount = requests.filter((r) => r.status === 'pending').length;
 
   return (
     <div className="min-h-screen bg-nicora-bg text-nicora-text flex justify-center">
       {/* Container mobile simulato per test da desktop e perfetto su smartphone */}
       <div className="w-full max-w-md min-h-screen bg-nicora-bg flex flex-col relative border-x border-neutral-200/60 shadow-xl">
-        {/* Header superiore fisso */}
+        
+        {/* Header superiore fisso con stato utente e logout */}
         <Header
-          currentEmployeeId={currentEmployeeId}
-          employees={employees}
-          onSelectEmployee={setCurrentEmployeeId}
+          session={session}
+          onLogout={handleLogout}
           isManagerMode={isManagerMode}
           onToggleManagerMode={() => setIsManagerMode(!isManagerMode)}
         />
@@ -132,8 +150,8 @@ export const App: React.FC = () => {
           pendingRequestsCount={pendingRequestsCount}
         />
 
-        {/* Modal Modifica Turno (Responsabile) */}
-        {editingShift && (
+        {/* Modal Modifica Turno (solo per Responsabile) */}
+        {editingShift && isManagerMode && (
           <EditShiftModal
             shift={editingShift}
             employee={employees.find((e) => e.id === editingShift.employeeId)}

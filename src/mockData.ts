@@ -1,13 +1,15 @@
 import { Employee, Shift, ShiftRequest } from './types';
 
+export const MANAGER_MASTER_PASSWORD = 'admin'; // Password master del responsabile per l'MVP
+
 export const INITIAL_EMPLOYEES: Employee[] = [
-  { id: 'emp-1', name: 'Marco V.', role: 'Serre e Piante', avatar: 'MV', isManager: true },
-  { id: 'emp-2', name: 'Elena R.', role: 'Cassa', avatar: 'ER' },
-  { id: 'emp-3', name: 'Luca B.', role: 'Vivaio Esterno', avatar: 'LB' },
-  { id: 'emp-4', name: 'Chiara M.', role: 'Decor & Vasi', avatar: 'CM' },
-  { id: 'emp-5', name: 'Davide G.', role: 'Serre e Piante', avatar: 'DG' },
-  { id: 'emp-6', name: 'Simona T.', role: 'Cassa', avatar: 'ST' },
-  { id: 'emp-7', name: 'Paolo F.', role: 'Logistica / Consegne', avatar: 'PF' },
+  { id: 'emp-1', name: 'Marco V.', role: 'Serre e Piante', avatar: 'MV', email: 'marco@nicoragarden.it', password: '123', isManager: true },
+  { id: 'emp-2', name: 'Elena R.', role: 'Cassa', avatar: 'ER', email: 'elena@nicoragarden.it', password: '123' },
+  { id: 'emp-3', name: 'Luca B.', role: 'Vivaio Esterno', avatar: 'LB', email: 'luca@nicoragarden.it', password: '123' },
+  { id: 'emp-4', name: 'Chiara M.', role: 'Decor & Vasi', avatar: 'CM', email: 'chiara@nicoragarden.it', password: '123' },
+  { id: 'emp-5', name: 'Davide G.', role: 'Serre e Piante', avatar: 'DG', email: 'davide@nicoragarden.it', password: '123' },
+  { id: 'emp-6', name: 'Simona T.', role: 'Cassa', avatar: 'ST', email: 'simona@nicoragarden.it', password: '123' },
+  { id: 'emp-7', name: 'Paolo F.', role: 'Logistica / Consegne', avatar: 'PF', email: 'paolo@nicoragarden.it', password: '123' },
 ];
 
 export const SHIFT_TIMES = {

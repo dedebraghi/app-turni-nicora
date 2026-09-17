@@ -7,8 +7,15 @@ export interface Employee {
   name: string;
   role: Role;
   avatar: string;
+  email: string;
+  password?: string;
   color?: string;
   isManager?: boolean;
+}
+
+export interface UserSession {
+  user: Employee;
+  role: 'employee' | 'manager';
 }
 
 export interface Shift {
