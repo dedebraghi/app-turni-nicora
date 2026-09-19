@@ -1,100 +1,318 @@
-import { Employee, Shift, ShiftRequest } from './types';
+import { Employee, LocationInfo, Shift, ShiftRequest } from './types';
+import { generateWeeklySchedule, getSundayOfWeek } from './utils/scheduler';
 
 export const MANAGER_MASTER_PASSWORD = 'admin'; // Password master del responsabile per l'MVP
 
-export const INITIAL_EMPLOYEES: Employee[] = [
-  { id: 'emp-1', name: 'Marco V.', role: 'Serre e Piante', avatar: 'MV', email: 'marco@nicoragarden.it', password: '123', isManager: true },
-  { id: 'emp-2', name: 'Elena R.', role: 'Cassa', avatar: 'ER', email: 'elena@nicoragarden.it', password: '123' },
-  { id: 'emp-3', name: 'Luca B.', role: 'Vivaio Esterno', avatar: 'LB', email: 'luca@nicoragarden.it', password: '123' },
-  { id: 'emp-4', name: 'Chiara M.', role: 'Decor & Vasi', avatar: 'CM', email: 'chiara@nicoragarden.it', password: '123' },
-  { id: 'emp-5', name: 'Davide G.', role: 'Serre e Piante', avatar: 'DG', email: 'davide@nicoragarden.it', password: '123' },
-  { id: 'emp-6', name: 'Simona T.', role: 'Cassa', avatar: 'ST', email: 'simona@nicoragarden.it', password: '123' },
-  { id: 'emp-7', name: 'Paolo F.', role: 'Logistica / Consegne', avatar: 'PF', email: 'paolo@nicoragarden.it', password: '123' },
+export const LOCATIONS: LocationInfo[] = [
+  {
+    id: 'gazzada',
+    name: 'Nicora Garden Gazzada',
+    shortName: 'Gazzada',
+    city: 'Gazzada Schianno (VA)',
+    defaultStaffCount: 10,
+  },
+  {
+    id: 'varese',
+    name: 'Nicora Garden Varese',
+    shortName: 'Varese',
+    city: 'Varese Centro',
+    defaultStaffCount: 13,
+  },
 ];
 
-export const SHIFT_TIMES = {
-  mattina: { start: '08:30', end: '12:30', label: 'Mattina (08:30 - 12:30)' },
-  pomeriggio: { start: '14:30', end: '19:30', label: 'Pomeriggio (14:30 - 19:30)' },
-  giornata: { start: '08:30', end: '19:30', label: 'Giornata Intera' },
-};
+export const INITIAL_EMPLOYEES: Employee[] = [
+  // --- GAZZADA (10 Collaboratori) ---
+  {
+    id: 'emp-gz-1',
+    name: 'Marco V.',
+    locationId: 'gazzada',
+    role: 'Serra Calda',
+    skills: { Cassa: 7, Fioreria: 5, Decor: 6, 'Serra Calda': 10, 'Serra Fredda': 8 },
+    avatar: 'MV',
+    email: 'marco@nicoragarden.it',
+    password: '123',
+    isManager: true,
+  },
+  {
+    id: 'emp-gz-2',
+    name: 'Elena R.',
+    locationId: 'gazzada',
+    role: 'Cassa',
+    skills: { Cassa: 10, Fioreria: 4, Decor: 5, 'Serra Calda': 3, 'Serra Fredda': 2 },
+    avatar: 'ER',
+    email: 'elena@nicoragarden.it',
+    password: '123',
+  },
+  {
+    id: 'emp-gz-3',
+    name: 'Cecilia T.',
+    locationId: 'gazzada',
+    role: 'Fioreria',
+    skills: { Cassa: 8, Fioreria: 10, Decor: 7, 'Serra Calda': 4, 'Serra Fredda': 3 },
+    avatar: 'CT',
+    email: 'cecilia@nicoragarden.it',
+    password: '123',
+  },
+  {
+    id: 'emp-gz-4',
+    name: 'Davide G.',
+    locationId: 'gazzada',
+    role: 'Cassa',
+    skills: { Cassa: 10, Fioreria: 6, Decor: 5, 'Serra Calda': 7, 'Serra Fredda': 6 },
+    avatar: 'DG',
+    email: 'davide@nicoragarden.it',
+    password: '123',
+  },
+  {
+    id: 'emp-gz-5',
+    name: 'Luca B.',
+    locationId: 'gazzada',
+    role: 'Serra Fredda',
+    skills: { Cassa: 3, Fioreria: 2, Decor: 4, 'Serra Calda': 7, 'Serra Fredda': 10 },
+    avatar: 'LB',
+    email: 'luca@nicoragarden.it',
+    password: '123',
+  },
+  {
+    id: 'emp-gz-6',
+    name: 'Chiara M.',
+    locationId: 'gazzada',
+    role: 'Decor',
+    skills: { Cassa: 6, Fioreria: 7, Decor: 10, 'Serra Calda': 3, 'Serra Fredda': 2 },
+    avatar: 'CM',
+    email: 'chiara@nicoragarden.it',
+    password: '123',
+  },
+  {
+    id: 'emp-gz-7',
+    name: 'Simona T.',
+    locationId: 'gazzada',
+    role: 'Cassa',
+    skills: { Cassa: 9, Fioreria: 4, Decor: 6, 'Serra Calda': 3, 'Serra Fredda': 2 },
+    avatar: 'ST',
+    email: 'simona@nicoragarden.it',
+    password: '123',
+  },
+  {
+    id: 'emp-gz-8',
+    name: 'Paolo F.',
+    locationId: 'gazzada',
+    role: 'Serra Fredda',
+    skills: { Cassa: 4, Fioreria: 2, Decor: 3, 'Serra Calda': 8, 'Serra Fredda': 9 },
+    avatar: 'PF',
+    email: 'paolo@nicoragarden.it',
+    password: '123',
+  },
+  {
+    id: 'emp-gz-9',
+    name: 'Valentina B.',
+    locationId: 'gazzada',
+    role: 'Fioreria',
+    skills: { Cassa: 6, Fioreria: 9, Decor: 8, 'Serra Calda': 4, 'Serra Fredda': 3 },
+    avatar: 'VB',
+    email: 'valentina@nicoragarden.it',
+    password: '123',
+  },
+  {
+    id: 'emp-gz-10',
+    name: 'Matteo R.',
+    locationId: 'gazzada',
+    role: 'Decor',
+    skills: { Cassa: 5, Fioreria: 5, Decor: 9, 'Serra Calda': 6, 'Serra Fredda': 7 },
+    avatar: 'MR',
+    email: 'matteo@nicoragarden.it',
+    password: '123',
+  },
 
-// Generatore orari realistici per 7 giorni
-export const generateWeeklyMockShifts = (): Shift[] => {
-  const shifts: Shift[] = [];
-  const today = new Date();
-  
-  // Ottieni Lunedì della settimana corrente
-  const dayOfWeek = today.getDay(); // 0 = Dom, 1 = Lun
-  const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-  const monday = new Date(today);
-  monday.setDate(today.getDate() + diffToMonday);
-
-  const dates: string[] = [];
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
-    dates.push(d.toISOString().split('T')[0]);
-  }
-
-  // Schema realistico per Garden Center:
-  // Fine settimana (Sab/Dom) rinforzato con presenza massiccia
-  const patterns: Record<string, ('mattina' | 'pomeriggio' | 'giornata' | 'riposo' | 'ferie')[]> = {
-    'emp-1': ['giornata', 'mattina', 'pomeriggio', 'riposo', 'giornata', 'giornata', 'mattina'], // Marco (Resp)
-    'emp-2': ['mattina', 'mattina', 'pomeriggio', 'giornata', 'riposo', 'giornata', 'pomeriggio'], // Elena (Cassa)
-    'emp-3': ['pomeriggio', 'riposo', 'mattina', 'pomeriggio', 'giornata', 'giornata', 'giornata'], // Luca (Vivaio)
-    'emp-4': ['mattina', 'pomeriggio', 'riposo', 'mattina', 'pomeriggio', 'giornata', 'pomeriggio'], // Chiara (Decor)
-    'emp-5': ['riposo', 'giornata', 'giornata', 'mattina', 'pomeriggio', 'giornata', 'giornata'], // Davide (Serre)
-    'emp-6': ['pomeriggio', 'pomeriggio', 'mattina', 'riposo', 'mattina', 'mattina', 'giornata'], // Simona (Cassa)
-    'emp-7': ['mattina', 'mattina', 'pomeriggio', 'giornata', 'giornata', 'riposo', 'riposo'], // Paolo (Logistica)
-  };
-
-  const areas: Record<string, string> = {
-    'emp-1': 'Serra Tropicale & Coordinamento',
-    'emp-2': 'Cassa Centrale & Info Point',
-    'emp-3': 'Piante da Esterno & Terricci',
-    'emp-4': 'Fioristeria & Confezioni',
-    'emp-5': 'Bonsai & Orchidee',
-    'emp-6': 'Cassa 2 & Ricevimento Merci',
-    'emp-7': 'Scarico Fornitori & Spedizioni',
-  };
-
-  INITIAL_EMPLOYEES.forEach((emp) => {
-    const pattern = patterns[emp.id] || ['mattina', 'pomeriggio', 'riposo', 'giornata', 'mattina', 'giornata', 'riposo'];
-    dates.forEach((date, idx) => {
-      const type = pattern[idx];
-      shifts.push({
-        id: `shift-${emp.id}-${date}`,
-        employeeId: emp.id,
-        date,
-        type,
-        startTime: type === 'mattina' ? '08:30' : type === 'pomeriggio' ? '14:30' : type === 'giornata' ? '08:30' : undefined,
-        endTime: type === 'mattina' ? '12:30' : type === 'pomeriggio' ? '19:30' : type === 'giornata' ? '19:30' : undefined,
-        areaNote: areas[emp.id],
-      });
-    });
-  });
-
-  return shifts;
-};
+  // --- VARESE (13 Collaboratori) ---
+  {
+    id: 'emp-va-1',
+    name: 'Vittore Nicora',
+    locationId: 'varese',
+    role: 'Serra Calda',
+    skills: { Cassa: 8, Fioreria: 8, Decor: 8, 'Serra Calda': 10, 'Serra Fredda': 10 },
+    avatar: 'VN',
+    email: 'vittore@nicoragarden.it',
+    password: 'admin',
+    isManager: true,
+  },
+  {
+    id: 'emp-va-2',
+    name: 'Andrea P.',
+    locationId: 'varese',
+    role: 'Cassa',
+    skills: { Cassa: 10, Fioreria: 5, Decor: 7, 'Serra Calda': 7, 'Serra Fredda': 6 },
+    avatar: 'AP',
+    email: 'andrea@nicoragarden.it',
+    password: '123',
+    isManager: true,
+  },
+  {
+    id: 'emp-va-3',
+    name: 'Silvia M.',
+    locationId: 'varese',
+    role: 'Fioreria',
+    skills: { Cassa: 7, Fioreria: 10, Decor: 8, 'Serra Calda': 4, 'Serra Fredda': 3 },
+    avatar: 'SM',
+    email: 'silvia@nicoragarden.it',
+    password: '123',
+  },
+  {
+    id: 'emp-va-4',
+    name: 'Roberto C.',
+    locationId: 'varese',
+    role: 'Serra Calda',
+    skills: { Cassa: 5, Fioreria: 4, Decor: 4, 'Serra Calda': 10, 'Serra Fredda': 9 },
+    avatar: 'RC',
+    email: 'roberto@nicoragarden.it',
+    password: '123',
+  },
+  {
+    id: 'emp-va-5',
+    name: 'Francesca L.',
+    locationId: 'varese',
+    role: 'Cassa',
+    skills: { Cassa: 10, Fioreria: 6, Decor: 6, 'Serra Calda': 3, 'Serra Fredda': 3 },
+    avatar: 'FL',
+    email: 'francesca@nicoragarden.it',
+    password: '123',
+  },
+  {
+    id: 'emp-va-6',
+    name: 'Giorgio D.',
+    locationId: 'varese',
+    role: 'Serra Fredda',
+    skills: { Cassa: 3, Fioreria: 2, Decor: 3, 'Serra Calda': 7, 'Serra Fredda': 10 },
+    avatar: 'GD',
+    email: 'giorgio@nicoragarden.it',
+    password: '123',
+  },
+  {
+    id: 'emp-va-7',
+    name: 'Giulia B.',
+    locationId: 'varese',
+    role: 'Decor',
+    skills: { Cassa: 6, Fioreria: 7, Decor: 10, 'Serra Calda': 3, 'Serra Fredda': 3 },
+    avatar: 'GB',
+    email: 'giulia@nicoragarden.it',
+    password: '123',
+  },
+  {
+    id: 'emp-va-8',
+    name: 'Stefano F.',
+    locationId: 'varese',
+    role: 'Serra Calda',
+    skills: { Cassa: 4, Fioreria: 3, Decor: 4, 'Serra Calda': 10, 'Serra Fredda': 8 },
+    avatar: 'SF',
+    email: 'stefano@nicoragarden.it',
+    password: '123',
+  },
+  {
+    id: 'emp-va-9',
+    name: 'Laura G.',
+    locationId: 'varese',
+    role: 'Cassa',
+    skills: { Cassa: 9, Fioreria: 8, Decor: 5, 'Serra Calda': 4, 'Serra Fredda': 3 },
+    avatar: 'LG',
+    email: 'laura@nicoragarden.it',
+    password: '123',
+  },
+  {
+    id: 'emp-va-10',
+    name: 'Carlo V.',
+    locationId: 'varese',
+    role: 'Decor',
+    skills: { Cassa: 4, Fioreria: 5, Decor: 9, 'Serra Calda': 6, 'Serra Fredda': 6 },
+    avatar: 'CV',
+    email: 'carlo@nicoragarden.it',
+    password: '123',
+  },
+  {
+    id: 'emp-va-11',
+    name: 'Monica S.',
+    locationId: 'varese',
+    role: 'Fioreria',
+    skills: { Cassa: 6, Fioreria: 9, Decor: 7, 'Serra Calda': 3, 'Serra Fredda': 3 },
+    avatar: 'MS',
+    email: 'monica@nicoragarden.it',
+    password: '123',
+  },
+  {
+    id: 'emp-va-12',
+    name: 'Alessandro N.',
+    locationId: 'varese',
+    role: 'Serra Fredda',
+    skills: { Cassa: 4, Fioreria: 3, Decor: 4, 'Serra Calda': 8, 'Serra Fredda': 10 },
+    avatar: 'AN',
+    email: 'alessandro@nicoragarden.it',
+    password: '123',
+  },
+  {
+    id: 'emp-va-13',
+    name: 'Elisa M.',
+    locationId: 'varese',
+    role: 'Cassa',
+    skills: { Cassa: 9, Fioreria: 5, Decor: 6, 'Serra Calda': 3, 'Serra Fredda': 2 },
+    avatar: 'EM',
+    email: 'elisa@nicoragarden.it',
+    password: '123',
+  },
+];
 
 export const INITIAL_REQUESTS: ShiftRequest[] = [
   {
     id: 'req-1',
-    requesterId: 'emp-3',
+    requesterId: 'emp-gz-5', // Luca B.
+    locationId: 'gazzada',
     type: 'swap',
-    targetEmployeeId: 'emp-5',
+    targetEmployeeId: 'emp-gz-8', // Paolo F.
     shiftDate: new Date().toISOString().split('T')[0],
-    reason: 'Visita medica imprevista al mattino',
+    reason: 'Visita dal dentista programmata al mattino',
     status: 'pending',
     createdAt: 'Oggi alle 08:15',
   },
   {
     id: 'req-2',
-    requesterId: 'emp-4',
+    requesterId: 'emp-gz-3', // Cecilia T.
+    locationId: 'gazzada',
     type: 'leave',
     shiftDate: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
-    reason: 'Corso aggiornamento floricoltura',
+    reason: 'Gita in montagna programmata (giorno di riposo desiderato)',
     status: 'approved',
     createdAt: 'Ieri alle 17:30',
-  }
+  },
+  {
+    id: 'req-3',
+    requesterId: 'emp-va-3', // Silvia M.
+    locationId: 'varese',
+    type: 'leave',
+    shiftDate: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
+    reason: 'Permesso speciale fiera floreale',
+    status: 'pending',
+    createdAt: 'Ieri alle 10:00',
+  },
 ];
+
+// Generatore orari realistici per entrambe le sedi
+export const generateInitialMockShifts = (): Shift[] => {
+  const currentSunday = getSundayOfWeek(new Date());
+  const sundayStr = currentSunday.toISOString().split('T')[0];
+
+  const gazzadaResult = generateWeeklySchedule({
+    locationId: 'gazzada',
+    employees: INITIAL_EMPLOYEES,
+    weekStartDate: sundayStr,
+    requests: INITIAL_REQUESTS,
+    mode: 'standard',
+  });
+
+  const vareseResult = generateWeeklySchedule({
+    locationId: 'varese',
+    employees: INITIAL_EMPLOYEES,
+    weekStartDate: sundayStr,
+    requests: INITIAL_REQUESTS,
+    mode: 'standard',
+  });
+
+  return [...gazzadaResult.shifts, ...vareseResult.shifts];
+};

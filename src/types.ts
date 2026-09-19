@@ -1,11 +1,30 @@
-export type Role = 'Cassa' | 'Serre e Piante' | 'Vivaio Esterno' | 'Decor & Vasi' | 'Logistica / Consegne';
+export type Department = 'Cassa' | 'Fioreria' | 'Decor' | 'Serra Calda' | 'Serra Fredda';
+
+// Alias per compatibilità
+export type Role = Department;
+
+export type LocationId = 'gazzada' | 'varese';
+
+export interface LocationInfo {
+  id: LocationId;
+  name: string;
+  shortName: string;
+  city: string;
+  defaultStaffCount: number;
+}
+
+export type SkillScores = Record<Department, number>; // Punteggio 1-10 per reparto
 
 export type ShiftType = 'mattina' | 'pomeriggio' | 'giornata' | 'riposo' | 'ferie';
+
+export type ScheduleMode = 'standard' | 'continuato';
 
 export interface Employee {
   id: string;
   name: string;
-  role: Role;
+  locationId: LocationId;
+  role: Department; // Reparto primario di riferimento
+  skills: SkillScores; // Matrice competenze (1-10 per ciascuno dei 5 reparti)
   avatar: string;
   email: string;
   password?: string;
@@ -21,16 +40,19 @@ export interface UserSession {
 export interface Shift {
   id: string;
   employeeId: string;
+  locationId: LocationId;
   date: string; // Formato YYYY-MM-DD
   type: ShiftType;
-  startTime?: string; // es. '08:30'
-  endTime?: string;   // es. '12:30'
-  areaNote?: string;  // es. 'Reparto Bonsai & Cassa 1'
+  department?: Department; // Reparto effettivo assegnato per questo turno
+  startTime?: string; // es. '08:30' o '09:00'
+  endTime?: string;   // es. '12:30' o '19:00'
+  areaNote?: string;  // es. 'Cassa Principale' o 'Scarico Merci'
 }
 
 export interface ShiftRequest {
   id: string;
   requesterId: string;
+  locationId: LocationId;
   type: 'swap' | 'leave'; // Scambio turno o Permesso/Ferie
   targetEmployeeId?: string; // Per scambio turno
   shiftDate: string;
