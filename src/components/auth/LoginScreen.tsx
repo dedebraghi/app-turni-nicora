@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Employee, LocationId, UserSession } from '../types';
-import { NicoraLogo } from './NicoraLogo';
-import { ShieldCheck, User, Lock, Mail, ArrowRight, AlertCircle, Sparkles, MapPin } from 'lucide-react';
-import { LOCATIONS, MANAGER_MASTER_PASSWORD } from '../mockData';
+import { Employee, LocationId, UserSession } from '../../domain/types';
+import { NicoraLogo } from '../NicoraLogo';
+import { LOCATIONS, MANAGER_MASTER_PASSWORD } from '../../domain/mockData';
+import { AlertCircle, ArrowRight, Lock, Mail, MapPin, ShieldCheck, Sparkles, User } from 'lucide-react';
 
 interface LoginScreenProps {
   employees: Employee[];
@@ -12,7 +12,7 @@ interface LoginScreenProps {
 export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSuccess }) => {
   const [activeLocation, setActiveLocation] = useState<LocationId>('gazzada');
   const [loginRole, setLoginRole] = useState<'employee' | 'manager'>('employee');
-  
+
   const storeEmployees = employees.filter((e) => e.locationId === activeLocation);
 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>(
@@ -40,7 +40,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
         setError('Seleziona il tuo profilo collaboratore');
         return;
       }
-      // Verifica password (default '123' per tutti nell'MVP)
       if (password && password !== (emp.password || '123')) {
         setError('Password non corretta (predefinita demo: 123)');
         return;
@@ -54,19 +53,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
         emp.locationId
       );
     } else {
-      // Login Manager
       if (password !== MANAGER_MASTER_PASSWORD && password !== 'admin') {
         setError('Password amministratore non corretta (prova: admin)');
         return;
       }
 
-      // Trova manager per la sede o usa Vittore
-      const managerUser = employees.find((e) => e.locationId === activeLocation && e.isManager) ||
+      const managerUser =
+        employees.find((e) => e.locationId === activeLocation && e.isManager) ||
         employees.find((e) => e.isManager) || {
           id: 'manager-admin',
           name: 'Vittore Nicora',
           locationId: activeLocation,
-          role: 'Serre e Piante' as any,
+          role: 'Serra Calda',
           skills: { Cassa: 10, Fioreria: 8, Decor: 8, 'Serra Calda': 10, 'Serra Fredda': 10 },
           avatar: 'VN',
           email: managerEmail,
@@ -87,21 +85,21 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
 
   return (
     <div className="min-h-screen bg-nicora-bg flex items-center justify-center p-3 sm:p-4">
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl border border-nicora-border overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-nicora-border overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         
         {/* Header Brand */}
-        <div className="bg-nicora-teal text-white p-5 text-center relative overflow-hidden">
+        <div className="bg-nicora-teal text-white p-6 text-center relative overflow-hidden">
           <div className="absolute -right-6 -bottom-6 opacity-10 pointer-events-none">
-            <NicoraLogo size={130} />
+            <NicoraLogo size={140} />
           </div>
-          <NicoraLogo size={48} className="mx-auto mb-2.5 shadow-md" />
-          <h1 className="font-black text-xl tracking-tight leading-tight">NICORA GARDEN</h1>
-          <p className="text-xs text-nicora-teal-light/85 font-medium">
-            Gestione Turni Punti Vendita
+          <NicoraLogo size={52} className="mx-auto mb-3 shadow-md" />
+          <h1 className="font-black text-2xl tracking-tight leading-tight">NICORA GARDEN</h1>
+          <p className="text-xs text-nicora-teal-light/85 font-medium mt-0.5">
+            Piattaforma Gestione Turni Punti Vendita
           </p>
 
-          {/* Sede Selector */}
-          <div className="mt-3 inline-flex bg-black/20 p-0.5 rounded-xl border border-white/15">
+          {/* Sede Switcher */}
+          <div className="mt-4 inline-flex bg-black/25 p-1 rounded-2xl border border-white/15">
             {LOCATIONS.map((loc) => {
               const isSelected = loc.id === activeLocation;
               return (
@@ -109,13 +107,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
                   key={loc.id}
                   type="button"
                   onClick={() => handleLocationChange(loc.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                  className={`flex items-center gap-1.5 px-3.5 py-1 rounded-xl text-xs font-bold transition-all ${
                     isSelected
                       ? 'bg-nicora-orange text-white shadow-xs'
                       : 'text-white/70 hover:text-white'
                   }`}
                 >
-                  <MapPin size={11} />
+                  <MapPin size={12} />
                   <span>{loc.shortName}</span>
                 </button>
               );
@@ -124,10 +122,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
         </div>
 
         {/* Form Body */}
-        <div className="p-4 sm:p-5 space-y-3.5">
+        <div className="p-5 sm:p-6 space-y-4">
           
-          {/* Ruolo Selector Tab: Dipendente vs Manager */}
-          <div className="grid grid-cols-2 gap-1.5 p-1 bg-neutral-100 rounded-xl">
+          {/* Ruolo Selector Tab */}
+          <div className="grid grid-cols-2 gap-1.5 p-1 bg-neutral-100 rounded-2xl">
             <button
               type="button"
               onClick={() => {
@@ -135,14 +133,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
                 setError('');
                 setPassword('');
               }}
-              className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
                 loginRole === 'employee'
                   ? 'bg-white text-nicora-orange shadow-xs'
                   : 'text-neutral-500 hover:text-neutral-800'
               }`}
             >
-              <User size={14} />
-              <span>Dipendente</span>
+              <User size={15} />
+              <span>Collaboratore</span>
             </button>
 
             <button
@@ -152,37 +150,36 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
                 setError('');
                 setPassword('');
               }}
-              className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
                 loginRole === 'manager'
                   ? 'bg-nicora-teal text-white shadow-xs'
                   : 'text-neutral-500 hover:text-neutral-800'
               }`}
             >
-              <ShieldCheck size={14} />
+              <ShieldCheck size={15} />
               <span>Responsabile</span>
             </button>
           </div>
 
           {error && (
-            <div className="bg-rose-50 border border-rose-200 text-rose-800 p-2.5 rounded-xl flex items-center gap-2 text-xs animate-in fade-in">
-              <AlertCircle size={15} className="text-rose-600 flex-shrink-0" />
+            <div className="bg-rose-50 border border-rose-200 text-rose-800 p-3 rounded-2xl flex items-center gap-2 text-xs animate-in fade-in">
+              <AlertCircle size={16} className="text-rose-600 flex-shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-3 text-xs">
+          <form onSubmit={handleLogin} className="space-y-3.5 text-xs">
             
-            {/* Se Dipendente: Seleziona chi sei */}
             {loginRole === 'employee' ? (
               <div className="space-y-1">
                 <label className="block font-bold text-neutral-700">
-                  Seleziona il tuo profilo ({storeEmployees.length} presenti a {activeLocation}):
+                  Seleziona il tuo nominativo ({storeEmployees.length} a {activeLocation}):
                 </label>
                 <div className="relative">
                   <select
                     value={selectedEmployeeId}
                     onChange={(e) => setSelectedEmployeeId(e.target.value)}
-                    className="w-full bg-neutral-50 border border-nicora-border rounded-xl px-3 py-2.5 text-neutral-800 font-semibold focus:ring-2 focus:ring-nicora-orange focus:outline-none min-h-[44px] appearance-none cursor-pointer pr-8"
+                    className="w-full bg-neutral-50 border border-nicora-border rounded-xl px-3.5 py-2.5 text-neutral-800 font-semibold focus:ring-2 focus:ring-nicora-orange focus:outline-none min-h-[44px] appearance-none cursor-pointer pr-8"
                   >
                     {storeEmployees.map((emp) => (
                       <option key={emp.id} value={emp.id}>
@@ -190,34 +187,33 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
                       </option>
                     ))}
                   </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-neutral-500">
-                    <ArrowRight size={14} />
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-neutral-500">
+                    <ArrowRight size={15} />
                   </div>
                 </div>
 
                 {selectedEmp && (
-                  <p className="text-[11px] text-neutral-500 pt-0.5">
-                    Email: <strong>{selectedEmp.email}</strong> • Reparto: <strong>{selectedEmp.role}</strong>
+                  <p className="text-[11px] text-neutral-500 pt-1">
+                    Email: <strong>{selectedEmp.email}</strong> • Reparto primario: <strong>{selectedEmp.role}</strong>
                   </p>
                 )}
               </div>
             ) : (
-              /* Se Manager */
               <div className="space-y-1">
                 <label className="block font-bold text-neutral-700">
-                  Email Responsabile / Titolare:
+                  Email Responsabile Punto Vendita:
                 </label>
                 <div className="relative">
                   <input
                     type="email"
                     value={managerEmail}
                     onChange={(e) => setManagerEmail(e.target.value)}
-                    className="w-full bg-neutral-50 border border-nicora-border rounded-xl pl-8 pr-3 py-2.5 text-neutral-800 font-medium focus:ring-2 focus:ring-nicora-teal focus:outline-none min-h-[44px]"
+                    className="w-full bg-neutral-50 border border-nicora-border rounded-xl pl-9 pr-3 py-2.5 text-neutral-800 font-medium focus:ring-2 focus:ring-nicora-teal min-h-[44px]"
                     placeholder="es. vittore@nicoragarden.it"
                     required
                   />
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-2.5 text-neutral-400 pointer-events-none">
-                    <Mail size={15} />
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-neutral-400 pointer-events-none">
+                    <Mail size={16} />
                   </div>
                 </div>
               </div>
@@ -227,7 +223,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
             <div className="space-y-1">
               <div className="flex justify-between items-center">
                 <label className="font-bold text-neutral-700">
-                  {loginRole === 'manager' ? 'Password Amministratore:' : 'Password Personale:'}
+                  {loginRole === 'manager' ? 'Password Direzione:' : 'Codice / Password:'}
                 </label>
                 <span className="text-[10px] text-neutral-400">
                   {loginRole === 'manager' ? 'demo: admin' : 'demo: 123'}
@@ -239,39 +235,40 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-neutral-50 border border-nicora-border rounded-xl pl-8 pr-3 py-2.5 text-neutral-800 font-medium focus:ring-2 focus:ring-nicora-orange focus:outline-none min-h-[44px]"
+                  className="w-full bg-neutral-50 border border-nicora-border rounded-xl pl-9 pr-3 py-2.5 text-neutral-800 font-medium focus:ring-2 focus:ring-nicora-orange min-h-[44px]"
                   required
                 />
-                <div className="absolute inset-y-0 left-0 flex items-center pl-2.5 text-neutral-400 pointer-events-none">
-                  <Lock size={15} />
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-neutral-400 pointer-events-none">
+                  <Lock size={16} />
                 </div>
               </div>
             </div>
 
-            {/* Submit Button */}
+            {/* Submit */}
             <button
               type="submit"
-              className={`w-full text-white font-bold py-3 rounded-xl shadow-md flex items-center justify-center gap-2 transition-transform active:scale-[0.98] touch-manipulation min-h-[46px] ${
+              className={`w-full text-white font-extrabold py-3.5 rounded-2xl shadow-md flex items-center justify-center gap-2 transition-transform active:scale-[0.98] touch-manipulation min-h-[48px] text-sm ${
                 loginRole === 'manager'
                   ? 'bg-nicora-teal hover:bg-nicora-teal-hover'
                   : 'bg-nicora-orange hover:bg-nicora-orange-hover'
               }`}
             >
-              <span>{loginRole === 'manager' ? 'Accedi come Responsabile' : 'Accedi ai Miei Turni'}</span>
+              <span>{loginRole === 'manager' ? 'Accedi al Tabellone Direzione' : 'Accedi ai Miei Turni'}</span>
               <ArrowRight size={16} />
             </button>
           </form>
 
-          {/* Quick Info Box Demo */}
-          <div className="bg-neutral-50 rounded-xl p-2.5 border border-neutral-200/80 text-[11px] text-neutral-500 space-y-0.5">
-            <p className="font-semibold text-neutral-700 flex items-center gap-1">
-              <Sparkles size={12} className="text-nicora-orange" /> Accesso Rapido Demo:
+          {/* Demo helper */}
+          <div className="bg-neutral-50 rounded-2xl p-3 border border-neutral-200/80 text-[11px] text-neutral-500 space-y-1">
+            <p className="font-bold text-neutral-700 flex items-center gap-1">
+              <Sparkles size={13} className="text-nicora-orange" /> Accesso Rapido Demo:
             </p>
-            <p>• Dipendenti: seleziona sede e nome (pw: <code>123</code>)</p>
-            <p>• Responsabile: tocca il tab e inserisci password <code>admin</code></p>
+            <p>• <strong>Collaboratore:</strong> seleziona sede e nominativo (password: <code>123</code>)</p>
+            <p>• <strong>Direzione / Manager:</strong> tocca tab Responsabile (password: <code>admin</code>)</p>
           </div>
 
         </div>
+
       </div>
     </div>
   );

@@ -1,67 +1,66 @@
-import { Department, Employee, LocationId, ScheduleMode, Shift, ShiftRequest, ShiftType } from '../types';
-
-export const DEPARTMENTS: Department[] = [
-  'Cassa',
-  'Fioreria',
-  'Decor',
-  'Serra Calda',
-  'Serra Fredda',
-];
+import { CONTINUATO_SLOTS, STANDARD_HOURS } from '../domain/rules';
+import { Department, Employee, LocationId, ScheduleMode, Shift, ShiftRequest, ShiftType, WeekDayMeta } from '../domain/types';
 
 export interface SchedulerOptions {
   locationId: LocationId;
   employees: Employee[];
   weekStartDate: string; // Deve essere una Domenica (YYYY-MM-DD)
   requests?: ShiftRequest[];
-  mode?: ScheduleMode; // 'standard' (spezzato) o 'continuato' (autunno/natale)
+  mode?: ScheduleMode;   // 'standard' o 'continuato'
 }
 
 export interface ScheduleGenerationResult {
   shifts: Shift[];
   stats: {
     totalShifts: number;
-    cassaCoverageScore: number; // in percentuale, es. 100%
+    cassaCoverageScore: number; // in %
     staffCount: number;
     employeesWorkingDays: Record<string, number>;
     warnings: string[];
+    mode: ScheduleMode;
   };
 }
 
 /**
- * Ottiene la data della Domenica iniziale della settimana per una qualsiasi data data.
+ * Calcola la data della Domenica iniziale per una data qualsiasi.
  */
 export const getSundayOfWeek = (d: Date = new Date()): Date => {
   const date = new Date(d);
-  const day = date.getDay(); // 0 = Domenica, 1 = Lunedì, ... 6 = Sabato
-  // Se è già Domenica (0), diff = 0; altrimenti sottraiamo il giorno
+  const day = date.getDay(); // 0 = Domenica, 1 = Lunedì ... 6 = Sabato
   date.setDate(date.getDate() - day);
   date.setHours(0, 0, 0, 0);
   return date;
 };
 
 /**
- * Genera i 7 giorni YYYY-MM-DD a partire da una Domenica.
+ * Genera i 7 giorni (Domenica -> Sabato) a partire da una Domenica YYYY-MM-DD.
  */
-export const getWeekDays = (sundayDateStr: string): { dateStr: string; dayIndex: number; dayName: string; isWeekend: boolean; isMerchandiseArrival: boolean }[] => {
+export const getWeekDays = (sundayDateStr: string): WeekDayMeta[] => {
   const [y, m, d] = sundayDateStr.split('-').map(Number);
   const sunday = new Date(y, m - 1, d);
+  const todayStr = new Date().toISOString().split('T')[0];
 
-  const days = [];
+  const days: WeekDayMeta[] = [];
   const dayNames = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+  const dayShorts = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'];
 
   for (let i = 0; i < 7; i++) {
     const curr = new Date(sunday);
     curr.setDate(sunday.getDate() + i);
     const dateStr = curr.toISOString().split('T')[0];
-    const isWeekend = i === 0 || i === 6; // Domenica (0) e Sabato (6)
-    const isMerchandiseArrival = i === 4 || i === 5; // Giovedì (4) e Venerdì (5)
+    const isWeekend = i === 0 || i === 6; // Dom e Sab
+    const isMerchandiseArrival = i === 4 || i === 5; // Gio e Ven
+    const isToday = dateStr === todayStr;
 
     days.push({
       dateStr,
       dayIndex: i,
       dayName: dayNames[i],
+      dayShort: dayShorts[i],
+      dayNum: curr.getDate(),
       isWeekend,
       isMerchandiseArrival,
+      isToday,
     });
   }
 
@@ -69,14 +68,14 @@ export const getWeekDays = (sundayDateStr: string): { dateStr: string; dayIndex:
 };
 
 /**
- * Algoritmo di Generazione Automatica Turni (conforme ai vincoli di Nicora Garden):
+ * Algoritmo Intelligente di Pianificazione Turni Nicora Garden:
  * 1. Settimana: Domenica -> Sabato (7 giorni).
- * 2. Ciascun collaboratore lavora ESATTAMENTE 5 giorni su 7 (2 giorni di riposo).
+ * 2. Ciascun collaboratore lavora ESATTAMENTE 5 giorni su 7 (2 giorni di riposo garantiti).
  * 3. Le ferie/permessi approvati vengono recepiti come 'ferie'.
- * 4. Cassa: priorità assoluta (100% del tempo coperta dalla risorsa con competenza più alta).
- * 5. Fioreria e Decor coperti con personale specializzato.
- * 6. Serra Calda & Fredda rinforzate su Giovedì/Venerdì (merci) e Sabato/Domenica (picco vivaio).
- * 7. Supporto opzionale "Orario Continuato" (orari sfalsati 9:00, 10:00, 11:00 con chiusura alle 19:00).
+ * 4. Presidio Cassa (priorità assoluta, 100% di copertura).
+ * 5. Assegnazione basata sulla Matrice Competenze (1-10) per Cassa, Fioreria, Decor, Serre.
+ * 6. Rinforzi nei giorni merci (Gio/Ven) e nel weekend garden (Dom/Sab).
+ * 7. Supporto orario 'standard' vs 'continuato' (Ottobre-Dicembre con scaglioni 9, 10, 11 e chiusura 19:00).
  */
 export const generateWeeklySchedule = ({
   locationId,
@@ -97,12 +96,13 @@ export const generateWeeklySchedule = ({
         cassaCoverageScore: 0,
         staffCount: 0,
         employeesWorkingDays: {},
-        warnings: ['Nessun dipendente associato a questo punto vendita.'],
+        warnings: ['Nessun dipendente trovato per la sede selezionata.'],
+        mode,
       },
     };
   }
 
-  // Mappa richieste approvate di ferie per collaboratore: record di empId -> set di dateStr
+  // 1. Mappa delle ferie approvate
   const approvedLeaves: Record<string, Set<string>> = {};
   storeStaff.forEach((e) => {
     approvedLeaves[e.id] = new Set();
@@ -116,12 +116,11 @@ export const generateWeeklySchedule = ({
       }
     });
 
-  // 1. Assegnazione dei giorni di Riposo / Ferie (esattamente 2 giorni di non lavoro a testa)
-  // Per garantire massima presenza nel weekend (Dom/Sab) e durante arrivo merci (Gio/Ven),
-  // i giorni di riposo ordinari ruotano primariamente su Lunedì (1), Martedì (2), Mercoledì (3) e secondariamente su Giovedì.
+  // 2. Assegnazione equa dei 2 giorni di riposo per ciascun collaboratore (Vincolo 5/7)
+  // I riposi ordinari si concentrano sui giorni di minore afflusso (Lun=1, Mar=2, Mer=3, Gio=4)
+  // per preservare la massima presenza nei giorni di arrivo merci (Gio/Ven) e nel weekend (Dom/Sab).
   const offDaysSchedule: Record<string, Set<number>> = {};
   
-  // Rotazione ponderata dei giorni di riposo ordinari nei giorni feriali meno intensi (1=Lun, 2=Mar, 3=Mer, 4=Gio)
   const preferredOffDayPairs: [number, number][] = [
     [1, 2], // Lunedì e Martedì
     [2, 3], // Martedì e Mercoledì
@@ -129,21 +128,21 @@ export const generateWeeklySchedule = ({
     [3, 4], // Mercoledì e Giovedì
     [1, 4], // Lunedì e Giovedì
     [2, 4], // Martedì e Giovedì
-    [1, 5], // Lunedì e Venerdì (solo se necessario)
+    [1, 5], // Lunedì e Venerdì
     [3, 5], // Mercoledì e Venerdì
   ];
 
   storeStaff.forEach((emp, empIdx) => {
     const offDays = new Set<number>();
 
-    // Controlla se ha ferie già approvate in questa settimana
+    // Controlla se il dipendente ha ferie già approvate in questa settimana
     weekDays.forEach((wDay) => {
       if (approvedLeaves[emp.id]?.has(wDay.dateStr)) {
         offDays.add(wDay.dayIndex);
       }
     });
 
-    // Se ha meno di 2 giorni off, assegna i restanti scegliendo dalla rotazione
+    // Se ha meno di 2 giorni off, assegna i restanti dalla rotazione
     if (offDays.size < 2) {
       const pair = preferredOffDayPairs[empIdx % preferredOffDayPairs.length];
       for (const candidateDay of pair) {
@@ -151,7 +150,7 @@ export const generateWeeklySchedule = ({
           offDays.add(candidateDay);
         }
       }
-      // Se ancora non ha 2 giorni, trova il primo giorno feriale libero (1..4)
+      // Se ancora non ne ha 2, assegna il primo giorno feriale (1..4) disponibile
       for (let d = 1; d <= 4 && offDays.size < 2; d++) {
         if (!offDays.has(d)) {
           offDays.add(d);
@@ -165,11 +164,10 @@ export const generateWeeklySchedule = ({
   const shifts: Shift[] = [];
   let cassaCoveredDays = 0;
 
-  // 2. Per ciascun giorno della settimana, assegna i turni e i reparti in base alle competenze
+  // 3. Assegnazione turni e reparti per ciascuna delle 7 giornate
   weekDays.forEach((dayMeta) => {
     const { dateStr, dayIndex, isWeekend, isMerchandiseArrival } = dayMeta;
 
-    // Chi è a riposo/ferie oggi?
     const availableStaff: Employee[] = [];
 
     storeStaff.forEach((emp) => {
@@ -189,27 +187,26 @@ export const generateWeeklySchedule = ({
     });
 
     if (availableStaff.length === 0) {
-      warnings.push(`Attenzione: nessun dipendente disponibile il ${dayMeta.dayName} ${dateStr}!`);
+      warnings.push(`Attenzione: nessun dipendente in servizio il ${dayMeta.dayName} ${dateStr}!`);
       return;
     }
 
-    // Teniamo traccia di chi ha già ricevuto una mansione oggi
     const assignedEmpIds = new Set<string>();
 
-    // Funzione helper per trovare il miglior collaboratore disponibile per un dato reparto
+    // Helper per trovare il miglior collaboratore per competenza decrescente
     const getBestAvailableFor = (dept: Department, excludeIds: Set<string>): Employee | null => {
       const candidates = availableStaff
         .filter((e) => !excludeIds.has(e.id))
         .sort((a, b) => {
           const scoreA = a.skills?.[dept] ?? 1;
           const scoreB = b.skills?.[dept] ?? 1;
-          return scoreB - scoreA; // Decrescente
+          return scoreB - scoreA;
         });
       return candidates[0] || null;
     };
 
-    // --- PRIORITÀ 1: CASSA (Presenza continua, 1 o 2 persone) ---
-    // Nei weekend e nei giorni merci abbiamo bisogno di 2 casse se lo staff lo permette
+    // --- PRIORITÀ 1: CASSA (Presidio continuo garantito) ---
+    // Nei weekend e nei giorni di arrivo merci (con organico >= 6), assegniamo 2 casse
     const targetCassaCount = (isWeekend || isMerchandiseArrival) && availableStaff.length >= 6 ? 2 : 1;
     const cassaStaff: Employee[] = [];
 
@@ -239,17 +236,15 @@ export const generateWeeklySchedule = ({
       assignedEmpIds.add(bestDecor.id);
     }
 
-    // --- ASSEGNAZIONE RIMANENTI: SERRA CALDA, SERRA FREDDA, RINFORZI ---
+    // --- PRIORITÀ 4: SERRA CALDA E SERRA FREDDA (VIVAIO ESTERNO) ---
     const remainingStaff = availableStaff.filter((e) => !assignedEmpIds.has(e.id));
-
-    // Mappa delle assegnazioni per la giornata
     const dayAssignments: { emp: Employee; dept: Department; note: string }[] = [];
 
     cassaStaff.forEach((emp, idx) => {
       dayAssignments.push({
         emp,
         dept: 'Cassa',
-        note: idx === 0 ? 'Cassa 1 - Barriera casse continua' : 'Cassa 2 & Supporto Clienti',
+        note: idx === 0 ? 'Cassa 1 Principale (Barriera Continua)' : 'Cassa 2 & Supporto Reparti',
       });
     });
 
@@ -265,11 +260,10 @@ export const generateWeeklySchedule = ({
       dayAssignments.push({
         emp: bestDecor,
         dept: 'Decor',
-        note: 'Reparto Decor, Vasi & Oggettistica',
+        note: 'Decor, Vasi & Oggettistica',
       });
     }
 
-    // Assegnazione restante su Serra Calda o Serra Fredda a seconda dell'attitudine
     remainingStaff.forEach((emp) => {
       const caldaScore = emp.skills?.['Serra Calda'] ?? 5;
       const freddaScore = emp.skills?.['Serra Fredda'] ?? 5;
@@ -284,20 +278,14 @@ export const generateWeeklySchedule = ({
       dayAssignments.push({ emp, dept, note });
     });
 
-    // Ora determiniamo gli orari e la tipologia di turno ('mattina', 'pomeriggio', 'giornata')
-    // A seconda della modalità: standard (spezzato) o continuato (scaglionato 9, 10, 11)
+    // --- ASSEGNAZIONE ORARI (Standard vs Continuato) ---
     dayAssignments.forEach((item, itemIdx) => {
       const { emp, dept, note } = item;
 
       if (mode === 'continuato') {
-        // Modalità Orario Continuato (Ottobre - Natale):
-        // Tre scaglioni: 09:00 - 17:30, 10:00 - 18:30, 11:00 - 19:00
-        const staggeredSlots = [
-          { start: '09:00', end: '17:30' },
-          { start: '10:00', end: '18:30' },
-          { start: '11:00', end: '19:00' },
-        ];
-        const slot = staggeredSlots[itemIdx % staggeredSlots.length];
+        // Modalità Orario Continuato (Metà Ottobre - Natale):
+        // Scaglioni di ingresso 09:00, 10:00, 11:00 con chiusura ore 19:00
+        const slot = CONTINUATO_SLOTS[itemIdx % CONTINUATO_SLOTS.length];
 
         shifts.push({
           id: `shift-${emp.id}-${dateStr}`,
@@ -308,32 +296,32 @@ export const generateWeeklySchedule = ({
           department: dept,
           startTime: slot.start,
           endTime: slot.end,
-          areaNote: `${note} (Orario continuato)`,
+          areaNote: `${note} (Continuato)`,
         });
       } else {
         // Modalità Standard:
-        // Nel weekend o arrivo merci, privilegiamo copertura completa o alternata
+        // Cassa: sempre giornata intera
+        // Altri reparti: alternanza equilibrata mattina, pomeriggio, giornata
         let shiftType: ShiftType = 'giornata';
-        let startTime = '08:30';
-        let endTime = '19:30';
+        let startTime = STANDARD_HOURS.giornata.start;
+        let endTime = STANDARD_HOURS.giornata.end;
 
         if (dept === 'Cassa') {
-          // Se ci sono 2 casse: una full day/mattina, una full day/pomeriggio
           shiftType = 'giornata';
-          startTime = '08:30';
-          endTime = '19:30';
+          startTime = STANDARD_HOURS.giornata.start;
+          endTime = STANDARD_HOURS.giornata.end;
         } else if (itemIdx % 3 === 0) {
           shiftType = 'mattina';
-          startTime = '08:30';
-          endTime = '12:30';
+          startTime = STANDARD_HOURS.mattina.start;
+          endTime = STANDARD_HOURS.mattina.end;
         } else if (itemIdx % 3 === 1) {
           shiftType = 'pomeriggio';
-          startTime = '14:30';
-          endTime = '19:30';
+          startTime = STANDARD_HOURS.pomeriggio.start;
+          endTime = STANDARD_HOURS.pomeriggio.end;
         } else {
           shiftType = 'giornata';
-          startTime = '08:30';
-          endTime = '19:30';
+          startTime = STANDARD_HOURS.giornata.start;
+          endTime = STANDARD_HOURS.giornata.end;
         }
 
         shifts.push({
@@ -351,11 +339,11 @@ export const generateWeeklySchedule = ({
     });
   });
 
-  // 3. Calcolo statistiche finali
+  // 4. Calcolo statistiche finali
   const employeesWorkingDays: Record<string, number> = {};
   storeStaff.forEach((emp) => {
     const workedDays = shifts.filter(
-      (s) => s.employeeId === emp.id && s.type !== 'riposo' && s.type !== 'ferie'
+      (s) => s.employeeId === emp.id && s.type !== 'riposo' && s.type !== 'ferie' && s.type !== 'malattia'
     ).length;
     employeesWorkingDays[emp.id] = workedDays;
   });
@@ -370,6 +358,7 @@ export const generateWeeklySchedule = ({
       staffCount: storeStaff.length,
       employeesWorkingDays,
       warnings,
+      mode,
     },
   };
 };

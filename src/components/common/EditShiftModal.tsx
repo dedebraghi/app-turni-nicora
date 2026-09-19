@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Department, Employee, Shift, ShiftType } from '../types';
-import { X, Check, Clock, MapPin, Tag } from 'lucide-react';
-import { DEPARTMENTS } from '../utils/scheduler';
+import { DEPARTMENTS, SHIFT_TYPES, STANDARD_HOURS } from '../../domain/rules';
+import { Department, Employee, Shift, ShiftType } from '../../domain/types';
+import { X, Check, Clock, MapPin, Tag, ShieldAlert } from 'lucide-react';
 
 interface EditShiftModalProps {
   shift: Shift;
@@ -9,6 +9,7 @@ interface EditShiftModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (updatedShift: Shift) => void;
+  onFindReplacement?: (shift: Shift) => void;
 }
 
 export const EditShiftModal: React.FC<EditShiftModalProps> = ({
@@ -17,11 +18,12 @@ export const EditShiftModal: React.FC<EditShiftModalProps> = ({
   isOpen,
   onClose,
   onSave,
+  onFindReplacement,
 }) => {
   const [type, setType] = useState<ShiftType>(shift.type);
   const [department, setDepartment] = useState<Department>(shift.department || employee?.role || 'Cassa');
-  const [startTime, setStartTime] = useState(shift.startTime || '08:30');
-  const [endTime, setEndTime] = useState(shift.endTime || '12:30');
+  const [startTime, setStartTime] = useState(shift.startTime || STANDARD_HOURS.mattina.start);
+  const [endTime, setEndTime] = useState(shift.endTime || STANDARD_HOURS.giornata.end);
   const [areaNote, setAreaNote] = useState(shift.areaNote || '');
 
   if (!isOpen) return null;
@@ -29,35 +31,37 @@ export const EditShiftModal: React.FC<EditShiftModalProps> = ({
   const handleTypeSelect = (newType: ShiftType) => {
     setType(newType);
     if (newType === 'mattina') {
-      setStartTime('08:30');
-      setEndTime('12:30');
+      setStartTime(STANDARD_HOURS.mattina.start);
+      setEndTime(STANDARD_HOURS.mattina.end);
     } else if (newType === 'pomeriggio') {
-      setStartTime('14:30');
-      setEndTime('19:30');
+      setStartTime(STANDARD_HOURS.pomeriggio.start);
+      setEndTime(STANDARD_HOURS.pomeriggio.end);
     } else if (newType === 'giornata') {
-      setStartTime('08:30');
-      setEndTime('19:30');
+      setStartTime(STANDARD_HOURS.giornata.start);
+      setEndTime(STANDARD_HOURS.giornata.end);
     }
   };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    const isOff = type === 'riposo' || type === 'ferie' || type === 'malattia';
     onSave({
       ...shift,
       type,
-      department: (type === 'riposo' || type === 'ferie') ? undefined : department,
-      startTime: (type === 'riposo' || type === 'ferie') ? undefined : startTime,
-      endTime: (type === 'riposo' || type === 'ferie') ? undefined : endTime,
-      areaNote: (type === 'riposo' || type === 'ferie') ? undefined : areaNote,
+      department: isOff ? undefined : department,
+      startTime: isOff ? undefined : startTime,
+      endTime: isOff ? undefined : endTime,
+      areaNote: isOff ? undefined : areaNote,
+      isManualOverride: true,
     });
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-xs p-0 sm:p-4">
-      <div className="w-full max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden pb-safe animate-in slide-in-from-bottom duration-200">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-150">
+      <div className="w-full max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-200">
         
-        {/* Modal Header */}
+        {/* Header */}
         <div className="bg-nicora-teal text-white px-4 py-3.5 flex items-center justify-between">
           <div>
             <span className="text-[10px] uppercase font-bold tracking-wider text-nicora-orange-border">
@@ -70,22 +74,22 @@ export const EditShiftModal: React.FC<EditShiftModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 active:scale-90"
+            className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 active:scale-90 transition-colors"
           >
             <X size={18} />
           </button>
         </div>
 
-        {/* Modal Body */}
+        {/* Modal Form */}
         <form onSubmit={handleSave} className="p-4 space-y-3.5 text-xs">
           
-          {/* Shift Type Pills */}
+          {/* Tipologia Turno */}
           <div>
             <label className="block font-bold text-neutral-700 mb-1.5">
               Tipologia Turno:
             </label>
-            <div className="grid grid-cols-5 gap-1">
-              {(['mattina', 'pomeriggio', 'giornata', 'riposo', 'ferie'] as ShiftType[]).map((t) => (
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-1">
+              {SHIFT_TYPES.map((t) => (
                 <button
                   key={t}
                   type="button"
@@ -96,44 +100,68 @@ export const EditShiftModal: React.FC<EditShiftModalProps> = ({
                       : 'bg-neutral-50 text-neutral-600 border-nicora-border hover:bg-neutral-100'
                   }`}
                 >
-                  {t}
+                  {t === 'riposo' ? 'Riposo' : t === 'ferie' ? '🌴 Ferie' : t === 'malattia' ? '🏥 Malat.' : t}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Reparto Assegnato (5 reparti ufficiali) */}
-          {type !== 'riposo' && type !== 'ferie' && (
+          {/* Sostituzione rapida se malattia o imprevisto */}
+          {(type === 'malattia' || type === 'riposo') && onFindReplacement && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ShieldAlert size={16} className="text-nicora-orange flex-shrink-0" />
+                <span className="text-xs text-amber-900 font-medium">
+                  Collaboratore assente in questo giorno?
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onFindReplacement(shift);
+                }}
+                className="bg-nicora-orange hover:bg-nicora-orange-hover text-white text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-xs active:scale-95"
+              >
+                Trova Sostituto
+              </button>
+            </div>
+          )}
+
+          {/* Reparto Assegnato */}
+          {type !== 'riposo' && type !== 'ferie' && type !== 'malattia' && (
             <div>
               <label className="block font-bold text-neutral-700 mb-1.5 flex items-center gap-1">
                 <Tag size={13} className="text-nicora-teal" />
-                <span>Reparto Assegnato:</span>
+                <span>Reparto di Servizio:</span>
               </label>
-              <div className="grid grid-cols-3 gap-1.5">
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
                 {DEPARTMENTS.map((dept) => (
                   <button
                     key={dept}
                     type="button"
                     onClick={() => setDepartment(dept)}
-                    className={`py-1.5 px-2 rounded-lg font-bold text-[11px] border transition-all ${
+                    className={`py-1.5 px-1 rounded-lg font-bold text-[11px] border transition-all truncate text-center ${
                       department === dept
-                        ? 'bg-nicora-teal text-white border-nicora-teal shadow-xs'
+                        ? dept === 'Cassa'
+                          ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+                          : 'bg-nicora-teal text-white border-nicora-teal shadow-xs'
                         : 'bg-neutral-50 text-neutral-700 border-nicora-border hover:bg-neutral-100'
                     }`}
                   >
-                    {dept}
+                    {dept === 'Serra Calda' ? 'S. Calda' : dept === 'Serra Fredda' ? 'S. Fredda' : dept}
                   </button>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Time Picker se turno attivo */}
-          {type !== 'riposo' && type !== 'ferie' && (
+          {/* Orari */}
+          {type !== 'riposo' && type !== 'ferie' && type !== 'malattia' && (
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block font-semibold text-neutral-700 mb-1 flex items-center gap-1">
-                  <Clock size={12} className="text-nicora-teal" /> Inizio
+                  <Clock size={12} className="text-nicora-teal" /> Ora Inizio:
                 </label>
                 <input
                   type="time"
@@ -145,7 +173,7 @@ export const EditShiftModal: React.FC<EditShiftModalProps> = ({
               </div>
               <div>
                 <label className="block font-semibold text-neutral-700 mb-1 flex items-center gap-1">
-                  <Clock size={12} className="text-nicora-orange" /> Fine
+                  <Clock size={12} className="text-nicora-orange" /> Ora Fine:
                 </label>
                 <input
                   type="time"
@@ -159,22 +187,22 @@ export const EditShiftModal: React.FC<EditShiftModalProps> = ({
           )}
 
           {/* Dettaglio mansione o postazione */}
-          {type !== 'riposo' && type !== 'ferie' && (
+          {type !== 'riposo' && type !== 'ferie' && type !== 'malattia' && (
             <div>
               <label className="block font-semibold text-neutral-700 mb-1 flex items-center gap-1">
-                <MapPin size={12} className="text-nicora-teal" /> Mansione o Postazione Specifica
+                <MapPin size={12} className="text-nicora-teal" /> Postazione o Mansione Specifica:
               </label>
               <input
                 type="text"
                 value={areaNote}
                 onChange={(e) => setAreaNote(e.target.value)}
-                placeholder="Es. Cassa 1 continua, Scarico merci, Fioreria composizioni..."
+                placeholder="Es. Cassa 1 Continua, Scarico merci vivaio..."
                 className="w-full bg-neutral-50 border border-nicora-border rounded-xl px-3 py-2 text-neutral-800 font-medium focus:ring-1 focus:ring-nicora-orange min-h-[44px]"
               />
             </div>
           )}
 
-          {/* Action Buttons */}
+          {/* Pulsanti Azione */}
           <div className="flex gap-2 pt-2">
             <button
               type="button"
@@ -188,7 +216,7 @@ export const EditShiftModal: React.FC<EditShiftModalProps> = ({
               className="flex-1 py-3 bg-nicora-orange hover:bg-nicora-orange-hover text-white font-bold rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-[0.98] min-h-[44px]"
             >
               <Check size={16} />
-              <span>Salva Turno</span>
+              <span>Salva Modifiche</span>
             </button>
           </div>
         </form>

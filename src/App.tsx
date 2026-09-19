@@ -1,75 +1,80 @@
 import React, { useState, useEffect } from 'react';
-import { Header } from './components/Header';
-import { BottomNav } from './components/BottomNav';
-import { TodayView } from './components/TodayView';
-import { WeekView } from './components/WeekView';
-import { RequestsView } from './components/RequestsView';
-import { EditShiftModal } from './components/EditShiftModal';
-import { SkillsMatrixModal } from './components/SkillsMatrixModal';
-import { GenerateScheduleModal } from './components/GenerateScheduleModal';
-import { LoginScreen } from './components/LoginScreen';
-import { INITIAL_EMPLOYEES, generateInitialMockShifts, INITIAL_REQUESTS } from './mockData';
-import { ActiveTab, Department, Employee, LocationId, Shift, ShiftRequest, UserSession } from './types';
+import { AppHeader } from './components/layout/AppHeader';
+import { ResponsiveNav } from './components/layout/ResponsiveNav';
+import { TodayPresence } from './components/staff/TodayPresence';
+import { MySchedule } from './components/staff/MySchedule';
+import { LeaveRequests } from './components/staff/LeaveRequests';
+import { PlannerGrid } from './components/admin/PlannerGrid';
+import { SkillsMatrix } from './components/admin/SkillsMatrix';
+import { GenerateModal } from './components/admin/GenerateModal';
+import { EmergencyModal } from './components/admin/EmergencyModal';
+import { PrintExportModal } from './components/admin/PrintExportModal';
+import { EditShiftModal } from './components/common/EditShiftModal';
+import { LoginScreen } from './components/auth/LoginScreen';
+
+import { ActiveTab, Department, Employee, LocationId, Shift, ShiftRequest, UserSession } from './domain/types';
+import { LOCATIONS } from './domain/mockData';
+import { getSundayOfWeek, getWeekDays } from './engine/schedulerEngine';
+import {
+  loadStoredEmployees,
+  loadStoredLocation,
+  loadStoredRequests,
+  loadStoredSession,
+  loadStoredShifts,
+  saveStoredEmployees,
+  saveStoredLocation,
+  saveStoredRequests,
+  saveStoredSession,
+  saveStoredShifts,
+} from './services/storageService';
 
 export const App: React.FC = () => {
   // Sede attiva (Gazzada o Varese)
-  const [activeLocation, setActiveLocation] = useState<LocationId>(() => {
-    const saved = localStorage.getItem('nicora_location') as LocationId | null;
-    return saved === 'gazzada' || saved === 'varese' ? saved : 'gazzada';
-  });
+  const [activeLocation, setActiveLocation] = useState<LocationId>(loadStoredLocation);
 
   // Sessione utente loggato
-  const [session, setSession] = useState<UserSession | null>(() => {
-    const saved = localStorage.getItem('nicora_session');
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [session, setSession] = useState<UserSession | null>(loadStoredSession);
 
-  const [employees, setEmployees] = useState<Employee[]>(() => {
-    const saved = localStorage.getItem('nicora_employees');
-    return saved ? JSON.parse(saved) : INITIAL_EMPLOYEES;
-  });
+  // Collaboratori, Turni, Richieste
+  const [employees, setEmployees] = useState<Employee[]>(loadStoredEmployees);
+  const [shifts, setShifts] = useState<Shift[]>(loadStoredShifts);
+  const [requests, setRequests] = useState<ShiftRequest[]>(loadStoredRequests);
 
-  const [shifts, setShifts] = useState<Shift[]>(() => {
-    const saved = localStorage.getItem('nicora_shifts');
-    return saved ? JSON.parse(saved) : generateInitialMockShifts();
-  });
-
-  const [requests, setRequests] = useState<ShiftRequest[]>(() => {
-    const saved = localStorage.getItem('nicora_requests');
-    return saved ? JSON.parse(saved) : INITIAL_REQUESTS;
-  });
-
+  // Tab di navigazione
   const [activeTab, setActiveTab] = useState<ActiveTab>('today');
+  
+  // Modalità Responsabile / Manager
   const [isManagerMode, setIsManagerMode] = useState<boolean>(() => session?.role === 'manager');
+
+  // Modali
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
-  const [isSkillsModalOpen, setIsSkillsModalOpen] = useState<boolean>(false);
-  const [isGenerateModalOpen, setIsGenerateModalOpen] = useState<boolean>(false);
+  const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
+  const [isSkillsModalOpen, setIsSkillsModalOpen] = useState(false);
+  const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [emergencyTargetShift, setEmergencyTargetShift] = useState<Shift | null>(null);
 
   const todayStr = new Date().toISOString().split('T')[0];
 
-  // Sincronizzazione LocalStorage
+  // Sincronizzazione automatica su Storage
   useEffect(() => {
-    localStorage.setItem('nicora_location', activeLocation);
+    saveStoredLocation(activeLocation);
   }, [activeLocation]);
 
   useEffect(() => {
-    localStorage.setItem('nicora_employees', JSON.stringify(employees));
+    saveStoredEmployees(employees);
   }, [employees]);
 
   useEffect(() => {
-    localStorage.setItem('nicora_shifts', JSON.stringify(shifts));
+    saveStoredShifts(shifts);
   }, [shifts]);
 
   useEffect(() => {
-    localStorage.setItem('nicora_requests', JSON.stringify(requests));
+    saveStoredRequests(requests);
   }, [requests]);
 
   useEffect(() => {
-    if (session) {
-      localStorage.setItem('nicora_session', JSON.stringify(session));
-    } else {
-      localStorage.removeItem('nicora_session');
-    }
+    saveStoredSession(session);
   }, [session]);
 
   const handleLoginSuccess = (newSession: UserSession, userLocation: LocationId) => {
@@ -81,6 +86,7 @@ export const App: React.FC = () => {
   const handleLogout = () => {
     setSession(null);
     setIsManagerMode(false);
+    setActiveTab('today');
   };
 
   const handleSaveShift = (updatedShift: Shift) => {
@@ -91,7 +97,6 @@ export const App: React.FC = () => {
 
   const handleApplyGeneratedShifts = (generatedShifts: Shift[]) => {
     setShifts((prev) => {
-      // Sostituisce i turni con lo stesso ID o combina preservando gli altri
       const newShiftsMap = new Map(generatedShifts.map((s) => [s.id, s]));
       const untouchedShifts = prev.filter((s) => !newShiftsMap.has(s.id));
       return [...untouchedShifts, ...generatedShifts];
@@ -104,6 +109,40 @@ export const App: React.FC = () => {
     );
   };
 
+  // Gestione sostituzione d'emergenza / malattia
+  const handleApplyReplacement = (
+    absentShift: Shift,
+    replacementEmployeeId: string,
+    department: Department
+  ) => {
+    setShifts((prev) => {
+      return prev.map((s) => {
+        // Se è il turno della persona assente -> diventa malattia
+        if (s.employeeId === absentShift.employeeId && s.date === absentShift.date) {
+          return {
+            ...s,
+            type: 'malattia',
+            department: undefined,
+            areaNote: 'Assenza per malattia / emergenza',
+          };
+        }
+
+        // Se è il turno del sostituto nella stessa data -> prende in carico il turno e il reparto
+        if (s.employeeId === replacementEmployeeId && s.date === absentShift.date) {
+          return {
+            ...s,
+            type: s.type === 'riposo' ? 'giornata' : s.type,
+            department,
+            areaNote: `Sostituzione per assenza ${absentShift.employeeId} (${department})`,
+            isManualOverride: true,
+          };
+        }
+
+        return s;
+      });
+    });
+  };
+
   const handleSubmitRequest = (newReq: Omit<ShiftRequest, 'id' | 'createdAt' | 'status'>) => {
     const created: ShiftRequest = {
       ...newReq,
@@ -114,14 +153,14 @@ export const App: React.FC = () => {
     setRequests((prev) => [created, ...prev]);
   };
 
-  const handleUpdateRequestStatus = (id: string, status: 'approved' | 'rejected') => {
+  const handleUpdateRequestStatus = (id: string, status: 'approved' | 'rejected', managerNote?: string) => {
     const targetReq = requests.find((r) => r.id === id);
 
     setRequests((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status } : r))
+      prev.map((r) => (r.id === id ? { ...r, status, managerNote } : r))
     );
 
-    // Se approvata richiesta ferie, converti il turno in 'ferie' automaticamente
+    // Se approvata richiesta ferie, converti automaticamente il turno in 'ferie'
     if (status === 'approved' && targetReq && targetReq.type === 'leave') {
       setShifts((prev) =>
         prev.map((s) => {
@@ -132,12 +171,46 @@ export const App: React.FC = () => {
               department: undefined,
               startTime: undefined,
               endTime: undefined,
-              areaNote: undefined,
+              areaNote: 'Ferie concordate con la direzione',
             };
           }
           return s;
         })
       );
+    }
+
+    // Se approvata richiesta di scambio turno
+    if (status === 'approved' && targetReq && targetReq.type === 'swap' && targetReq.targetEmployeeId) {
+      setShifts((prev) => {
+        const reqShift = prev.find((s) => s.employeeId === targetReq.requesterId && s.date === targetReq.shiftDate);
+        const targetShift = prev.find((s) => s.employeeId === targetReq.targetEmployeeId && s.date === targetReq.shiftDate);
+
+        if (!reqShift || !targetShift) return prev;
+
+        return prev.map((s) => {
+          if (s.id === reqShift.id) {
+            return {
+              ...s,
+              type: targetShift.type,
+              department: targetShift.department,
+              startTime: targetShift.startTime,
+              endTime: targetShift.endTime,
+              areaNote: `Scambiato con ${targetShift.employeeId}`,
+            };
+          }
+          if (s.id === targetShift.id) {
+            return {
+              ...s,
+              type: reqShift.type,
+              department: reqShift.department,
+              startTime: reqShift.startTime,
+              endTime: reqShift.endTime,
+              areaNote: `Scambiato con ${reqShift.employeeId}`,
+            };
+          }
+          return s;
+        });
+      });
     }
   };
 
@@ -146,104 +219,162 @@ export const App: React.FC = () => {
     return <LoginScreen employees={employees} onLoginSuccess={handleLoginSuccess} />;
   }
 
-  const currentEmployeeId = session.user.id;
+  const currentEmployee = session.user;
   const storeRequests = requests.filter((r) => r.locationId === activeLocation);
   const pendingRequestsCount = storeRequests.filter((r) => r.status === 'pending').length;
+  const locationInfo = LOCATIONS.find((l) => l.id === activeLocation) || LOCATIONS[0];
+
+  const currentSunday = getSundayOfWeek(new Date());
+  const currentWeekDays = getWeekDays(currentSunday.toISOString().split('T')[0]);
 
   return (
-    <div className="min-h-screen bg-nicora-bg text-nicora-text flex justify-center">
-      {/* Container mobile simulato per test da desktop e perfetto su smartphone */}
-      <div className="w-full max-w-md min-h-screen bg-nicora-bg flex flex-col relative border-x border-neutral-200/60 shadow-xl">
+    <div className="min-h-screen bg-nicora-bg text-nicora-text flex flex-col antialiased">
+      
+      {/* Header Superiore */}
+      <AppHeader
+        session={session}
+        onLogout={handleLogout}
+        isManagerMode={isManagerMode}
+        onToggleManagerMode={() => setIsManagerMode(!isManagerMode)}
+        activeLocation={activeLocation}
+        onChangeLocation={setActiveLocation}
+      />
+
+      {/* Navigazione Responsive (Desktop Top Bar / Mobile Bottom Nav) */}
+      <ResponsiveNav
+        activeTab={activeTab}
+        onChangeTab={setActiveTab}
+        pendingRequestsCount={pendingRequestsCount}
+        isManagerMode={isManagerMode}
+      />
+
+      {/* Area Contenuto Principale */}
+      <main className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
         
-        {/* Header superiore con switcher sede e stato utente */}
-        <Header
-          session={session}
-          onLogout={handleLogout}
-          isManagerMode={isManagerMode}
-          onToggleManagerMode={() => setIsManagerMode(!isManagerMode)}
-          activeLocation={activeLocation}
-          onChangeLocation={setActiveLocation}
-          onOpenSkillsMatrix={() => setIsSkillsModalOpen(true)}
-        />
-
-        {/* Contenuto dinamico delle schermate */}
-        <main className="flex-1 p-3.5 overflow-y-auto">
-          {activeTab === 'today' && (
-            <TodayView
-              currentDate={todayStr}
-              currentEmployeeId={currentEmployeeId}
-              employees={employees}
-              shifts={shifts}
-              isManagerMode={isManagerMode}
-              activeLocation={activeLocation}
-              onEditShift={(shift) => setEditingShift(shift)}
-            />
-          )}
-
-          {activeTab === 'week' && (
-            <WeekView
-              currentEmployeeId={currentEmployeeId}
-              employees={employees}
-              shifts={shifts}
-              isManagerMode={isManagerMode}
-              activeLocation={activeLocation}
-              onEditShift={(shift) => setEditingShift(shift)}
-              onOpenGenerateModal={() => setIsGenerateModalOpen(true)}
-              onOpenSkillsModal={() => setIsSkillsModalOpen(true)}
-            />
-          )}
-
-          {activeTab === 'requests' && (
-            <RequestsView
-              currentEmployeeId={currentEmployeeId}
-              employees={employees}
-              requests={requests}
-              onSubmitRequest={handleSubmitRequest}
-              isManagerMode={isManagerMode}
-              onUpdateStatus={handleUpdateRequestStatus}
-              activeLocation={activeLocation}
-            />
-          )}
-        </main>
-
-        {/* Navigazione inferiore per pollice */}
-        <BottomNav
-          activeTab={activeTab}
-          onChangeTab={setActiveTab}
-          pendingRequestsCount={pendingRequestsCount}
-        />
-
-        {/* Modale Modifica Turno (Responsabile) */}
-        {editingShift && isManagerMode && (
-          <EditShiftModal
-            key={editingShift.id}
-            shift={editingShift}
-            employee={employees.find((e) => e.id === editingShift.employeeId)}
-            isOpen={Boolean(editingShift)}
-            onClose={() => setEditingShift(null)}
-            onSave={handleSaveShift}
+        {/* Tab 1: Oggi in Sede */}
+        {activeTab === 'today' && (
+          <TodayPresence
+            currentDate={todayStr}
+            currentEmployeeId={currentEmployee.id}
+            employees={employees}
+            shifts={shifts}
+            isManagerMode={isManagerMode}
+            activeLocation={activeLocation}
+            onEditShift={(shift) => setEditingShift(shift)}
           />
         )}
 
-        {/* Modale Matrice Competenze 1-10 */}
-        <SkillsMatrixModal
-          isOpen={isSkillsModalOpen}
-          onClose={() => setIsSkillsModalOpen(false)}
-          employees={employees}
-          locationId={activeLocation}
-          onUpdateSkills={handleUpdateEmployeeSkills}
-        />
+        {/* Tab 2: I Miei Turni Personali */}
+        {activeTab === 'my-shifts' && (
+          <MySchedule
+            currentEmployee={currentEmployee}
+            shifts={shifts}
+            activeLocation={activeLocation}
+          />
+        )}
 
-        {/* Modale Generazione Automatica Bozza */}
-        <GenerateScheduleModal
-          isOpen={isGenerateModalOpen}
-          onClose={() => setIsGenerateModalOpen(false)}
-          locationId={activeLocation}
-          employees={employees}
-          requests={requests}
-          onApplyShifts={handleApplyGeneratedShifts}
+        {/* Tab 3: Tabellone Settimanale / Pianificatore Direzione */}
+        {activeTab === 'planner' && (
+          <PlannerGrid
+            location={locationInfo}
+            employees={employees}
+            shifts={shifts}
+            isManagerMode={isManagerMode}
+            onEditShift={(shift) => setEditingShift(shift)}
+            onOpenGenerateModal={() => setIsGenerateModalOpen(true)}
+            onOpenSkillsModal={() => setIsSkillsModalOpen(true)}
+            onOpenEmergencyModal={(shift) => {
+              setEmergencyTargetShift(shift || null);
+              setIsEmergencyModalOpen(true);
+            }}
+            onOpenExportModal={() => setIsExportModalOpen(true)}
+          />
+        )}
+
+        {/* Tab 4: Richieste Ferie & Scambi Turno */}
+        {activeTab === 'requests' && (
+          <LeaveRequests
+            currentEmployeeId={currentEmployee.id}
+            employees={employees}
+            requests={requests}
+            onSubmitRequest={handleSubmitRequest}
+            isManagerMode={isManagerMode}
+            onUpdateStatus={handleUpdateRequestStatus}
+            activeLocation={activeLocation}
+          />
+        )}
+
+        {/* Tab 5: Matrice Competenze (Solo per Direzione) */}
+        {activeTab === 'skills' && isManagerMode && (
+          <SkillsMatrix
+            employees={employees}
+            locationId={activeLocation}
+            onUpdateSkills={handleUpdateEmployeeSkills}
+            isStandaloneTab={true}
+          />
+        )}
+
+      </main>
+
+      {/* Modale Modifica Turno */}
+      {editingShift && isManagerMode && (
+        <EditShiftModal
+          key={editingShift.id}
+          shift={editingShift}
+          employee={employees.find((e) => e.id === editingShift.employeeId)}
+          isOpen={Boolean(editingShift)}
+          onClose={() => setEditingShift(null)}
+          onSave={handleSaveShift}
+          onFindReplacement={(shift) => {
+            setEmergencyTargetShift(shift);
+            setIsEmergencyModalOpen(true);
+          }}
         />
-      </div>
+      )}
+
+      {/* Modale Generazione Automatica Bozza Turni */}
+      <GenerateModal
+        isOpen={isGenerateModalOpen}
+        onClose={() => setIsGenerateModalOpen(false)}
+        locationId={activeLocation}
+        employees={employees}
+        requests={requests}
+        onApplyShifts={handleApplyGeneratedShifts}
+      />
+
+      {/* Modale Competenze 1-10 (Overlay rapido) */}
+      <SkillsMatrix
+        isOpen={isSkillsModalOpen}
+        onClose={() => setIsSkillsModalOpen(false)}
+        employees={employees}
+        locationId={activeLocation}
+        onUpdateSkills={handleUpdateEmployeeSkills}
+      />
+
+      {/* Modale Sostituzione Rapida / Emergenza */}
+      <EmergencyModal
+        isOpen={isEmergencyModalOpen}
+        onClose={() => {
+          setIsEmergencyModalOpen(false);
+          setEmergencyTargetShift(null);
+        }}
+        locationId={activeLocation}
+        employees={employees}
+        shifts={shifts}
+        preselectedShift={emergencyTargetShift}
+        onApplyReplacement={handleApplyReplacement}
+      />
+
+      {/* Modale Stampa Tabellone A4 & Condivisione WhatsApp */}
+      <PrintExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        location={locationInfo}
+        weekDays={currentWeekDays}
+        employees={employees}
+        shifts={shifts}
+      />
+
     </div>
   );
 };

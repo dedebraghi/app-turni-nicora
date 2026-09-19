@@ -1,7 +1,6 @@
-import { Employee, LocationInfo, Shift, ShiftRequest } from './types';
-import { generateWeeklySchedule, getSundayOfWeek } from './utils/scheduler';
+import { Employee, LocationInfo, ShiftRequest } from './types';
 
-export const MANAGER_MASTER_PASSWORD = 'admin'; // Password master del responsabile per l'MVP
+export const MANAGER_MASTER_PASSWORD = 'admin';
 
 export const LOCATIONS: LocationInfo[] = [
   {
@@ -9,6 +8,8 @@ export const LOCATIONS: LocationInfo[] = [
     name: 'Nicora Garden Gazzada',
     shortName: 'Gazzada',
     city: 'Gazzada Schianno (VA)',
+    address: 'Via Gallarate 26, 21045 Gazzada Schianno (VA)',
+    phone: '0332 461144',
     defaultStaffCount: 10,
   },
   {
@@ -16,12 +17,16 @@ export const LOCATIONS: LocationInfo[] = [
     name: 'Nicora Garden Varese',
     shortName: 'Varese',
     city: 'Varese Centro',
-    defaultStaffCount: 13,
+    address: 'Via Daverio 46, 21100 Varese (VA)',
+    phone: '0332 312101',
+    defaultStaffCount: 14,
   },
 ];
 
 export const INITIAL_EMPLOYEES: Employee[] = [
+  // ==========================================
   // --- GAZZADA (10 Collaboratori) ---
+  // ==========================================
   {
     id: 'emp-gz-1',
     name: 'Marco V.',
@@ -29,9 +34,11 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: 'Serra Calda',
     skills: { Cassa: 7, Fioreria: 5, Decor: 6, 'Serra Calda': 10, 'Serra Fredda': 8 },
     avatar: 'MV',
-    email: 'marco@nicoragarden.it',
+    email: 'marco.v@nicoragarden.it',
+    phone: '340 1234567',
     password: '123',
     isManager: true,
+    contractHours: 40,
   },
   {
     id: 'emp-gz-2',
@@ -40,8 +47,10 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: 'Cassa',
     skills: { Cassa: 10, Fioreria: 4, Decor: 5, 'Serra Calda': 3, 'Serra Fredda': 2 },
     avatar: 'ER',
-    email: 'elena@nicoragarden.it',
+    email: 'elena.r@nicoragarden.it',
+    phone: '347 2345678',
     password: '123',
+    contractHours: 40,
   },
   {
     id: 'emp-gz-3',
@@ -50,8 +59,10 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: 'Fioreria',
     skills: { Cassa: 8, Fioreria: 10, Decor: 7, 'Serra Calda': 4, 'Serra Fredda': 3 },
     avatar: 'CT',
-    email: 'cecilia@nicoragarden.it',
+    email: 'cecilia.t@nicoragarden.it',
+    phone: '333 3456789',
     password: '123',
+    contractHours: 40,
   },
   {
     id: 'emp-gz-4',
@@ -60,8 +71,10 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: 'Cassa',
     skills: { Cassa: 10, Fioreria: 6, Decor: 5, 'Serra Calda': 7, 'Serra Fredda': 6 },
     avatar: 'DG',
-    email: 'davide@nicoragarden.it',
+    email: 'davide.g@nicoragarden.it',
+    phone: '339 4567890',
     password: '123',
+    contractHours: 40,
   },
   {
     id: 'emp-gz-5',
@@ -70,8 +83,10 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: 'Serra Fredda',
     skills: { Cassa: 3, Fioreria: 2, Decor: 4, 'Serra Calda': 7, 'Serra Fredda': 10 },
     avatar: 'LB',
-    email: 'luca@nicoragarden.it',
+    email: 'luca.b@nicoragarden.it',
+    phone: '328 5678901',
     password: '123',
+    contractHours: 40,
   },
   {
     id: 'emp-gz-6',
@@ -80,8 +95,10 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: 'Decor',
     skills: { Cassa: 6, Fioreria: 7, Decor: 10, 'Serra Calda': 3, 'Serra Fredda': 2 },
     avatar: 'CM',
-    email: 'chiara@nicoragarden.it',
+    email: 'chiara.m@nicoragarden.it',
+    phone: '349 6789012',
     password: '123',
+    contractHours: 40,
   },
   {
     id: 'emp-gz-7',
@@ -90,8 +107,10 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: 'Cassa',
     skills: { Cassa: 9, Fioreria: 4, Decor: 6, 'Serra Calda': 3, 'Serra Fredda': 2 },
     avatar: 'ST',
-    email: 'simona@nicoragarden.it',
+    email: 'simona.t@nicoragarden.it',
+    phone: '338 7890123',
     password: '123',
+    contractHours: 40,
   },
   {
     id: 'emp-gz-8',
@@ -100,8 +119,10 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: 'Serra Fredda',
     skills: { Cassa: 4, Fioreria: 2, Decor: 3, 'Serra Calda': 8, 'Serra Fredda': 9 },
     avatar: 'PF',
-    email: 'paolo@nicoragarden.it',
+    email: 'paolo.f@nicoragarden.it',
+    phone: '345 8901234',
     password: '123',
+    contractHours: 40,
   },
   {
     id: 'emp-gz-9',
@@ -110,8 +131,10 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: 'Fioreria',
     skills: { Cassa: 6, Fioreria: 9, Decor: 8, 'Serra Calda': 4, 'Serra Fredda': 3 },
     avatar: 'VB',
-    email: 'valentina@nicoragarden.it',
+    email: 'valentina.b@nicoragarden.it',
+    phone: '342 9012345',
     password: '123',
+    contractHours: 40,
   },
   {
     id: 'emp-gz-10',
@@ -120,11 +143,15 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: 'Decor',
     skills: { Cassa: 5, Fioreria: 5, Decor: 9, 'Serra Calda': 6, 'Serra Fredda': 7 },
     avatar: 'MR',
-    email: 'matteo@nicoragarden.it',
+    email: 'matteo.r@nicoragarden.it',
+    phone: '331 0123456',
     password: '123',
+    contractHours: 40,
   },
 
-  // --- VARESE (13 Collaboratori) ---
+  // ==========================================
+  // --- VARESE (14 Collaboratori) ---
+  // ==========================================
   {
     id: 'emp-va-1',
     name: 'Vittore Nicora',
@@ -133,8 +160,10 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     skills: { Cassa: 8, Fioreria: 8, Decor: 8, 'Serra Calda': 10, 'Serra Fredda': 10 },
     avatar: 'VN',
     email: 'vittore@nicoragarden.it',
+    phone: '335 1122334',
     password: 'admin',
     isManager: true,
+    contractHours: 40,
   },
   {
     id: 'emp-va-2',
@@ -143,9 +172,11 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: 'Cassa',
     skills: { Cassa: 10, Fioreria: 5, Decor: 7, 'Serra Calda': 7, 'Serra Fredda': 6 },
     avatar: 'AP',
-    email: 'andrea@nicoragarden.it',
+    email: 'andrea.p@nicoragarden.it',
+    phone: '348 2233445',
     password: '123',
     isManager: true,
+    contractHours: 40,
   },
   {
     id: 'emp-va-3',
@@ -154,8 +185,10 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: 'Fioreria',
     skills: { Cassa: 7, Fioreria: 10, Decor: 8, 'Serra Calda': 4, 'Serra Fredda': 3 },
     avatar: 'SM',
-    email: 'silvia@nicoragarden.it',
+    email: 'silvia.m@nicoragarden.it',
+    phone: '339 3344556',
     password: '123',
+    contractHours: 40,
   },
   {
     id: 'emp-va-4',
@@ -164,8 +197,10 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: 'Serra Calda',
     skills: { Cassa: 5, Fioreria: 4, Decor: 4, 'Serra Calda': 10, 'Serra Fredda': 9 },
     avatar: 'RC',
-    email: 'roberto@nicoragarden.it',
+    email: 'roberto.c@nicoragarden.it',
+    phone: '320 4455667',
     password: '123',
+    contractHours: 40,
   },
   {
     id: 'emp-va-5',
@@ -174,8 +209,10 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: 'Cassa',
     skills: { Cassa: 10, Fioreria: 6, Decor: 6, 'Serra Calda': 3, 'Serra Fredda': 3 },
     avatar: 'FL',
-    email: 'francesca@nicoragarden.it',
+    email: 'francesca.l@nicoragarden.it',
+    phone: '347 5566778',
     password: '123',
+    contractHours: 40,
   },
   {
     id: 'emp-va-6',
@@ -184,8 +221,10 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: 'Serra Fredda',
     skills: { Cassa: 3, Fioreria: 2, Decor: 3, 'Serra Calda': 7, 'Serra Fredda': 10 },
     avatar: 'GD',
-    email: 'giorgio@nicoragarden.it',
+    email: 'giorgio.d@nicoragarden.it',
+    phone: '333 6677889',
     password: '123',
+    contractHours: 40,
   },
   {
     id: 'emp-va-7',
@@ -194,8 +233,10 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: 'Decor',
     skills: { Cassa: 6, Fioreria: 7, Decor: 10, 'Serra Calda': 3, 'Serra Fredda': 3 },
     avatar: 'GB',
-    email: 'giulia@nicoragarden.it',
+    email: 'giulia.b@nicoragarden.it',
+    phone: '340 7788990',
     password: '123',
+    contractHours: 40,
   },
   {
     id: 'emp-va-8',
@@ -204,8 +245,10 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: 'Serra Calda',
     skills: { Cassa: 4, Fioreria: 3, Decor: 4, 'Serra Calda': 10, 'Serra Fredda': 8 },
     avatar: 'SF',
-    email: 'stefano@nicoragarden.it',
+    email: 'stefano.f@nicoragarden.it',
+    phone: '329 8899001',
     password: '123',
+    contractHours: 40,
   },
   {
     id: 'emp-va-9',
@@ -214,8 +257,10 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: 'Cassa',
     skills: { Cassa: 9, Fioreria: 8, Decor: 5, 'Serra Calda': 4, 'Serra Fredda': 3 },
     avatar: 'LG',
-    email: 'laura@nicoragarden.it',
+    email: 'laura.g@nicoragarden.it',
+    phone: '346 9900112',
     password: '123',
+    contractHours: 40,
   },
   {
     id: 'emp-va-10',
@@ -224,8 +269,10 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: 'Decor',
     skills: { Cassa: 4, Fioreria: 5, Decor: 9, 'Serra Calda': 6, 'Serra Fredda': 6 },
     avatar: 'CV',
-    email: 'carlo@nicoragarden.it',
+    email: 'carlo.v@nicoragarden.it',
+    phone: '338 0011223',
     password: '123',
+    contractHours: 40,
   },
   {
     id: 'emp-va-11',
@@ -234,8 +281,10 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: 'Fioreria',
     skills: { Cassa: 6, Fioreria: 9, Decor: 7, 'Serra Calda': 3, 'Serra Fredda': 3 },
     avatar: 'MS',
-    email: 'monica@nicoragarden.it',
+    email: 'monica.s@nicoragarden.it',
+    phone: '335 1122445',
     password: '123',
+    contractHours: 40,
   },
   {
     id: 'emp-va-12',
@@ -244,8 +293,10 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: 'Serra Fredda',
     skills: { Cassa: 4, Fioreria: 3, Decor: 4, 'Serra Calda': 8, 'Serra Fredda': 10 },
     avatar: 'AN',
-    email: 'alessandro@nicoragarden.it',
+    email: 'alessandro.n@nicoragarden.it',
+    phone: '349 2233556',
     password: '123',
+    contractHours: 40,
   },
   {
     id: 'emp-va-13',
@@ -254,8 +305,22 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: 'Cassa',
     skills: { Cassa: 9, Fioreria: 5, Decor: 6, 'Serra Calda': 3, 'Serra Fredda': 2 },
     avatar: 'EM',
-    email: 'elisa@nicoragarden.it',
+    email: 'elisa.m@nicoragarden.it',
+    phone: '347 3344667',
     password: '123',
+    contractHours: 40,
+  },
+  {
+    id: 'emp-va-14',
+    name: 'Federico P.',
+    locationId: 'varese',
+    role: 'Serra Fredda',
+    skills: { Cassa: 5, Fioreria: 3, Decor: 4, 'Serra Calda': 7, 'Serra Fredda': 9 },
+    avatar: 'FP',
+    email: 'federico.p@nicoragarden.it',
+    phone: '328 4455778',
+    password: '123',
+    contractHours: 40,
   },
 ];
 
@@ -280,6 +345,7 @@ export const INITIAL_REQUESTS: ShiftRequest[] = [
     reason: 'Gita in montagna programmata (giorno di riposo desiderato)',
     status: 'approved',
     createdAt: 'Ieri alle 17:30',
+    managerNote: 'Concordato giorno alternativo',
   },
   {
     id: 'req-3',
@@ -287,32 +353,8 @@ export const INITIAL_REQUESTS: ShiftRequest[] = [
     locationId: 'varese',
     type: 'leave',
     shiftDate: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
-    reason: 'Permesso speciale fiera floreale',
+    reason: 'Permesso speciale fiera florovivaistica',
     status: 'pending',
     createdAt: 'Ieri alle 10:00',
   },
 ];
-
-// Generatore orari realistici per entrambe le sedi
-export const generateInitialMockShifts = (): Shift[] => {
-  const currentSunday = getSundayOfWeek(new Date());
-  const sundayStr = currentSunday.toISOString().split('T')[0];
-
-  const gazzadaResult = generateWeeklySchedule({
-    locationId: 'gazzada',
-    employees: INITIAL_EMPLOYEES,
-    weekStartDate: sundayStr,
-    requests: INITIAL_REQUESTS,
-    mode: 'standard',
-  });
-
-  const vareseResult = generateWeeklySchedule({
-    locationId: 'varese',
-    employees: INITIAL_EMPLOYEES,
-    weekStartDate: sundayStr,
-    requests: INITIAL_REQUESTS,
-    mode: 'standard',
-  });
-
-  return [...gazzadaResult.shifts, ...vareseResult.shifts];
-};
