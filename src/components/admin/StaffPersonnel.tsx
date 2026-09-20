@@ -10,6 +10,7 @@ import {
   Info,
   KeyRound,
   Mail,
+  MapPin,
   Phone,
   Plus,
   RefreshCw,
@@ -156,6 +157,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
   const [formData, setFormData] = useState<{
     id: string;
     name: string;
+    locationId: LocationId;
     role: Department;
     contractHours: number;
     password: string;
@@ -166,6 +168,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
   }>({
     id: '',
     name: '',
+    locationId: activeLocation,
     role: 'Cassa',
     contractHours: 40,
     password: '1234',
@@ -179,6 +182,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
     setFormData({
       id: `emp-${activeLocation.slice(0, 2)}-${Date.now()}`,
       name: '',
+      locationId: activeLocation,
       role: 'Cassa',
       contractHours: 40,
       password: '1234',
@@ -196,6 +200,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
     setFormData({
       id: emp.id,
       name: emp.name,
+      locationId: emp.locationId || activeLocation,
       role: emp.role,
       contractHours: currentQuick?.contractHours || emp.contractHours || 40,
       password: emp.password || '1234',
@@ -222,7 +227,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
     const employeeToSave: Employee = {
       id: formData.id,
       name: formData.name.trim(),
-      locationId: activeLocation,
+      locationId: formData.locationId,
       role: formData.role,
       skills: formData.skills,
       avatar,
@@ -750,6 +755,37 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                   className="w-full bg-neutral-50 border border-nicora-border rounded-xl px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-nicora-teal min-h-[44px]"
                   required
                 />
+              </div>
+
+              <div>
+                <label className="block font-bold text-neutral-800 mb-1.5 flex items-center gap-1.5">
+                  <MapPin size={13} className="text-nicora-teal" />
+                  <span>Sede di Riferimento:</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, locationId: 'gazzada' })}
+                    className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-xs font-bold transition-all ${
+                      formData.locationId === 'gazzada'
+                        ? 'bg-nicora-teal text-white border-nicora-teal shadow-sm'
+                        : 'bg-neutral-50 text-neutral-600 border-neutral-200 hover:bg-neutral-100'
+                    }`}
+                  >
+                    <span>🌱 Gazzada Schianno</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, locationId: 'varese' })}
+                    className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-xs font-bold transition-all ${
+                      formData.locationId === 'varese'
+                        ? 'bg-nicora-teal text-white border-nicora-teal shadow-sm'
+                        : 'bg-neutral-50 text-neutral-600 border-neutral-200 hover:bg-neutral-100'
+                    }`}
+                  >
+                    <span>🪴 Varese Centro</span>
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
