@@ -1,0 +1,4 @@
+1. i dipendenti archiviati compaiono nelle proposte della gestione emergenza & sostituzioni improvvise
+2. le presenze non sono ben distribuite 10, 5, 5, 5, 7, 8, 10. Qual è il senso?
+3. Quando vai su trova sostituto rapido nel banner "Attenzione direzione: Rilevati reparti privi di presidio nella Settimana e usi il suggerito il banner non scompare e non capisco se il sostituto non viene assegnato, se è un problema di banner o cosa altro. Magari il sostituto suggerito, mi pare di aver capito, che è solo quello più competente, ma il sistema non tiene conto che deve essere anche libero in quel giorno in quella fascia oraria.
+4. nel tabellone pianificatore bisogna trovare un modo per visualizzare anche, nel singolo giorno, i reparti da chi sono coperti nelle ore di apertura perché altrimenti è un casino

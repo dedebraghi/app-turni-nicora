@@ -6,7 +6,6 @@ import { MySchedule } from './components/staff/MySchedule';
 import { LeaveRequests } from './components/staff/LeaveRequests';
 import { PlannerGrid } from './components/admin/PlannerGrid';
 import { SkillsMatrix } from './components/admin/SkillsMatrix';
-import { StaffManagement } from './components/admin/StaffManagement';
 import { StaffPersonnel } from './components/admin/StaffPersonnel';
 import { GenerateModal } from './components/admin/GenerateModal';
 import { EmergencyModal } from './components/admin/EmergencyModal';
@@ -508,6 +507,7 @@ export const App: React.FC = () => {
         {(activeTab === 'personnel' || activeTab === 'skills' || activeTab === 'staff') && isManagerMode && (
           <StaffPersonnel
             employees={employees}
+            shifts={shifts}
             activeLocation={activeLocation}
             onSaveEmployee={handleSaveEmployee}
             onArchiveEmployee={handleArchiveEmployee}
@@ -520,6 +520,7 @@ export const App: React.FC = () => {
             }}
           />
         )}
+
 
       </main>
 

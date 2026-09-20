@@ -1,18 +1,29 @@
-import React, { useState } from 'react';
-import { Department, Employee, LocationId, SkillScores } from '../../domain/types';
+import React, { useState, useMemo } from 'react';
+import { Department, Employee, LocationId, Shift, SkillScores } from '../../domain/types';
 import { DEPARTMENTS, DEPARTMENT_COLORS } from '../../domain/rules';
+import {
+  calculateMonthlyStoreReport,
+  exportMonthlyReportCSV,
+  printMonthlyReport,
+} from '../../services/exportService';
 import {
   Archive,
   Award,
+  BarChart3,
+  Calendar,
   Check,
+  ChevronLeft,
+  ChevronRight,
   Clock,
+  Download,
   Edit3,
+  FileSpreadsheet,
   Info,
   KeyRound,
   Mail,
   MapPin,
   Phone,
-  Plus,
+  Printer,
   RefreshCw,
   Search,
   ShieldCheck,
@@ -25,6 +36,7 @@ import {
 
 interface StaffPersonnelProps {
   employees: Employee[];
+  shifts?: Shift[];
   activeLocation: LocationId;
   onSaveEmployee: (employee: Employee) => void;
   onArchiveEmployee: (employeeId: string, isActive: boolean) => void;
@@ -37,17 +49,60 @@ interface StaffPersonnelProps {
 
 export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
   employees,
+  shifts = [],
   activeLocation,
   onSaveEmployee,
   onArchiveEmployee,
   onUpdateSkillsAndHours,
 }) => {
-  // Sotto-vista: 'skills-contracts' (Competenze & Contratti) o 'roster' (Anagrafica Organico)
-  const [activeSubView, setActiveSubView] = useState<'skills-contracts' | 'roster'>('skills-contracts');
+  // Sotto-vista: 'skills-contracts' (Competenze & Contratti), 'roster' (Anagrafica Organico) o 'monthly-report' (Report Ore Mese)
+  const [activeSubView, setActiveSubView] = useState<'skills-contracts' | 'roster' | 'monthly-report'>('skills-contracts');
   const [tabFilter, setTabFilter] = useState<'active' | 'archived'>('active');
   const [searchQuery, setSearchQuery] = useState('');
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+
+  // Mese e Anno selezionati per il report analitico
+  const now = new Date();
+  const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth() + 1); // 1-12
+
+  const locationName = activeLocation === 'gazzada' ? 'Gazzada Schianno' : 'Varese Centro';
+
+  // Calcolo aggregazione analitica mensile
+  const monthlySummary = useMemo(() => {
+    return calculateMonthlyStoreReport(
+      employees,
+      shifts,
+      activeLocation,
+      selectedYear,
+      selectedMonth
+    );
+  }, [employees, shifts, activeLocation, selectedYear, selectedMonth]);
+
+  const handlePrevMonth = () => {
+    if (selectedMonth === 1) {
+      setSelectedMonth(12);
+      setSelectedYear((y) => y - 1);
+    } else {
+      setSelectedMonth((m) => m - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (selectedMonth === 12) {
+      setSelectedMonth(1);
+      setSelectedYear((y) => y + 1);
+    } else {
+      setSelectedMonth((m) => m + 1);
+    }
+  };
+
+  const handleCurrentMonth = () => {
+    const today = new Date();
+    setSelectedYear(today.getFullYear());
+    setSelectedMonth(today.getMonth() + 1);
+  };
 
   // Dipendenti della sede corrente
   const storeEmployees = employees.filter((e) => e.locationId === activeLocation);
@@ -341,8 +396,8 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
           </div>
         </div>
 
-        {/* Selettore Sub-View: Competenze & Contratti VS Anagrafica Organico */}
-        <div className="flex items-center gap-2 pt-1 border-t border-neutral-100">
+        {/* Selettore Sub-View: Competenze & Contratti VS Anagrafica Organico VS Report Ore Mese */}
+        <div className="flex items-center gap-2 pt-1 border-t border-neutral-100 flex-wrap">
           <button
             onClick={() => setActiveSubView('skills-contracts')}
             className={`flex-1 sm:flex-initial py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all ${
@@ -366,8 +421,61 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
             <Users size={15} />
             <span>Anagrafica & PIN ({activeEmployees.length})</span>
           </button>
+
+          <button
+            onClick={() => setActiveSubView('monthly-report')}
+            className={`flex-1 sm:flex-initial py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all ${
+              activeSubView === 'monthly-report'
+                ? 'bg-nicora-teal text-white shadow-xs'
+                : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+            }`}
+          >
+            <BarChart3 size={15} />
+            <span>Report Ore & Export Mese</span>
+          </button>
         </div>
       </div>
+
+      {/* Banner Rapido Export Paghe (visibile quando non si è nella sotto-vista Report) */}
+      {activeSubView !== 'monthly-report' && (
+        <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-sky-50 border border-teal-200/80 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-teal-600 text-white flex items-center justify-center font-black shadow-xs flex-shrink-0">
+              <FileSpreadsheet size={18} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold text-xs text-teal-950">
+                  Export Mensile Consulente Paghe ({monthlySummary.monthLabel})
+                </span>
+                <span className="bg-teal-100 text-teal-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  Excel / CSV
+                </span>
+              </div>
+              <p className="text-[11px] text-neutral-500 mt-0.5">
+                Totale <strong>{monthlySummary.totalWorkedHours}h</strong> lavorate registrate a {locationName} • <strong>{monthlySummary.totalLeaveDays}gg</strong> ferie/malattia
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => exportMonthlyReportCSV(monthlySummary, locationName)}
+              className="flex-1 sm:flex-initial px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-all active:scale-95"
+              title="Scarica file CSV con BOM UTF-8 per Excel"
+            >
+              <Download size={14} />
+              <span>Scarica CSV Excel</span>
+            </button>
+            <button
+              onClick={() => setActiveSubView('monthly-report')}
+              className="flex-1 sm:flex-initial px-3.5 py-2 bg-white border border-teal-300 hover:bg-teal-50 text-teal-800 font-extrabold text-xs rounded-xl transition-all"
+            >
+              <span>Visualizza Report</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Toolbar & Ricerca */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
@@ -718,6 +826,420 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                 </div>
               );
             })
+          )}
+        </div>
+      )}
+
+      {/* --- VISTA 3: REPORT ORE MESE & EXPORT PAGHE --- */}
+      {activeSubView === 'monthly-report' && (
+        <div className="space-y-4">
+          {/* Barra Controlli Mese & Azioni di Esportazione */}
+          <div className="bg-white rounded-3xl p-4 sm:p-6 border border-nicora-border shadow-clean space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              
+              {/* Selettore Mese Navigabile */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handlePrevMonth}
+                  className="p-2 sm:px-3 sm:py-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-bold text-xs flex items-center gap-1 transition-all active:scale-95 min-h-[40px]"
+                  title="Mese precedente"
+                >
+                  <ChevronLeft size={16} />
+                  <span className="hidden sm:inline">Mese Prec.</span>
+                </button>
+
+                <div className="flex items-center gap-2 bg-nicora-teal-light border border-nicora-teal-border/40 px-3.5 py-2 rounded-xl min-h-[40px]">
+                  <Calendar size={16} className="text-nicora-teal flex-shrink-0" />
+                  <span className="font-black text-sm text-nicora-title tracking-tight">
+                    {monthlySummary.monthLabel}
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleNextMonth}
+                  className="p-2 sm:px-3 sm:py-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-bold text-xs flex items-center gap-1 transition-all active:scale-95 min-h-[40px]"
+                  title="Mese successivo"
+                >
+                  <span className="hidden sm:inline">Mese Succ.</span>
+                  <ChevronRight size={16} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleCurrentMonth}
+                  className="text-[11px] font-bold text-neutral-500 hover:text-nicora-teal underline ml-1 cursor-pointer"
+                >
+                  Oggi
+                </button>
+              </div>
+
+              {/* Pulsanti Export Rapidi */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => exportMonthlyReportCSV(monthlySummary, locationName)}
+                  className="flex-1 sm:flex-initial bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 min-h-[40px]"
+                  title="Esporta foglio calcolo compatibile Excel con UTF-8 BOM"
+                >
+                  <FileSpreadsheet size={16} />
+                  <span>Scarica CSV Excel</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => printMonthlyReport(monthlySummary, locationName)}
+                  className="flex-1 sm:flex-initial bg-neutral-800 hover:bg-black text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 min-h-[40px]"
+                  title="Stampa o salva in PDF formato A4 orizzontale"
+                >
+                  <Printer size={16} />
+                  <span>Stampa / PDF A4</span>
+                </button>
+              </div>
+            </div>
+
+            {/* KPI Cards di Sintesi del Mese */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-2 border-t border-neutral-100">
+              <div className="bg-emerald-50/60 p-3 rounded-2xl border border-emerald-100">
+                <span className="text-[10px] uppercase font-bold text-emerald-700 block">Ore Lavorate Totali</span>
+                <span className="text-xl font-black text-emerald-900">{monthlySummary.totalWorkedHours}h</span>
+                <span className="text-[10px] text-emerald-600 block mt-0.5">{monthlySummary.totalPresenceDays} presenze effettive</span>
+              </div>
+
+              <div className="bg-rose-50/60 p-3 rounded-2xl border border-rose-100">
+                <span className="text-[10px] uppercase font-bold text-rose-700 block">Presidio Cassa</span>
+                <span className="text-xl font-black text-rose-900">{monthlySummary.departmentTotals.Cassa}h</span>
+                <span className="text-[10px] text-rose-600 block mt-0.5">
+                  {monthlySummary.totalWorkedHours > 0 ? `${Math.round((monthlySummary.departmentTotals.Cassa / monthlySummary.totalWorkedHours) * 100)}% del totale` : '-'}
+                </span>
+              </div>
+
+              <div className="bg-pink-50/60 p-3 rounded-2xl border border-pink-100">
+                <span className="text-[10px] uppercase font-bold text-pink-700 block">Fioreria & Decor</span>
+                <span className="text-xl font-black text-pink-900">
+                  {Math.round((monthlySummary.departmentTotals.Fioreria + monthlySummary.departmentTotals.Decor) * 10) / 10}h
+                </span>
+                <span className="text-[10px] text-pink-600 block mt-0.5">
+                  Fio: {monthlySummary.departmentTotals.Fioreria}h • Dec: {monthlySummary.departmentTotals.Decor}h
+                </span>
+              </div>
+
+              <div className="bg-sky-50/60 p-3 rounded-2xl border border-sky-100">
+                <span className="text-[10px] uppercase font-bold text-sky-700 block">Serre (C+F)</span>
+                <span className="text-xl font-black text-sky-900">
+                  {Math.round((monthlySummary.departmentTotals['Serra Calda'] + monthlySummary.departmentTotals['Serra Fredda']) * 10) / 10}h
+                </span>
+                <span className="text-[10px] text-sky-600 block mt-0.5">
+                  Calda: {monthlySummary.departmentTotals['Serra Calda']}h • Fredda: {monthlySummary.departmentTotals['Serra Fredda']}h
+                </span>
+              </div>
+
+              <div className="col-span-2 sm:col-span-1 bg-purple-50/60 p-3 rounded-2xl border border-purple-100">
+                <span className="text-[10px] uppercase font-bold text-purple-700 block">Ferie & Malattie</span>
+                <span className="text-xl font-black text-purple-900">
+                  {monthlySummary.totalLeaveDays + monthlySummary.totalSickDays} gg
+                </span>
+                <span className="text-[10px] text-purple-600 block mt-0.5">
+                  {monthlySummary.totalLeaveHours}h figurative
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Dettaglio Collaboratori per il Mese */}
+          {monthlySummary.totalWorkedHours === 0 && monthlySummary.totalLeaveDays === 0 ? (
+            <div className="bg-white rounded-3xl p-8 text-center text-neutral-400 border border-nicora-border shadow-clean space-y-2">
+              <Calendar size={36} className="mx-auto text-neutral-300" />
+              <p className="font-extrabold text-sm text-neutral-700">
+                Nessun turno registrato per {monthlySummary.monthLabel} a {locationName}
+              </p>
+              <p className="text-xs text-neutral-500 max-w-md mx-auto">
+                Genera o pianifica i turni dal tab <strong>Pianificatore</strong> per questo mese per visualizzare automaticamente la ripartizione per reparto e il consuntivo ore per il consulente del lavoro.
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* TABELLA DESKTOP */}
+              <div className="hidden lg:block bg-white rounded-3xl border border-nicora-border shadow-clean overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-neutral-50/90 border-b border-neutral-200 text-[11px] font-extrabold text-neutral-600 uppercase tracking-wider">
+                        <th className="py-3.5 px-4">Collaboratore</th>
+                        <th className="py-3.5 px-3">Ruolo / Contr.</th>
+                        <th className="py-3.5 px-3 text-center">Presenze / Riposi</th>
+                        <th className="py-3.5 px-3 text-center">Cassa</th>
+                        <th className="py-3.5 px-3 text-center">Fioreria</th>
+                        <th className="py-3.5 px-3 text-center">Decor</th>
+                        <th className="py-3.5 px-3 text-center">S. Calda</th>
+                        <th className="py-3.5 px-3 text-center">S. Fredda</th>
+                        <th className="py-3.5 px-3 text-right">Ore Lav.</th>
+                        <th className="py-3.5 px-3 text-right">Ferie/Mal.</th>
+                        <th className="py-3.5 px-3 text-right">Rendicontate</th>
+                        <th className="py-3.5 px-4 text-center">Saldo</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-100 font-medium">
+                      {monthlySummary.employeeSummaries
+                        .filter(
+                          (s) =>
+                            s.employee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            s.employee.role.toLowerCase().includes(searchQuery.toLowerCase())
+                        )
+                        .map((s) => {
+                          const isFullTime = (s.employee.contractHours || 40) >= 38;
+
+                          return (
+                            <tr
+                              key={s.employee.id}
+                              className="hover:bg-neutral-50/80 transition-colors"
+                            >
+                              <td className="py-3 px-4">
+                                <div className="flex items-center gap-2.5">
+                                  <span className="w-8 h-8 rounded-lg bg-nicora-teal-light text-nicora-teal font-black text-xs flex items-center justify-center flex-shrink-0">
+                                    {s.employee.avatar}
+                                  </span>
+                                  <div>
+                                    <span className="font-bold text-neutral-900 block truncate max-w-[140px]">
+                                      {s.employee.name}
+                                    </span>
+                                    {s.employee.isActive === false && (
+                                      <span className="text-[9px] text-neutral-400 block">Archiviato</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </td>
+
+                              <td className="py-3 px-3">
+                                <span className="font-semibold text-neutral-700 block">{s.employee.role}</span>
+                                <span className="text-[10px] text-neutral-400">
+                                  {s.employee.contractHours || 40}h/sett ({isFullTime ? 'Full' : 'Part'})
+                                </span>
+                              </td>
+
+                              <td className="py-3 px-3 text-center text-[11px]">
+                                <span className="font-bold text-emerald-700">{s.daysCount.presence}p</span>
+                                <span className="text-neutral-400 mx-1">•</span>
+                                <span className="text-neutral-500">{s.daysCount.rest}r</span>
+                                {(s.daysCount.leave > 0 || s.daysCount.sick > 0) && (
+                                  <>
+                                    <span className="text-neutral-400 mx-1">•</span>
+                                    <span className="text-purple-700 font-bold">
+                                      {s.daysCount.leave + s.daysCount.sick}f
+                                    </span>
+                                  </>
+                                )}
+                              </td>
+
+                              <td className="py-3 px-3 text-center">
+                                {s.departmentHours.Cassa > 0 ? (
+                                  <span className="bg-rose-50 text-rose-700 font-bold px-2 py-0.5 rounded-md border border-rose-200">
+                                    {s.departmentHours.Cassa}h
+                                  </span>
+                                ) : (
+                                  <span className="text-neutral-300">-</span>
+                                )}
+                              </td>
+
+                              <td className="py-3 px-3 text-center">
+                                {s.departmentHours.Fioreria > 0 ? (
+                                  <span className="bg-pink-50 text-pink-700 font-bold px-2 py-0.5 rounded-md border border-pink-200">
+                                    {s.departmentHours.Fioreria}h
+                                  </span>
+                                ) : (
+                                  <span className="text-neutral-300">-</span>
+                                )}
+                              </td>
+
+                              <td className="py-3 px-3 text-center">
+                                {s.departmentHours.Decor > 0 ? (
+                                  <span className="bg-purple-50 text-purple-700 font-bold px-2 py-0.5 rounded-md border border-purple-200">
+                                    {s.departmentHours.Decor}h
+                                  </span>
+                                ) : (
+                                  <span className="text-neutral-300">-</span>
+                                )}
+                              </td>
+
+                              <td className="py-3 px-3 text-center">
+                                {s.departmentHours['Serra Calda'] > 0 ? (
+                                  <span className="bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-md border border-emerald-200">
+                                    {s.departmentHours['Serra Calda']}h
+                                  </span>
+                                ) : (
+                                  <span className="text-neutral-300">-</span>
+                                )}
+                              </td>
+
+                              <td className="py-3 px-3 text-center">
+                                {s.departmentHours['Serra Fredda'] > 0 ? (
+                                  <span className="bg-sky-50 text-sky-700 font-bold px-2 py-0.5 rounded-md border border-sky-200">
+                                    {s.departmentHours['Serra Fredda']}h
+                                  </span>
+                                ) : (
+                                  <span className="text-neutral-300">-</span>
+                                )}
+                              </td>
+
+                              <td className="py-3 px-3 text-right">
+                                <span className="font-extrabold text-nicora-teal">{s.workedHours}h</span>
+                              </td>
+
+                              <td className="py-3 px-3 text-right">
+                                {s.leaveHours > 0 ? (
+                                  <span className="font-bold text-purple-700">{s.leaveHours}h</span>
+                                ) : (
+                                  <span className="text-neutral-300">-</span>
+                                )}
+                              </td>
+
+                              <td className="py-3 px-3 text-right">
+                                <span className="font-black text-neutral-900 bg-neutral-100 px-2 py-0.5 rounded-md">
+                                  {s.totalAccountedHours}h
+                                </span>
+                              </td>
+
+                              <td className="py-3 px-4 text-center">
+                                <span
+                                  className={`text-[10px] font-black px-2 py-0.5 rounded-full inline-block ${
+                                    s.deltaHours > 0
+                                      ? 'bg-emerald-100 text-emerald-800'
+                                      : s.deltaHours === 0
+                                      ? 'bg-neutral-100 text-neutral-700'
+                                      : 'bg-rose-100 text-rose-800'
+                                  }`}
+                                >
+                                  {s.deltaHours > 0 ? `+${s.deltaHours}h` : `${s.deltaHours}h`}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                    <tfoot>
+                      <tr className="bg-neutral-100 border-t-2 border-nicora-teal font-black text-neutral-900 text-xs">
+                        <td className="py-3 px-4" colSpan={3}>
+                          TOTALE PUNTO VENDITA ({monthlySummary.totalPresenceDays} presenze)
+                        </td>
+                        <td className="py-3 px-3 text-center text-rose-800">{monthlySummary.departmentTotals.Cassa}h</td>
+                        <td className="py-3 px-3 text-center text-pink-800">{monthlySummary.departmentTotals.Fioreria}h</td>
+                        <td className="py-3 px-3 text-center text-purple-800">{monthlySummary.departmentTotals.Decor}h</td>
+                        <td className="py-3 px-3 text-center text-emerald-800">{monthlySummary.departmentTotals['Serra Calda']}h</td>
+                        <td className="py-3 px-3 text-center text-sky-800">{monthlySummary.departmentTotals['Serra Fredda']}h</td>
+                        <td className="py-3 px-3 text-right text-nicora-teal text-sm">{monthlySummary.totalWorkedHours}h</td>
+                        <td className="py-3 px-3 text-right text-purple-800">{monthlySummary.totalLeaveHours}h</td>
+                        <td className="py-3 px-3 text-right text-black text-sm">{monthlySummary.totalAccountedHours}h</td>
+                        <td className="py-3 px-4 text-center">-</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+
+              {/* SCHEDE MOBILE-FIRST */}
+              <div className="lg:hidden space-y-3">
+                {monthlySummary.employeeSummaries
+                  .filter(
+                    (s) =>
+                      s.employee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      s.employee.role.toLowerCase().includes(searchQuery.toLowerCase())
+                  )
+                  .map((s) => {
+                    const isFullTime = (s.employee.contractHours || 40) >= 38;
+
+                    return (
+                      <div
+                        key={s.employee.id}
+                        className="bg-white rounded-2xl p-4 border border-nicora-border shadow-clean space-y-3"
+                      >
+                        <div className="flex items-center justify-between gap-2 border-b border-neutral-100 pb-2.5">
+                          <div className="flex items-center gap-2.5">
+                            <span className="w-10 h-10 rounded-xl bg-nicora-teal-light text-nicora-teal font-black text-xs flex items-center justify-center">
+                              {s.employee.avatar}
+                            </span>
+                            <div>
+                              <h4 className="font-extrabold text-sm text-nicora-title leading-tight">
+                                {s.employee.name}
+                              </h4>
+                              <span className="text-[11px] text-neutral-400">
+                                {s.employee.role} • <strong>{s.employee.contractHours || 40}h</strong> ({isFullTime ? 'Full' : 'Part'})
+                              </span>
+                            </div>
+                          </div>
+
+                          <span
+                            className={`text-xs font-black px-2.5 py-1 rounded-full ${
+                              s.deltaHours > 0
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : s.deltaHours === 0
+                                ? 'bg-neutral-100 text-neutral-700'
+                                : 'bg-rose-100 text-rose-800'
+                            }`}
+                          >
+                            {s.deltaHours > 0 ? `+${s.deltaHours}h` : `${s.deltaHours}h`}
+                          </span>
+                        </div>
+
+                        {/* Riepilogo Giorni */}
+                        <div className="grid grid-cols-4 gap-1.5 text-center text-[10px]">
+                          <div className="bg-emerald-50 p-1.5 rounded-lg border border-emerald-100">
+                            <span className="text-emerald-700 font-bold block">Presenze</span>
+                            <span className="font-black text-emerald-900 text-xs">{s.daysCount.presence}gg</span>
+                          </div>
+                          <div className="bg-neutral-50 p-1.5 rounded-lg border border-neutral-200">
+                            <span className="text-neutral-500 font-bold block">Riposi</span>
+                            <span className="font-black text-neutral-800 text-xs">{s.daysCount.rest}gg</span>
+                          </div>
+                          <div className="bg-purple-50 p-1.5 rounded-lg border border-purple-100">
+                            <span className="text-purple-700 font-bold block">Ferie</span>
+                            <span className="font-black text-purple-900 text-xs">{s.daysCount.leave}gg</span>
+                          </div>
+                          <div className="bg-rose-50 p-1.5 rounded-lg border border-rose-100">
+                            <span className="text-rose-700 font-bold block">Malattie</span>
+                            <span className="font-black text-rose-900 text-xs">{s.daysCount.sick}gg</span>
+                          </div>
+                        </div>
+
+                        {/* Ripartizione Ore per Reparto */}
+                        <div>
+                          <span className="text-[10px] font-extrabold uppercase text-neutral-400 block mb-1">
+                            Ore per Reparto:
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {DEPARTMENTS.map((dept) => {
+                              const h = s.departmentHours[dept];
+                              if (h === 0) return null;
+                              return (
+                                <span
+                                  key={dept}
+                                  className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-neutral-100 text-neutral-700 border border-neutral-200"
+                                >
+                                  <strong>{dept}:</strong> {h}h
+                                </span>
+                              );
+                            })}
+                            {s.workedHours === 0 && (
+                              <span className="text-neutral-400 text-xs italic">Nessun turno registrato</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Footer Totali Collaboratore */}
+                        <div className="pt-2 border-t border-neutral-100 flex items-center justify-between text-xs font-bold text-neutral-700">
+                          <div>
+                            Ore Lavorate: <strong className="text-nicora-teal">{s.workedHours}h</strong>
+                            {s.leaveHours > 0 && <span className="text-purple-700 ml-1">(+{s.leaveHours}h ferie)</span>}
+                          </div>
+                          <div>
+                            Rendicontate: <strong className="text-neutral-900">{s.totalAccountedHours}h</strong>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </>
           )}
         </div>
       )}

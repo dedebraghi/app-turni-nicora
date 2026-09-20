@@ -116,3 +116,36 @@ export interface ReplacementSuggestion {
   isAvailableOnDay: boolean;
   currentShiftType: ShiftType;
 }
+
+export interface MonthlyEmployeeSummary {
+  employee: Employee;
+  workedHours: number;
+  leaveHours: number;
+  totalAccountedHours: number;
+  departmentHours: Record<Department, number>;
+  daysCount: {
+    presence: number;
+    rest: number;
+    leave: number;
+    sick: number;
+  };
+  expectedMonthlyHours: number;
+  deltaHours: number;
+}
+
+export interface MonthlyStoreSummary {
+  year: number;
+  month: number; // 1 - 12
+  monthLabel: string;
+  locationId: LocationId;
+  totalWorkedHours: number;
+  totalLeaveHours: number;
+  totalAccountedHours: number;
+  departmentTotals: Record<Department, number>;
+  totalPresenceDays: number;
+  totalRestDays: number;
+  totalLeaveDays: number;
+  totalSickDays: number;
+  employeeSummaries: MonthlyEmployeeSummary[];
+}
+
