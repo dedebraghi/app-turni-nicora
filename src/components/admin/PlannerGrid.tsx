@@ -1,8 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { Employee, LocationInfo, Shift, ShiftRequest } from '../../domain/types';
+import { Department, Employee, LocationInfo, Shift, ShiftRequest } from '../../domain/types';
 import { calculateFairnessMetrics } from '../../engine/fairnessTracker';
-import { getSundayOfWeek, getWeekDays } from '../../engine/schedulerEngine';
-import { Award, ChevronLeft, ChevronRight, Coffee, Monitor, Search, Share2, ShieldAlert, ShieldCheck, Smartphone, Sparkles, Zap } from 'lucide-react';
+import {
+  calculateDayCoverage,
+  calculateEmployeeWeeklyHours,
+  getSundayOfWeek,
+  getWeekDays,
+} from '../../engine/schedulerEngine';
+import {
+  AlertTriangle,
+  Award,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Coffee,
+  Monitor,
+  Search,
+  Share2,
+  ShieldAlert,
+  ShieldCheck,
+  Smartphone,
+  Sparkles,
+  Zap,
+} from 'lucide-react';
 import { MobileDayView } from './MobileDayView';
 import { PendingRequestsBanner } from './PendingRequestsBanner';
 
@@ -183,14 +203,14 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
             <span>Sostituzione Rapida</span>
           </button>
 
-          {/* Matrice Competenze */}
+          {/* Matrice Competenze & Personale */}
           <button
             onClick={onOpenSkillsModal}
             className="bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-bold text-xs px-3 py-2 rounded-xl flex items-center gap-1.5 active:scale-95 transition-all"
-            title="Visualizza o modifica punteggi competenze (1-10)"
+            title="Visualizza o modifica ore da contratto e competenze 1-10"
           >
             <Award size={14} className="text-amber-500" />
-            <span>Competenze (1–10)</span>
+            <span>Personale & Competenze</span>
           </button>
 
           {/* Stampa / WhatsApp */}
@@ -214,6 +234,43 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
         </div>
 
       </div>
+
+      {/* Banner Allarme Scopertura Reparti (se ci sono reparti a 0) */}
+      {(() => {
+        const weekCoverage = weekDays.map((d) => calculateDayCoverage(d.dateStr, storeShifts));
+        const daysWithUncovered = weekCoverage.filter((c) => c.uncoveredDepartments.length > 0);
+
+        if (daysWithUncovered.length === 0) return null;
+
+        return (
+          <div className="bg-rose-50 border-2 border-rose-300 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-rose-950 animate-in fade-in">
+            <div className="flex items-center gap-2.5">
+              <ShieldAlert size={24} className="text-rose-600 flex-shrink-0 animate-pulse" />
+              <div>
+                <h4 className="font-black text-xs sm:text-sm text-rose-900">
+                  ⚠️ Attenzione Direzione: Rilevati Reparti Privi di Presidio nella Settimana!
+                </h4>
+                <p className="text-[11px] text-rose-700 mt-0.5">
+                  {daysWithUncovered
+                    .map((d) => {
+                      const dayMeta = weekDays.find((w) => w.dateStr === d.dateStr);
+                      return `${dayMeta?.dayShort || ''} ${d.dateStr.slice(8)}: ${d.uncoveredDepartments.join(', ')} scoperto`;
+                    })
+                    .join(' • ')}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => onOpenEmergencyModal()}
+              className="bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs px-3.5 py-2 rounded-xl shadow-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all whitespace-nowrap self-start sm:self-auto"
+            >
+              <ShieldAlert size={14} />
+              <span>Trova Sostituto Rapido</span>
+            </button>
+          </div>
+        );
+      })()}
 
       {/* Filter & Search Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
@@ -380,19 +437,32 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                           </div>
                         </div>
 
-                        {/* Indicatore 5 giorni contratto */}
-                        <span
-                          className={`text-[10px] font-black px-1.5 py-0.5 rounded ${
-                            workedDaysCount === 5
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : workedDaysCount > 5
-                              ? 'bg-rose-100 text-rose-800'
-                              : 'bg-amber-100 text-amber-900'
-                          }`}
-                          title={`${workedDaysCount} giorni lavorati su 5`}
-                        >
-                          {workedDaysCount}/5
-                        </span>
+                        {/* Indicatore Ore Contratto & Giorni */}
+                        {(() => {
+                          const weeklyHours = calculateEmployeeWeeklyHours(emp, storeShifts);
+                          return (
+                            <div className="flex flex-col items-end gap-0.5">
+                              <span
+                                className={`text-[10px] font-black px-1.5 py-0.5 rounded ${
+                                  weeklyHours.isContractFulfilled
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : weeklyHours.deltaHours < 0
+                                    ? 'bg-amber-100 text-amber-900'
+                                    : 'bg-rose-100 text-rose-800'
+                                }`}
+                                title={`Totale computato (lavoro + ferie/permessi): ${weeklyHours.totalAccountedHours}h su ${weeklyHours.contractHours}h contrattuali`}
+                              >
+                                {weeklyHours.totalAccountedHours}h/{weeklyHours.contractHours}h
+                              </span>
+                              <span
+                                className="text-[9px] font-bold text-neutral-400"
+                                title={`${workedDaysCount} giorni lavorati su 5 contrattuali`}
+                              >
+                                {workedDaysCount}/5 gg
+                              </span>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </td>
 
@@ -476,6 +546,58 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                 );
               })}
             </tbody>
+
+            {/* Table Footer: Riga Copertura Presidio 5 Reparti */}
+            <tfoot className="bg-neutral-50/95 border-t-2 border-neutral-300 font-extrabold text-[11px]">
+              <tr>
+                <td className="py-2.5 px-3.5 sticky left-0 bg-neutral-100/95 z-10 border-r border-nicora-border text-neutral-800">
+                  <div className="flex items-center gap-1.5">
+                    <ShieldCheck size={14} className="text-nicora-teal" />
+                    <span className="font-black text-xs text-nicora-title">Presidio 5 Reparti</span>
+                  </div>
+                  <span className="text-[10px] text-neutral-500 font-medium">Copertura giornaliera</span>
+                </td>
+                {weekDays.map((day) => {
+                  const cov = calculateDayCoverage(day.dateStr, storeShifts);
+                  const isOk = cov.uncoveredDepartments.length === 0;
+
+                  return (
+                    <td
+                      key={day.dateStr}
+                      className={`py-2 px-1 text-center border-r border-nicora-border last:border-r-0 ${
+                        !isOk ? 'bg-rose-50/80' : ''
+                      }`}
+                    >
+                      {isOk ? (
+                        <div className="space-y-0.5">
+                          <span className="text-[10px] font-black text-emerald-800 bg-emerald-100 px-1.5 py-0.2 rounded-md block">
+                            ✓ 5/5 Coperti
+                          </span>
+                          <div className="text-[9px] text-neutral-600 font-bold leading-tight">
+                            C:{cov.cassaCount} • F:{cov.fioreriaCount} • D:{cov.decorCount}
+                          </div>
+                          <div className="text-[9px] text-neutral-500 font-medium leading-none">
+                            SC:{cov.serraCaldaCount} • SF:{cov.serraFreddaCount}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-1 rounded-lg bg-rose-100 border border-rose-300 text-rose-800">
+                          <span className="text-[9px] font-black block leading-tight">
+                            ⚠️ Scoperti:
+                          </span>
+                          <span
+                            className="text-[8px] font-bold text-rose-700 block truncate"
+                            title={cov.uncoveredDepartments.join(', ')}
+                          >
+                            {cov.uncoveredDepartments.join(', ')}
+                          </span>
+                        </div>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            </tfoot>
 
           </table>
         </div>

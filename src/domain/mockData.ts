@@ -98,7 +98,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     email: 'chiara.m@nicoragarden.it',
     phone: '349 6789012',
     password: '123',
-    contractHours: 40,
+    contractHours: 30,
   },
   {
     id: 'emp-gz-7',
@@ -110,7 +110,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     email: 'simona.t@nicoragarden.it',
     phone: '338 7890123',
     password: '123',
-    contractHours: 40,
+    contractHours: 24,
   },
   {
     id: 'emp-gz-8',
@@ -134,7 +134,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     email: 'valentina.b@nicoragarden.it',
     phone: '342 9012345',
     password: '123',
-    contractHours: 40,
+    contractHours: 20,
   },
   {
     id: 'emp-gz-10',
@@ -212,7 +212,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     email: 'francesca.l@nicoragarden.it',
     phone: '347 5566778',
     password: '123',
-    contractHours: 40,
+    contractHours: 24,
   },
   {
     id: 'emp-va-6',
@@ -258,9 +258,9 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     skills: { Cassa: 9, Fioreria: 8, Decor: 5, 'Serra Calda': 4, 'Serra Fredda': 3 },
     avatar: 'LG',
     email: 'laura.g@nicoragarden.it',
-    phone: '346 9900112',
+    phone: '344 9900112',
     password: '123',
-    contractHours: 40,
+    contractHours: 20,
   },
   {
     id: 'emp-va-10',

@@ -49,11 +49,12 @@ export const calculateFairnessMetrics = (
       }
     });
 
-    // Alert controlli
-    if (totalWorkingShifts > 5) {
-      alerts.push(`Superati 5 giorni lavorativi nella settimana (${totalWorkingShifts} turni)`);
-    } else if (totalWorkingShifts < 5 && ferieDays === 0 && malattiaDays === 0) {
-      alerts.push(`Meno di 5 giorni lavorativi programmati (${totalWorkingShifts} turni)`);
+    // Alert controlli (5 giorni complessivi di attività/ferie)
+    const totalActiveDays = totalWorkingShifts + ferieDays + malattiaDays;
+    if (totalActiveDays > 5) {
+      alerts.push(`Superati 5 giorni di servizio/ferie nella settimana (${totalActiveDays} giorni)`);
+    } else if (totalActiveDays < 5) {
+      alerts.push(`Meno di 5 giorni programmati (${totalActiveDays} su 5 giorni contrattuali)`);
     }
 
     if (weekendWorkingShifts === 2) {

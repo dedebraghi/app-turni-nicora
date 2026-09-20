@@ -66,6 +66,33 @@ Per evitare attriti e rendere l'app semplice per tutti:
 
 ---
 
+## 📌 Questione 4: Regole di Assegnazione Reparti e Priorità per Risorse Extra
+
+### Il contesto
+L'algoritmo intelligente garantisce che ciascun collaboratore lavori **esattamente 5 giorni a settimana** e copra al 100% il proprio **monte ore contrattuale** (es. 40h per full-time, 24h/20h per part-time).
+Inoltre, l'algoritmo assicura come vincolo inderogabile che **nessun reparto rimanga scoperto** (almeno 1 persona qualificata in Cassa, Fioreria, Decor, Serra Calda e Serra Fredda ogni giorno).
+
+Dato che a Gazzada ci sono 10 persone (~7-8 presenti al giorno) e a Varese 14 (~10 presenti al giorno), dopo aver coperto i 5 presidi minimi, **ogni giorno avanzano da 2 a 5 collaboratori** che devono comunque svolgere il loro turno e le loro ore.
+
+### Punti da definire con Vittore:
+1. **Regola della Cassa**:
+   - Confermato che la *Cassa non può mai rimanere vuota* al 100% del tempo.
+   - Quando scatta la necessità della **seconda cassa**? Solo Sabato e Domenica? Nei giorni di arrivo merci (Giovedì/Venerdì)? Oppure sempre se l'organico presente supera le 7 persone?
+2. **Priorità di allocazione dei dipendenti in più (Ordine a cascata)**:
+   - Quando tutti e 5 i reparti hanno già 1 persona assegnata, **qual è l'ordine di priorità con cui assegnare i dipendenti eccedenti?**
+   - *Esempio di opzione proposta*:
+     - **1° risorsa extra**: Seconda Cassa (se weekend o afflusso alto) oppure Scarico Merci in Serra (se Giovedì/Venerdì);
+     - **2° risorsa extra**: Raddoppio Fioreria (confezioni/composizioni) o Raddoppio Serra Calda;
+     - **3° risorsa extra**: Raddoppio Decor o supporto generico clienti in corsia.
+   - *Domanda per Vittore*: Qual è la sua scala di priorità ideale per i negozi di Gazzada e Varese? Quali reparti traggono maggior beneficio dall'avere più persone contemporaneamente e quali invece basta che ne abbiano solo 1?
+3. **Flessibilità e Sovrascritture (Ferie, Permessi, Orari Concordati)**:
+   - L'algoritmo pianifica la griglia base standard a monte.
+   - Successivamente, l'approvazione di **ferie, permessi, uscite anticipate o entrate posticipate sovrascrive a valle la pianificazione automatica**.
+   - Se un permesso o ferie lascia temporaneamente scoperto un reparto critico (es. l'unica persona in Cassa o in Fioreria), l'app segnala immediatamente l'allarme di scopertura al manager con suggeritore di sostituzione.
+   - Tutte le ore (ore lavorate, ore di ferie retribuite, permessi e orari concordati) confluiscono nella quadratura del monte ore settimanale e mensile del collaboratore.
+
+---
+
 ## 📝 Registro Decisioni di Vittore Nicora
 
 *(Questa sezione verrà aggiornata man mano che Vittore esprimerà le sue preferenze durante i test della demo)*
@@ -75,3 +102,5 @@ Per evitare attriti e rendere l'app semplice per tutti:
 - [ ] **Sottodominio**: Richiesta all'agenzia web del puntamento `turni.nicoragarden.it`
 - [ ] **Mobilità Sedi**: Definizione se i dipendenti sono ancorati a una sola sede o possono ruotare tra Gazzada e Varese
 - [ ] **Validazione competenze**: Conferma dei punteggi e reparti per i dipendenti di Gazzada e Varese
+- [ ] **Priorità Reparti & Risorse Extra**: Definizione dell'ordine con cui assegnare i collaboratori eccedenti ai reparti e condizioni per la seconda cassa
+- [ ] **Ferie e Monte Ore Contrattuale**: Conferma inclusione di ferie e permessi approvati nel computo del monte ore settimanale e mensile

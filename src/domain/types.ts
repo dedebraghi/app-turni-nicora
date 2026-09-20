@@ -71,7 +71,17 @@ export interface ShiftRequest {
   managerNote?: string;
 }
 
-export type ActiveTab = 'today' | 'my-shifts' | 'planner' | 'requests' | 'skills' | 'staff';
+export type ActiveTab = 'today' | 'my-shifts' | 'planner' | 'requests' | 'personnel' | 'skills' | 'staff';
+
+export interface EmployeeWeeklyHours {
+  workedHours: number;
+  leaveHours: number;
+  totalAccountedHours: number; // workedHours + leaveHours
+  contractHours: number;
+  isContractFulfilled: boolean;
+  deltaHours: number; // totalAccountedHours - contractHours
+  workedDaysCount: number;
+}
 
 export interface WeekDayMeta {
   dateStr: string;
@@ -96,6 +106,7 @@ export interface DayCoverageSummary {
   riposoCount: number;
   ferieCount: number;
   malattiaCount: number;
+  uncoveredDepartments: Department[];
 }
 
 export interface ReplacementSuggestion {

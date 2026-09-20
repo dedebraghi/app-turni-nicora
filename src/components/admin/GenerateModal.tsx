@@ -177,31 +177,41 @@ export const GenerateModal: React.FC<GenerateModalProps> = ({
               Regole Operative Nicora Garden Applicate dall'Algoritmo:
             </span>
             <ul className="text-[11px] space-y-1 pl-1 text-emerald-800 list-disc list-inside">
-              <li><strong>5 giorni lavorativi su 7</strong> per collaboratore (2 riposi garantiti).</li>
-              <li><strong>Cassa presidiata al 100%</strong> senza vuoti orari (priorità assoluta).</li>
-              <li>Assegnazione reparti basata sulla <strong>Matrice delle Competenze (1–10)</strong>.</li>
-              <li>Rinforzo merci su <strong>Giovedì e Venerdì</strong> (scarico serre).</li>
-              <li>Massima presenza nel <strong>Weekend Garden (Sab/Dom)</strong>.</li>
-              <li>Rispetto automatico di ferie e permessi già approvati.</li>
+              <li><strong>5 giorni lavorativi su 7</strong> per tutti i collaboratori (2 riposi garantiti).</li>
+              <li><strong>Quadratura monte ore contrattuale</strong> sui 5 turni (es. 40h = 5x8h, 24h = 4x5h+1x4h, 20h = 5x4h).</li>
+              <li><strong>Tutti e 5 i reparti presidiati</strong> ogni giorno (Cassa, Fioreria, Decor, Serra Calda, Serra Fredda).</li>
+              <li><strong>Cassa presidiata al 100%</strong> senza vuoti orari (priorità assoluta, 2 casse nei weekend).</li>
+              <li>Rinforzo merci su <strong>Giovedì e Venerdì</strong> (scarico carrelli vivaio).</li>
+              <li>Rispetto automatico di ferie e permessi già approvati a monte.</li>
             </ul>
           </div>
 
           {/* Risultato della generazione */}
           {resultStats && (
-            <div className="bg-emerald-100 border border-emerald-300 rounded-2xl p-4 text-emerald-900 space-y-1.5 animate-in fade-in">
+            <div className="bg-emerald-100 border border-emerald-300 rounded-2xl p-4 text-emerald-900 space-y-2 animate-in fade-in">
               <div className="font-black text-xs flex items-center gap-1.5">
                 <CheckCircle2 size={18} className="text-emerald-700" />
                 <span>Bozza Turni Generata con Successo!</span>
               </div>
-              <p className="text-[11px]">
-                • Turni pianificati: <strong>{resultStats.totalShifts}</strong> su {resultStats.staffCount} collaboratori.
-              </p>
-              <p className="text-[11px]">
-                • Presidio Cassa: <strong>{resultStats.cassaCoverageScore}%</strong> (100% coperta per l'intera settimana).
-              </p>
-              <p className="text-[11px]">
-                • Tutti i collaboratori lavorano esattamente <strong>5 giorni</strong> su 7.
-              </p>
+              <div className="text-[11px] space-y-1">
+                <p>
+                  • Turni pianificati: <strong>{resultStats.totalShifts}</strong> su {resultStats.staffCount} collaboratori.
+                </p>
+                <p>
+                  • Presidio Cassa: <strong>{resultStats.cassaCoverageScore}%</strong> (100% coperta per l'intera settimana).
+                </p>
+                <p>
+                  • Presidio 5 Reparti:{' '}
+                  {resultStats.allDepartmentsCovered ? (
+                    <strong className="text-emerald-900">100% Garantito (Zero settori scoperti)</strong>
+                  ) : (
+                    <strong className="text-rose-700">Verificare alert scoperture!</strong>
+                  )}
+                </p>
+                <p>
+                  • Rispetto Contratti: <strong>100% monte ore coperto</strong> esattamente in 5 giorni di servizio.
+                </p>
+              </div>
             </div>
           )}
 

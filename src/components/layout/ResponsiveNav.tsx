@@ -44,15 +44,9 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
     ...(isManagerMode
       ? [
           {
-            id: 'skills' as ActiveTab,
-            label: 'Matrice Competenze (1–10)',
-            mobileLabel: 'Competenze',
-            icon: Award,
-          },
-          {
-            id: 'staff' as ActiveTab,
-            label: 'Gestione Staff',
-            mobileLabel: 'Staff',
+            id: 'personnel' as ActiveTab,
+            label: 'Personale & Competenze',
+            mobileLabel: 'Personale',
             icon: Users,
           },
         ]
@@ -66,7 +60,10 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
         <div className="flex items-center gap-1.5">
           {tabs.map((tab) => {
             const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
+            const isActive =
+              tab.id === 'personnel'
+                ? activeTab === 'personnel' || activeTab === 'skills' || activeTab === 'staff'
+                : activeTab === tab.id;
 
             return (
               <button
@@ -107,7 +104,10 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
         <div className="grid grid-flow-col auto-cols-fr items-center justify-around h-14 max-w-lg mx-auto px-1">
           {tabs.map((tab) => {
             const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
+            const isActive =
+              tab.id === 'personnel'
+                ? activeTab === 'personnel' || activeTab === 'skills' || activeTab === 'staff'
+                : activeTab === tab.id;
 
             return (
               <button

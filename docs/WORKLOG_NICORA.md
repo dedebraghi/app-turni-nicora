@@ -17,14 +17,15 @@ Documento riservato a uso consuntivo e rendicontazione finale per Vittore Nicora
 | **19/09/2026** | **2.0h** | **Sync Realtime & Dati Sedi** | Implementazione canali Supabase Realtime WebSocket unificati per Gazzada e Varese con gestione modifiche turni e richieste ferie. Sviluppo del componente `NotificationToast` per notifiche mirate all'utente loggato in caso di cambio turno o approvazione ferie. | ✅ Completato |
 | **20/09/2026** | **2.5h** | **Mobile-First UI, Continuato & Orari Flessibili** | Sviluppo vista dedicata smartphone touch-first (`MobileDayView` a schede verticali senza scroll orizzontale) con selettore pillole e copertura Cassa/Organico. Configurazione template 'Orario Continuato / Alta Stagione' (09:00-19:00 a scaglioni 9:00-17:30, 10:00-18:30, 11:00-19:00) con preset 1-click nel planner e bilanciamento nello scheduler. Integrazione richieste orari flessibili (entrate posticipate / uscite anticipate) per dipendenti con approvazione immediata sul tabellone. | ✅ Completato |
 | **20/09/2026** | **2.5h** | **Flusso Ferie 1-Click & Gestione Staff** | Sviluppo pannello dedicato `StaffManagement` (anagrafica collaboratori, aggiunta nuovi assunti con competenze e PIN, modifica e archiviazione/cessazione soft-delete senza perdita storico turni). Implementazione componente `PendingRequestsBanner` per approvazione/rifiuto ferie e variazioni orario con 1 singolo tap mobile-first dal planner, conversione immediata turno in ferie e ricalcolo copertura cassa/organico. | ✅ Completato |
+| **20/09/2026** | **2.0h** | **Tab Personale & Engine Ore Contratto** | Unificazione tab Competenze e Staff nella nuova sezione 'Personale' (gestione competenze 1-10, ore contrattuali settimanali, anagrafica e PIN). Aggiornamento algoritmo schedulerEngine: vincolo 5 giorni lavorativi e 2 riposi per tutti, quadratura esatta monte ore contrattuale (40h, 30h, 24h, 20h), presidio garantito di tutti e 5 i reparti (Cassa, Fioreria, Decor, Serre), allocazione ponderata risorse eccedenti, computo ferie nel monte ore e allarme scopertura su approvazione ferie a valle. | ✅ Completato |
 | **22/09/2026** | *da sv.* | **Deploy Cloud, PWA & Consegna Demo** | Messa online su Vercel, test installazione PWA su smartphone reale (iOS/Android), predisposizione link demo per Vittore. | ⏳ Pianificato |
 
 ---
 
 ## 📈 Riepilogo Progressivo
 
-- **Ore Pregresse validate**: 13.5 ore (270,00 €)
-- **Ore da Sviluppare stimate**: ~1.5 - 2.5 ore
-- **Totale Complessivo Stimato a Finire**: ~15.0 - 16.0 ore (~300 - 320 €)
+- **Ore Pregresse validate**: 15.5 ore (310,00 €)
+- **Ore da Sviluppare stimate**: ~1.0 - 1.5 ore
+- **Totale Complessivo Stimato a Finire**: ~16.5 - 17.0 ore (~330 - 340 €)
 
 *(Il presente file viene aggiornato al termine di ciascun task operativo).*

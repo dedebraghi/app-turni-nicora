@@ -7,6 +7,7 @@ import { LeaveRequests } from './components/staff/LeaveRequests';
 import { PlannerGrid } from './components/admin/PlannerGrid';
 import { SkillsMatrix } from './components/admin/SkillsMatrix';
 import { StaffManagement } from './components/admin/StaffManagement';
+import { StaffPersonnel } from './components/admin/StaffPersonnel';
 import { GenerateModal } from './components/admin/GenerateModal';
 import { EmergencyModal } from './components/admin/EmergencyModal';
 import { PrintExportModal } from './components/admin/PrintExportModal';
@@ -303,6 +304,11 @@ export const App: React.FC = () => {
 
     // Se approvata richiesta ferie, converti automaticamente il turno in 'ferie'
     if (status === 'approved' && targetReq && targetReq.type === 'leave') {
+      const priorShift = shifts.find(
+        (s) => s.employeeId === targetReq.requesterId && s.date === targetReq.shiftDate
+      );
+      const priorDept = priorShift?.department;
+
       setShifts((prev) => {
         const next = prev.map((s) => {
           if (s.employeeId === targetReq.requesterId && s.date === targetReq.shiftDate) {
@@ -318,6 +324,29 @@ export const App: React.FC = () => {
           return s;
         });
         saveCloudShifts(next);
+
+        // Controllo se il reparto dell'assente è rimasto privo di personale
+        if (priorDept) {
+          const remainingInDept = next.filter(
+            (s) =>
+              s.date === targetReq.shiftDate &&
+              s.locationId === targetReq.locationId &&
+              s.department === priorDept &&
+              s.type !== 'riposo' &&
+              s.type !== 'ferie' &&
+              s.type !== 'malattia'
+          );
+
+          if (remainingInDept.length === 0) {
+            setToast({
+              id: `toast-uncovered-${Date.now()}`,
+              title: `⚠️ Reparto ${priorDept} Scoperto!`,
+              message: `L'approvazione delle ferie per il ${targetReq.shiftDate} ha lasciato ${priorDept} privo di personale. Assegna un sostituto rapido.`,
+              type: 'warning',
+            });
+          }
+        }
+
         return next;
       });
     }
@@ -475,23 +504,20 @@ export const App: React.FC = () => {
           />
         )}
 
-        {/* Tab 5: Matrice Competenze (Solo per Direzione) */}
-        {activeTab === 'skills' && isManagerMode && (
-          <SkillsMatrix
-            employees={employees}
-            locationId={activeLocation}
-            onUpdateSkills={handleUpdateEmployeeSkills}
-            isStandaloneTab={true}
-          />
-        )}
-
-        {/* Tab 6: Gestione Staff & Collaboratori (Solo per Direzione) */}
-        {activeTab === 'staff' && isManagerMode && (
-          <StaffManagement
+        {/* Tab 5: Personale & Competenze (Unificata per Direzione) */}
+        {(activeTab === 'personnel' || activeTab === 'skills' || activeTab === 'staff') && isManagerMode && (
+          <StaffPersonnel
             employees={employees}
             activeLocation={activeLocation}
             onSaveEmployee={handleSaveEmployee}
             onArchiveEmployee={handleArchiveEmployee}
+            onUpdateSkillsAndHours={(empId, newSkills, newHours) => {
+              setEmployees((prev) =>
+                prev.map((emp) =>
+                  emp.id === empId ? { ...emp, skills: newSkills, contractHours: newHours } : emp
+                )
+              );
+            }}
           />
         )}
 
