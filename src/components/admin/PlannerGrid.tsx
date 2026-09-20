@@ -1,32 +1,39 @@
 import React, { useState, useEffect } from 'react';
-import { Employee, LocationInfo, Shift } from '../../domain/types';
+import { Employee, LocationInfo, Shift, ShiftRequest } from '../../domain/types';
 import { calculateFairnessMetrics } from '../../engine/fairnessTracker';
 import { getSundayOfWeek, getWeekDays } from '../../engine/schedulerEngine';
 import { Award, ChevronLeft, ChevronRight, Coffee, Monitor, Search, Share2, ShieldAlert, ShieldCheck, Smartphone, Sparkles, Zap } from 'lucide-react';
 import { MobileDayView } from './MobileDayView';
+import { PendingRequestsBanner } from './PendingRequestsBanner';
 
 interface PlannerGridProps {
   location: LocationInfo;
   employees: Employee[];
   shifts: Shift[];
+  requests?: ShiftRequest[];
   isManagerMode: boolean;
   onEditShift: (shift: Shift) => void;
   onOpenGenerateModal: () => void;
   onOpenSkillsModal: () => void;
   onOpenEmergencyModal: (shift?: Shift) => void;
   onOpenExportModal: () => void;
+  onApproveRequest?: (requestId: string) => void;
+  onRejectRequest?: (requestId: string) => void;
 }
 
 export const PlannerGrid: React.FC<PlannerGridProps> = ({
   location,
   employees,
   shifts,
+  requests,
   isManagerMode,
   onEditShift,
   onOpenGenerateModal,
   onOpenSkillsModal,
   onOpenEmergencyModal,
   onOpenExportModal,
+  onApproveRequest,
+  onRejectRequest,
 }) => {
   const [weekOffset, setWeekOffset] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState('');
@@ -53,7 +60,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
     }
   }, [baseSundayStr]);
 
-  const storeEmployees = employees.filter((e) => e.locationId === location.id);
+  const storeEmployees = employees.filter((e) => e.locationId === location.id && e.isActive !== false);
   const storeShifts = shifts.filter((s) => s.locationId === location.id);
 
   // Metriche di equità
@@ -91,6 +98,16 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
   return (
     <div className="space-y-4 pb-20 md:pb-8 max-w-full">
       
+      {/* Banner Approvazione Ferie & Richieste 1-Click Direzione */}
+      {isManagerMode && requests && onApproveRequest && onRejectRequest && (
+        <PendingRequestsBanner
+          requests={requests.filter((r) => r.locationId === location.id)}
+          employees={employees}
+          onApprove={onApproveRequest}
+          onReject={onRejectRequest}
+        />
+      )}
+
       {/* Management Toolbar */}
       <div className="bg-white rounded-2xl p-4 border border-nicora-border shadow-clean flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
         

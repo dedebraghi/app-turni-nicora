@@ -84,7 +84,7 @@ export const generateWeeklySchedule = ({
   requests = [],
   mode = 'standard',
 }: SchedulerOptions): ScheduleGenerationResult => {
-  const storeStaff = employees.filter((e) => e.locationId === locationId);
+  const storeStaff = employees.filter((e) => e.locationId === locationId && e.isActive !== false);
   const weekDays = getWeekDays(weekStartDate);
   const warnings: string[] = [];
 

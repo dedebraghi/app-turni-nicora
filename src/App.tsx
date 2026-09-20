@@ -6,6 +6,7 @@ import { MySchedule } from './components/staff/MySchedule';
 import { LeaveRequests } from './components/staff/LeaveRequests';
 import { PlannerGrid } from './components/admin/PlannerGrid';
 import { SkillsMatrix } from './components/admin/SkillsMatrix';
+import { StaffManagement } from './components/admin/StaffManagement';
 import { GenerateModal } from './components/admin/GenerateModal';
 import { EmergencyModal } from './components/admin/EmergencyModal';
 import { PrintExportModal } from './components/admin/PrintExportModal';
@@ -29,9 +30,11 @@ import {
   saveStoredShifts,
 } from './services/storageService';
 import {
+  archiveCloudEmployee,
   fetchCloudEmployees,
   fetchCloudRequests,
   fetchCloudShifts,
+  saveCloudEmployee,
   saveCloudRequest,
   saveCloudShifts,
   subscribeToRealtimeChanges,
@@ -250,6 +253,35 @@ export const App: React.FC = () => {
     });
   };
 
+  const handleSaveEmployee = async (emp: Employee) => {
+    setEmployees((prev) => {
+      const exists = prev.some((e) => e.id === emp.id);
+      const next = exists ? prev.map((e) => (e.id === emp.id ? emp : e)) : [emp, ...prev];
+      return next;
+    });
+    await saveCloudEmployee(emp);
+    setToast({
+      id: `toast-${Date.now()}`,
+      title: 'Anagrafica Collaboratore Salvata',
+      message: `${emp.name} è stato aggiornato correttamente.`,
+      type: 'info',
+    });
+  };
+
+  const handleArchiveEmployee = async (empId: string, isActive: boolean) => {
+    setEmployees((prev) => prev.map((e) => (e.id === empId ? { ...e, isActive } : e)));
+    await archiveCloudEmployee(empId, isActive);
+    const emp = employees.find((e) => e.id === empId);
+    setToast({
+      id: `toast-${Date.now()}`,
+      title: isActive ? 'Collaboratore Riattivato' : 'Collaboratore Archiviato',
+      message: isActive
+        ? `${emp?.name || ''} è nuovamente attivo nei turni.`
+        : `${emp?.name || ''} è stato archiviato (storico turni preservato).`,
+      type: 'info',
+    });
+  };
+
   const handleSubmitRequest = (newReq: Omit<ShiftRequest, 'id' | 'createdAt' | 'status'>) => {
     const created: ShiftRequest = {
       ...newReq,
@@ -415,6 +447,7 @@ export const App: React.FC = () => {
             location={locationInfo}
             employees={employees}
             shifts={shifts}
+            requests={requests}
             isManagerMode={isManagerMode}
             onEditShift={(shift) => setEditingShift(shift)}
             onOpenGenerateModal={() => setIsGenerateModalOpen(true)}
@@ -424,6 +457,8 @@ export const App: React.FC = () => {
               setIsEmergencyModalOpen(true);
             }}
             onOpenExportModal={() => setIsExportModalOpen(true)}
+            onApproveRequest={(id) => handleUpdateRequestStatus(id, 'approved', 'Approvata 1-click dal responsabile')}
+            onRejectRequest={(id) => handleUpdateRequestStatus(id, 'rejected', 'Non conciliabile con la copertura minima')}
           />
         )}
 
@@ -447,6 +482,16 @@ export const App: React.FC = () => {
             locationId={activeLocation}
             onUpdateSkills={handleUpdateEmployeeSkills}
             isStandaloneTab={true}
+          />
+        )}
+
+        {/* Tab 6: Gestione Staff & Collaboratori (Solo per Direzione) */}
+        {activeTab === 'staff' && isManagerMode && (
+          <StaffManagement
+            employees={employees}
+            activeLocation={activeLocation}
+            onSaveEmployee={handleSaveEmployee}
+            onArchiveEmployee={handleArchiveEmployee}
           />
         )}
 

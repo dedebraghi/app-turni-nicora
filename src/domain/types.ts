@@ -33,6 +33,7 @@ export interface Employee {
   color?: string;
   isManager?: boolean;
   contractHours?: number; // es. 40h o 24h
+  isActive?: boolean;     // Se false: collaboratore archiviato/cessato (soft-delete)
 }
 
 export interface UserSession {
@@ -70,7 +71,7 @@ export interface ShiftRequest {
   managerNote?: string;
 }
 
-export type ActiveTab = 'today' | 'my-shifts' | 'planner' | 'requests' | 'skills';
+export type ActiveTab = 'today' | 'my-shifts' | 'planner' | 'requests' | 'skills' | 'staff';
 
 export interface WeekDayMeta {
   dateStr: string;

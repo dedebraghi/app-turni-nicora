@@ -49,6 +49,7 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
 
   // Filtraggio collaboratori
   const filteredEmployees = employees.filter((emp) => {
+    if (emp.isActive === false) return false;
     const shift = dayShifts.find((s) => s.employeeId === emp.id);
     const matchesSearch =
       emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

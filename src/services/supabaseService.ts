@@ -4,6 +4,7 @@ import {
   mapDbToEmployee,
   mapDbToRequest,
   mapDbToShift,
+  mapEmployeeToDb,
   mapRequestToDb,
   mapShiftToDb,
   supabase,
@@ -40,7 +41,6 @@ export const fetchCloudEmployees = async (): Promise<Employee[]> => {
     const { data, error } = await supabase
       .from('employees')
       .select('*')
-      .eq('is_active', true)
       .order('name');
 
     if (error) throw error;
@@ -54,6 +54,64 @@ export const fetchCloudEmployees = async (): Promise<Employee[]> => {
   }
 
   return loadStoredEmployees();
+};
+
+/**
+ * Salva o aggiorna un collaboratore su Supabase e storage locale
+ */
+export const saveCloudEmployee = async (emp: Employee): Promise<{ success: boolean; error?: string }> => {
+  const current = loadStoredEmployees();
+  const exists = current.some((e) => e.id === emp.id);
+  const updated = exists
+    ? current.map((e) => (e.id === emp.id ? emp : e))
+    : [emp, ...current];
+  saveStoredEmployees(updated);
+
+  if (!isSupabaseConfigured || !supabase) {
+    return { success: true };
+  }
+
+  try {
+    const row = mapEmployeeToDb(emp);
+    const { error } = await supabase
+      .from('employees')
+      .upsert(row, { onConflict: 'id' });
+
+    if (error) throw error;
+    return { success: true };
+  } catch (err: any) {
+    console.error('[Supabase] Errore salvataggio collaboratore:', err);
+    return { success: false, error: err.message || 'Errore salvataggio collaboratore' };
+  }
+};
+
+/**
+ * Archivia (soft-delete) o riattiva un collaboratore
+ */
+export const archiveCloudEmployee = async (
+  empId: string,
+  isActive: boolean
+): Promise<{ success: boolean; error?: string }> => {
+  const current = loadStoredEmployees();
+  const updated = current.map((e) => (e.id === empId ? { ...e, isActive } : e));
+  saveStoredEmployees(updated);
+
+  if (!isSupabaseConfigured || !supabase) {
+    return { success: true };
+  }
+
+  try {
+    const { error } = await supabase
+      .from('employees')
+      .update({ is_active: isActive, updated_at: new Date().toISOString() })
+      .eq('id', empId);
+
+    if (error) throw error;
+    return { success: true };
+  } catch (err: any) {
+    console.error('[Supabase] Errore archiviazione collaboratore:', err);
+    return { success: false, error: err.message };
+  }
 };
 
 /**

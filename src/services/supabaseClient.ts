@@ -33,6 +33,7 @@ export function mapDbToEmployee(row: any): Employee {
     password: row.pin || '1234',
     isManager: Boolean(row.is_manager),
     contractHours: row.contract_hours || 40,
+    isActive: row.is_active !== false,
   };
 }
 
@@ -49,7 +50,7 @@ export function mapEmployeeToDb(emp: Employee) {
     pin: emp.password || '1234',
     is_manager: Boolean(emp.isManager),
     contract_hours: emp.contractHours || 40,
-    is_active: true,
+    is_active: emp.isActive !== false,
     updated_at: new Date().toISOString(),
   };
 }

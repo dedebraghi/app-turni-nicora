@@ -1,6 +1,6 @@
 import React from 'react';
 import { ActiveTab } from '../../domain/types';
-import { Award, CalendarDays, Clock, MessageSquareQuote, UserCheck } from 'lucide-react';
+import { Award, CalendarDays, Clock, MessageSquareQuote, UserCheck, Users } from 'lucide-react';
 
 interface ResponsiveNavProps {
   activeTab: ActiveTab;
@@ -48,6 +48,12 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
             label: 'Matrice Competenze (1–10)',
             mobileLabel: 'Competenze',
             icon: Award,
+          },
+          {
+            id: 'staff' as ActiveTab,
+            label: 'Gestione Staff',
+            mobileLabel: 'Staff',
+            icon: Users,
           },
         ]
       : []),
