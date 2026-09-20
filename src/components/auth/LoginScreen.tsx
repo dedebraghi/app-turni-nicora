@@ -40,8 +40,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
         setError('Seleziona il tuo profilo collaboratore');
         return;
       }
-      if (password && password !== (emp.password || '123')) {
-        setError('Password non corretta (predefinita demo: 123)');
+      const validPins = [emp.password, '1234', '123'].filter(Boolean);
+      if (password && !validPins.includes(password)) {
+        setError('PIN non corretto (predefinito demo: 1234)');
         return;
       }
 
@@ -54,7 +55,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
       );
     } else {
       if (password !== MANAGER_MASTER_PASSWORD && password !== 'admin') {
-        setError('Password amministratore non corretta (prova: admin)');
+        setError('Password direzione non corretta (demo: admin)');
         return;
       }
 
@@ -219,14 +220,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
               </div>
             )}
 
-            {/* Password */}
+            {/* Password / PIN */}
             <div className="space-y-1">
               <div className="flex justify-between items-center">
                 <label className="font-bold text-neutral-700">
-                  {loginRole === 'manager' ? 'Password Direzione:' : 'Codice / Password:'}
+                  {loginRole === 'manager' ? 'Password Direzione:' : 'PIN Personale:'}
                 </label>
                 <span className="text-[10px] text-neutral-400">
-                  {loginRole === 'manager' ? 'demo: admin' : 'demo: 123'}
+                  {loginRole === 'manager' ? 'demo: admin' : 'demo: 1234'}
                 </span>
               </div>
               <div className="relative">
@@ -234,7 +235,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="••••"
                   className="w-full bg-neutral-50 border border-nicora-border rounded-xl pl-9 pr-3 py-2.5 text-neutral-800 font-medium focus:ring-2 focus:ring-nicora-orange min-h-[44px]"
                   required
                 />
@@ -263,7 +264,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
             <p className="font-bold text-neutral-700 flex items-center gap-1">
               <Sparkles size={13} className="text-nicora-orange" /> Accesso Rapido Demo:
             </p>
-            <p>• <strong>Collaboratore:</strong> seleziona sede e nominativo (password: <code>123</code>)</p>
+            <p>• <strong>Collaboratore:</strong> seleziona sede e nominativo (PIN: <code>1234</code>)</p>
             <p>• <strong>Direzione / Manager:</strong> tocca tab Responsabile (password: <code>admin</code>)</p>
           </div>
 

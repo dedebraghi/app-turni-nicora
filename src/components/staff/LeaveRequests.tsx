@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Employee, LocationId, ShiftRequest } from '../../domain/types';
-import { ArrowLeftRight, CalendarOff, CheckCircle2, Send, Sparkles, XCircle } from 'lucide-react';
+import { CONTINUATO_SLOTS } from '../../domain/rules';
+import { ArrowLeftRight, CalendarOff, CheckCircle2, Clock, Send, Sparkles, XCircle } from 'lucide-react';
 import { LOCATIONS } from '../../domain/mockData';
 
 interface LeaveRequestsProps {
@@ -22,7 +23,7 @@ export const LeaveRequests: React.FC<LeaveRequestsProps> = ({
   onUpdateStatus,
   activeLocation,
 }) => {
-  const [requestType, setRequestType] = useState<'swap' | 'leave'>('leave');
+  const [requestType, setRequestType] = useState<'swap' | 'leave' | 'schedule_change'>('leave');
   
   const storeEmployees = employees.filter((e) => e.locationId === activeLocation);
   const eligibleColleagues = storeEmployees.filter((e) => e.id !== currentEmployeeId);
@@ -33,6 +34,8 @@ export const LeaveRequests: React.FC<LeaveRequestsProps> = ({
   const [shiftDate, setShiftDate] = useState<string>(() =>
     new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0]
   );
+  const [requestedStartTime, setRequestedStartTime] = useState('10:00');
+  const [requestedEndTime, setRequestedEndTime] = useState('18:30');
   const [reason, setReason] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -49,6 +52,8 @@ export const LeaveRequests: React.FC<LeaveRequestsProps> = ({
       type: requestType,
       targetEmployeeId: requestType === 'swap' ? targetEmployeeId : undefined,
       shiftDate,
+      requestedStartTime: requestType === 'schedule_change' ? requestedStartTime : undefined,
+      requestedEndTime: requestType === 'schedule_change' ? requestedEndTime : undefined,
       reason,
     });
 
@@ -88,31 +93,44 @@ export const LeaveRequests: React.FC<LeaveRequestsProps> = ({
         </div>
 
         {/* Tipo Selezione */}
-        <div className="grid grid-cols-2 gap-2 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
           <button
             type="button"
             onClick={() => setRequestType('leave')}
-            className={`flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-xs font-bold border transition-all touch-manipulation ${
+            className={`flex items-center justify-center gap-2 py-3 px-2 rounded-xl text-xs font-bold border transition-all touch-manipulation ${
               requestType === 'leave'
                 ? 'bg-nicora-teal text-white border-nicora-teal shadow-xs'
                 : 'bg-neutral-50 text-neutral-600 border-nicora-border hover:bg-neutral-100'
             }`}
           >
-            <CalendarOff size={16} />
+            <CalendarOff size={15} />
             <span>Ferie o Permesso</span>
           </button>
 
           <button
             type="button"
             onClick={() => setRequestType('swap')}
-            className={`flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-xs font-bold border transition-all touch-manipulation ${
+            className={`flex items-center justify-center gap-2 py-3 px-2 rounded-xl text-xs font-bold border transition-all touch-manipulation ${
               requestType === 'swap'
                 ? 'bg-nicora-orange text-white border-nicora-orange shadow-xs'
                 : 'bg-neutral-50 text-neutral-600 border-nicora-border hover:bg-neutral-100'
             }`}
           >
-            <ArrowLeftRight size={16} />
-            <span>Scambio Turno Collega</span>
+            <ArrowLeftRight size={15} />
+            <span>Scambio Turno</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setRequestType('schedule_change')}
+            className={`flex items-center justify-center gap-2 py-3 px-2 rounded-xl text-xs font-bold border transition-all touch-manipulation ${
+              requestType === 'schedule_change'
+                ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+                : 'bg-neutral-50 text-neutral-600 border-nicora-border hover:bg-neutral-100'
+            }`}
+          >
+            <Clock size={15} />
+            <span>Variazione Orario</span>
           </button>
         </div>
 
@@ -131,6 +149,80 @@ export const LeaveRequests: React.FC<LeaveRequestsProps> = ({
               required
             />
           </div>
+
+          {/* Variazione Orario (Preset e Time Picker) */}
+          {requestType === 'schedule_change' && (
+            <div className="space-y-2.5 bg-amber-50/50 p-3 rounded-2xl border border-amber-200">
+              <label className="block font-bold text-neutral-800">
+                Template Rapidi & Orario Flessibile Richiesto:
+              </label>
+
+              {/* Preset 1-Click */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRequestedStartTime('10:00');
+                    setRequestedEndTime('18:30');
+                  }}
+                  className="p-1.5 rounded-lg bg-white border border-amber-200 text-amber-900 font-bold text-[10px] text-center hover:bg-amber-100 transition-colors"
+                >
+                  Entrata posticipata (10:00)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRequestedStartTime('08:30');
+                    setRequestedEndTime('17:00');
+                  }}
+                  className="p-1.5 rounded-lg bg-white border border-amber-200 text-amber-900 font-bold text-[10px] text-center hover:bg-amber-100 transition-colors"
+                >
+                  Uscita anticipata (17:00)
+                </button>
+                {CONTINUATO_SLOTS.map((slot, idx) => (
+                  <button
+                    key={slot.start}
+                    type="button"
+                    onClick={() => {
+                      setRequestedStartTime(slot.start);
+                      setRequestedEndTime(slot.end);
+                    }}
+                    className="p-1.5 rounded-lg bg-white border border-amber-200 text-amber-900 font-bold text-[10px] text-center hover:bg-amber-100 transition-colors"
+                  >
+                    Slot {idx + 1} ({slot.label})
+                  </button>
+                ))}
+              </div>
+
+              {/* Inserimento Libero Orari */}
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <div>
+                  <label className="block font-semibold text-neutral-700 mb-0.5 text-[11px]">
+                    Ora Inizio Desiderata:
+                  </label>
+                  <input
+                    type="time"
+                    value={requestedStartTime}
+                    onChange={(e) => setRequestedStartTime(e.target.value)}
+                    className="w-full bg-white border border-amber-300 rounded-xl px-3 py-2 font-bold text-sm min-h-[44px]"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-neutral-700 mb-0.5 text-[11px]">
+                    Ora Fine Desiderata:
+                  </label>
+                  <input
+                    type="time"
+                    value={requestedEndTime}
+                    onChange={(e) => setRequestedEndTime(e.target.value)}
+                    className="w-full bg-white border border-amber-300 rounded-xl px-3 py-2 font-bold text-sm min-h-[44px]"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Collega con cui scambiare (solo per swap) */}
           {requestType === 'swap' && (
@@ -212,8 +304,18 @@ export const LeaveRequests: React.FC<LeaveRequestsProps> = ({
                       <span className="font-extrabold text-sm text-nicora-title">
                         {requester?.name} {isMyReq && '(Tu)'}
                       </span>
-                      <span className="text-[10px] bg-neutral-100 text-neutral-600 px-2 py-0.5 rounded font-bold uppercase">
-                        {req.type === 'swap' ? 'Scambio Turno' : 'Ferie / Permesso'}
+                      <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${
+                        req.type === 'schedule_change'
+                          ? 'bg-amber-100 text-amber-800'
+                          : req.type === 'swap'
+                          ? 'bg-orange-100 text-orange-800'
+                          : 'bg-neutral-100 text-neutral-600'
+                      }`}>
+                        {req.type === 'swap'
+                          ? 'Scambio Turno'
+                          : req.type === 'leave'
+                          ? 'Ferie / Permesso'
+                          : 'Variazione Orario'}
                       </span>
                     </div>
 
@@ -246,6 +348,18 @@ export const LeaveRequests: React.FC<LeaveRequestsProps> = ({
                       <CalendarOff size={13} className="text-nicora-teal flex-shrink-0" />
                       <span>Data di assenza desiderata: <strong>{req.shiftDate}</strong></span>
                     </p>
+                  )}
+
+                  {req.type === 'schedule_change' && (
+                    <div className="bg-amber-50/80 border border-amber-200 rounded-xl p-2.5 flex items-center justify-between text-neutral-800">
+                      <div className="flex items-center gap-1.5 font-bold">
+                        <Clock size={14} className="text-amber-600 flex-shrink-0" />
+                        <span>Orario richiesto per il <strong>{req.shiftDate}</strong>:</span>
+                      </div>
+                      <span className="bg-amber-200 text-amber-950 font-black px-2.5 py-0.5 rounded-lg text-xs shadow-xs">
+                        {req.requestedStartTime || '09:00'} — {req.requestedEndTime || '18:30'}
+                      </span>
+                    </div>
                   )}
 
                   <div className="bg-neutral-50 p-2.5 rounded-xl border border-neutral-100 text-neutral-700 italic">

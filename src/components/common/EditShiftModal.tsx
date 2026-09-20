@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { DEPARTMENTS, SHIFT_TYPES, STANDARD_HOURS } from '../../domain/rules';
+import { CONTINUATO_SLOTS, DEPARTMENTS, SHIFT_TYPES, STANDARD_HOURS } from '../../domain/rules';
 import { Department, Employee, Shift, ShiftType } from '../../domain/types';
-import { X, Check, Clock, MapPin, Tag, ShieldAlert } from 'lucide-react';
+import { X, Check, Clock, MapPin, Tag, ShieldAlert, Sparkles } from 'lucide-react';
 
 interface EditShiftModalProps {
   shift: Shift;
@@ -25,11 +25,13 @@ export const EditShiftModal: React.FC<EditShiftModalProps> = ({
   const [startTime, setStartTime] = useState(shift.startTime || STANDARD_HOURS.mattina.start);
   const [endTime, setEndTime] = useState(shift.endTime || STANDARD_HOURS.giornata.end);
   const [areaNote, setAreaNote] = useState(shift.areaNote || '');
+  const [isCustomHours, setIsCustomHours] = useState(shift.isCustomHours || false);
 
   if (!isOpen) return null;
 
   const handleTypeSelect = (newType: ShiftType) => {
     setType(newType);
+    setIsCustomHours(false);
     if (newType === 'mattina') {
       setStartTime(STANDARD_HOURS.mattina.start);
       setEndTime(STANDARD_HOURS.mattina.end);
@@ -42,9 +44,24 @@ export const EditShiftModal: React.FC<EditShiftModalProps> = ({
     }
   };
 
+  const handleContinuatoSlot = (slot: { start: string; end: string; label: string }) => {
+    setType('giornata');
+    setStartTime(slot.start);
+    setEndTime(slot.end);
+    setIsCustomHours(true);
+    if (!areaNote.includes('(Continuato)')) {
+      setAreaNote(prev => prev ? `${prev} (Continuato)` : 'Continuato');
+    }
+  };
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     const isOff = type === 'riposo' || type === 'ferie' || type === 'malattia';
+    const isStandard =
+      (type === 'mattina' && startTime === STANDARD_HOURS.mattina.start && endTime === STANDARD_HOURS.mattina.end) ||
+      (type === 'pomeriggio' && startTime === STANDARD_HOURS.pomeriggio.start && endTime === STANDARD_HOURS.pomeriggio.end) ||
+      (type === 'giornata' && startTime === STANDARD_HOURS.giornata.start && endTime === STANDARD_HOURS.giornata.end);
+
     onSave({
       ...shift,
       type,
@@ -53,6 +70,7 @@ export const EditShiftModal: React.FC<EditShiftModalProps> = ({
       endTime: isOff ? undefined : endTime,
       areaNote: isOff ? undefined : areaNote,
       isManualOverride: true,
+      isCustomHours: !isOff && (isCustomHours || !isStandard),
     });
     onClose();
   };
@@ -152,6 +170,44 @@ export const EditShiftModal: React.FC<EditShiftModalProps> = ({
                     {dept === 'Serra Calda' ? 'S. Calda' : dept === 'Serra Fredda' ? 'S. Fredda' : dept}
                   </button>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Preset Orario Continuato (9-19 a scaglioni) */}
+          {type !== 'riposo' && type !== 'ferie' && type !== 'malattia' && (
+            <div className="bg-orange-50/70 border border-orange-200 rounded-xl p-2.5 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-neutral-800 flex items-center gap-1">
+                  <Sparkles size={12} className="text-nicora-orange" />
+                  <span>Template Orario Continuato (9–19):</span>
+                </span>
+                <span className="text-[10px] font-medium text-orange-800 bg-orange-100/80 px-1.5 py-0.5 rounded">
+                  Alta Stagione
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5">
+                {CONTINUATO_SLOTS.map((slot, sIdx) => {
+                  const isSelected = startTime === slot.start && endTime === slot.end;
+                  return (
+                    <button
+                      key={slot.start}
+                      type="button"
+                      onClick={() => handleContinuatoSlot(slot)}
+                      className={`py-1.5 px-1 rounded-lg text-center font-bold text-[10px] border transition-all ${
+                        isSelected
+                          ? 'bg-nicora-orange text-white border-nicora-orange shadow-xs'
+                          : 'bg-white text-neutral-700 border-orange-200 hover:bg-orange-100/60'
+                      }`}
+                      title={`Scaglione ${sIdx + 1}: ${slot.label}`}
+                    >
+                      <div className="font-black leading-tight">{slot.label}</div>
+                      <div className={`text-[9px] ${isSelected ? 'text-white/90' : 'text-neutral-400'}`}>
+                        Scaglione {sIdx + 1}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}

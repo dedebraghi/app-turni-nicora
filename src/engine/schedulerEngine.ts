@@ -285,7 +285,11 @@ export const generateWeeklySchedule = ({
       if (mode === 'continuato') {
         // Modalità Orario Continuato (Metà Ottobre - Natale):
         // Scaglioni di ingresso 09:00, 10:00, 11:00 con chiusura ore 19:00
-        const slot = CONTINUATO_SLOTS[itemIdx % CONTINUATO_SLOTS.length];
+        // Cassa 1 sempre Slot 0 (Apertura 09:00), eventuale Cassa 2 o supporto Slot 2 (Chiusura 19:00)
+        let slot = CONTINUATO_SLOTS[itemIdx % CONTINUATO_SLOTS.length];
+        if (dept === 'Cassa') {
+          slot = itemIdx === 0 ? CONTINUATO_SLOTS[0] : CONTINUATO_SLOTS[2];
+        }
 
         shifts.push({
           id: `shift-${emp.id}-${dateStr}`,
@@ -297,6 +301,7 @@ export const generateWeeklySchedule = ({
           startTime: slot.start,
           endTime: slot.end,
           areaNote: `${note} (Continuato)`,
+          isCustomHours: true,
         });
       } else {
         // Modalità Standard:

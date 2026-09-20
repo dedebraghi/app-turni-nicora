@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Employee, LocationInfo, Shift } from '../../domain/types';
 import { calculateFairnessMetrics } from '../../engine/fairnessTracker';
 import { getSundayOfWeek, getWeekDays } from '../../engine/schedulerEngine';
-import { Award, ChevronLeft, ChevronRight, Coffee, Search, Share2, ShieldAlert, ShieldCheck, Zap } from 'lucide-react';
+import { Award, ChevronLeft, ChevronRight, Coffee, Monitor, Search, Share2, ShieldAlert, ShieldCheck, Smartphone, Sparkles, Zap } from 'lucide-react';
+import { MobileDayView } from './MobileDayView';
 
 interface PlannerGridProps {
   location: LocationInfo;
@@ -36,6 +37,21 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
   const baseSundayStr = baseSunday.toISOString().split('T')[0];
 
   const weekDays = getWeekDays(baseSundayStr);
+
+  const [selectedMobileDateStr, setSelectedMobileDateStr] = useState<string>(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return today;
+  });
+  const [viewMode, setViewMode] = useState<'responsive' | 'mobile' | 'desktop'>('responsive');
+
+  useEffect(() => {
+    const exists = weekDays.some((d) => d.dateStr === selectedMobileDateStr);
+    if (!exists) {
+      const today = new Date().toISOString().split('T')[0];
+      const todayInWeek = weekDays.find((d) => d.dateStr === today);
+      setSelectedMobileDateStr(todayInWeek ? todayInWeek.dateStr : weekDays[0].dateStr);
+    }
+  }, [baseSundayStr]);
 
   const storeEmployees = employees.filter((e) => e.locationId === location.id);
   const storeShifts = shifts.filter((s) => s.locationId === location.id);
@@ -103,6 +119,39 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
           <span className="text-xs font-bold text-nicora-orange bg-nicora-orange-light px-2.5 py-1 rounded-xl border border-nicora-orange-border/40 whitespace-nowrap">
             {weekOffset === 0 ? 'Settimana Attuale' : weekOffset === 1 ? 'Prossima Settimana' : `Offset: ${weekOffset} sett.`}
           </span>
+
+          {/* Selettore Vista Dispositivo */}
+          <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-xl text-neutral-600">
+            <button
+              onClick={() => setViewMode('mobile')}
+              className={`px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition-all ${
+                viewMode === 'mobile' ? 'bg-white text-nicora-teal shadow-xs' : 'hover:text-neutral-900'
+              }`}
+              title="Vista Schede Verticali Touch (Smartphone)"
+            >
+              <Smartphone size={13} />
+              <span className="hidden sm:inline">Schede</span>
+            </button>
+            <button
+              onClick={() => setViewMode('desktop')}
+              className={`px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition-all ${
+                viewMode === 'desktop' ? 'bg-white text-nicora-teal shadow-xs' : 'hover:text-neutral-900'
+              }`}
+              title="Vista Tabellone Settimanale (Spreadsheet)"
+            >
+              <Monitor size={13} />
+              <span className="hidden sm:inline">Tabellone</span>
+            </button>
+            <button
+              onClick={() => setViewMode('responsive')}
+              className={`px-2 py-1 rounded-lg text-xs font-bold transition-all ${
+                viewMode === 'responsive' ? 'bg-white text-neutral-800 shadow-xs' : 'hover:text-neutral-900'
+              }`}
+              title="Layout automatico in base alle dimensioni dello schermo"
+            >
+              Auto
+            </button>
+          </div>
         </div>
 
         {/* Right: Actions */}
@@ -195,10 +244,32 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
         </div>
       </div>
 
-      {/* --- MASTER SPREADSHEET GRID --- */}
-      <div className="bg-white rounded-2xl border border-nicora-border shadow-clean overflow-hidden">
-        <div className="overflow-x-auto scrollbar-thin">
-          <table className="w-full text-left border-collapse min-w-[950px]">
+      {/* --- VISTA MOBILE (Device-Dedicated Smartphone) --- */}
+      {(viewMode === 'mobile' || viewMode === 'responsive') && (
+        <div className={viewMode === 'responsive' ? 'block md:hidden' : 'block'}>
+          <MobileDayView
+            location={location}
+            employees={filteredEmployees}
+            shifts={storeShifts}
+            weekDays={weekDays}
+            selectedDateStr={selectedMobileDateStr}
+            onSelectDate={setSelectedMobileDateStr}
+            isManagerMode={isManagerMode}
+            onEditShift={onEditShift}
+            selectedDeptFilter={selectedDeptFilter}
+            onSelectDeptFilter={setSelectedDeptFilter}
+            searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery}
+          />
+        </div>
+      )}
+
+      {/* --- MASTER SPREADSHEET GRID (DESKTOP) --- */}
+      {(viewMode === 'desktop' || viewMode === 'responsive') && (
+        <div className={viewMode === 'responsive' ? 'hidden md:block' : 'block'}>
+          <div className="bg-white rounded-2xl border border-nicora-border shadow-clean overflow-hidden">
+            <div className="overflow-x-auto scrollbar-thin">
+              <table className="w-full text-left border-collapse min-w-[950px]">
             
             {/* Table Header: Giorni della settimana (Domenica -> Sabato) */}
             <thead>
@@ -368,9 +439,16 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                               <div className="text-[10px] truncate leading-tight">
                                 {shift.department || emp.role}
                               </div>
-                              <span className="text-[9px] text-neutral-500 block leading-none mt-0.5">
-                                {shift.startTime || '08:30'}-{shift.endTime || '19:30'}
-                              </span>
+                              <div className="flex items-center justify-center gap-0.5 mt-0.5">
+                                <span className="text-[9px] text-neutral-500 block leading-none">
+                                  {shift.startTime || '08:30'}-{shift.endTime || '19:30'}
+                                </span>
+                                {shift.isCustomHours && (
+                                  <span title="Orario speciale concordato" className="text-[10px] text-amber-600 font-bold leading-none">
+                                    ★
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           )}
                         </td>
@@ -385,6 +463,8 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
           </table>
         </div>
       </div>
+        </div>
+      )}
 
       {/* Note Legali e Contratto Nicora Garden */}
       <div className="bg-neutral-50 rounded-2xl p-3 border border-nicora-border text-[11px] text-neutral-500 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">

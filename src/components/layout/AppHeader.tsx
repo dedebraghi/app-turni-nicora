@@ -3,7 +3,8 @@ import { NicoraLogo } from '../NicoraLogo';
 import { InstallPWAButton } from '../InstallPWAButton';
 import { LOCATIONS } from '../../domain/mockData';
 import { LocationId, UserSession } from '../../domain/types';
-import { LogOut, MapPin, ShieldCheck } from 'lucide-react';
+import { LogOut, MapPin, ShieldCheck, Cloud, CloudOff } from 'lucide-react';
+import { getCloudStatus } from '../../services/supabaseService';
 
 interface AppHeaderProps {
   session: UserSession;
@@ -23,6 +24,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   onChangeLocation,
 }) => {
   const isManagerUser = session.role === 'manager' || session.user.isManager;
+  const cloudStatus = getCloudStatus();
 
   return (
     <header className="sticky top-0 z-30 bg-nicora-teal text-white shadow-md pt-safe">
@@ -77,6 +79,26 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
         {/* Right Action Tools & User Profile */}
         <div className="flex items-center gap-2">
+          {/* Badge Stato Connessione Cloud */}
+          {cloudStatus.isConfigured ? (
+            <div
+              className="hidden sm:flex items-center gap-1.5 text-[10px] text-emerald-200 bg-emerald-950/50 border border-emerald-500/40 px-2 py-1 rounded-xl font-medium"
+              title="Sincronizzazione Supabase Cloud attiva"
+            >
+              <Cloud size={12} className="text-emerald-400" />
+              <span className="hidden md:inline">Cloud Live</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            </div>
+          ) : (
+            <div
+              className="hidden sm:flex items-center gap-1.5 text-[10px] text-white/70 bg-black/20 border border-white/10 px-2 py-1 rounded-xl font-medium"
+              title="Modalità offline / locale attiva (localStorage)"
+            >
+              <CloudOff size={12} className="text-white/50" />
+              <span className="hidden md:inline">Locale</span>
+            </div>
+          )}
+
           <InstallPWAButton />
 
           {/* Toggle Modalità Manager / Collaboratore */}

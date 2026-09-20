@@ -51,16 +51,19 @@ export interface Shift {
   endTime?: string;        // es. '12:30' o '19:00'
   areaNote?: string;       // es. 'Cassa 1 Continua', 'Scarico Merci Serra'
   isManualOverride?: boolean;
+  isCustomHours?: boolean; // Orario personalizzato concordato
 }
 
 export interface ShiftRequest {
   id: string;
   requesterId: string;
   locationId: LocationId;
-  type: 'swap' | 'leave'; // Scambio turno o Permesso/Ferie
+  type: 'swap' | 'leave' | 'schedule_change'; // Scambio turno, Permesso/Ferie o Variazione Orario
   targetEmployeeId?: string; // Per scambio turno
   shiftDate: string;        // YYYY-MM-DD
   targetShiftDate?: string;
+  requestedStartTime?: string; // HH:MM per variazione orario
+  requestedEndTime?: string;   // HH:MM per variazione orario
   reason: string;
   status: 'pending' | 'approved' | 'rejected';
   createdAt: string;
