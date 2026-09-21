@@ -20,11 +20,22 @@ export interface SchedulerOptions {
   mode?: ScheduleMode;   // 'standard' o 'continuato'
 }
 
+export interface SuboptimalCoverageInfo {
+  dateStr: string;
+  dayName: string;
+  department: Department;
+  assignedScore: number;
+  empName: string;
+}
+
 export interface ScheduleGenerationResult {
   shifts: Shift[];
   stats: {
     totalShifts: number;
     cassaCoverageScore: number; // in %
+    overallSkillScore: number; // in % (es. 92% = media 9.2/10)
+    departmentSkillScores: Record<Department, number>; // Media competenza per reparto (1-10)
+    suboptimalCoverageDays: SuboptimalCoverageInfo[];
     staffCount: number;
     employeesWorkingDays: Record<string, number>;
     employeesWorkingHours: Record<string, EmployeeWeeklyHours>;
@@ -181,12 +192,39 @@ export const calculateDayCoverage = (
   let serraCaldaCount = 0;
   let serraFreddaCount = 0;
 
+  const deptScoresSum: Record<Department, number> = {
+    'Cassa': 0,
+    'Fioreria': 0,
+    'Decor': 0,
+    'Serra Calda': 0,
+    'Serra Fredda': 0,
+  };
+  const deptScoresCount: Record<Department, number> = {
+    'Cassa': 0,
+    'Fioreria': 0,
+    'Decor': 0,
+    'Serra Calda': 0,
+    'Serra Fredda': 0,
+  };
+
+  let totalSkillSum = 0;
+  let totalSkillCount = 0;
+
   dayShifts.forEach((s) => {
-    if (s.department === 'Cassa') cassaCount++;
-    else if (s.department === 'Fioreria') fioreriaCount++;
-    else if (s.department === 'Decor') decorCount++;
-    else if (s.department === 'Serra Calda') serraCaldaCount++;
-    else if (s.department === 'Serra Fredda') serraFreddaCount++;
+    if (s.department) {
+      if (s.department === 'Cassa') cassaCount++;
+      else if (s.department === 'Fioreria') fioreriaCount++;
+      else if (s.department === 'Decor') decorCount++;
+      else if (s.department === 'Serra Calda') serraCaldaCount++;
+      else if (s.department === 'Serra Fredda') serraFreddaCount++;
+
+      if (s.assignedSkillScore !== undefined) {
+        deptScoresSum[s.department] += s.assignedSkillScore;
+        deptScoresCount[s.department]++;
+        totalSkillSum += s.assignedSkillScore;
+        totalSkillCount++;
+      }
+    }
   });
 
   const uncoveredDepartments: Department[] = [];
@@ -195,6 +233,23 @@ export const calculateDayCoverage = (
   if (decorCount === 0) uncoveredDepartments.push('Decor');
   if (serraCaldaCount === 0) uncoveredDepartments.push('Serra Calda');
   if (serraFreddaCount === 0) uncoveredDepartments.push('Serra Fredda');
+
+  const departmentSkillScores: Record<Department, number> = {
+    'Cassa': deptScoresCount['Cassa'] > 0 ? Math.round((deptScoresSum['Cassa'] / deptScoresCount['Cassa']) * 10) / 10 : 0,
+    'Fioreria': deptScoresCount['Fioreria'] > 0 ? Math.round((deptScoresSum['Fioreria'] / deptScoresCount['Fioreria']) * 10) / 10 : 0,
+    'Decor': deptScoresCount['Decor'] > 0 ? Math.round((deptScoresSum['Decor'] / deptScoresCount['Decor']) * 10) / 10 : 0,
+    'Serra Calda': deptScoresCount['Serra Calda'] > 0 ? Math.round((deptScoresSum['Serra Calda'] / deptScoresCount['Serra Calda']) * 10) / 10 : 0,
+    'Serra Fredda': deptScoresCount['Serra Fredda'] > 0 ? Math.round((deptScoresSum['Serra Fredda'] / deptScoresCount['Serra Fredda']) * 10) / 10 : 0,
+  };
+
+  const suboptimalDepartments: Department[] = [];
+  (DEPARTMENTS as Department[]).forEach((d) => {
+    if (deptScoresCount[d] > 0 && departmentSkillScores[d] < 9) {
+      suboptimalDepartments.push(d);
+    }
+  });
+
+  const averageSkillScore = totalSkillCount > 0 ? Math.round((totalSkillSum / totalSkillCount) * 10) / 10 : 0;
 
   const riposoCount = shifts.filter((s) => s.date === dateStr && s.type === 'riposo').length;
   const ferieCount = shifts.filter((s) => s.date === dateStr && s.type === 'ferie').length;
@@ -213,6 +268,9 @@ export const calculateDayCoverage = (
     ferieCount,
     malattiaCount,
     uncoveredDepartments,
+    averageSkillScore,
+    departmentSkillScores,
+    suboptimalDepartments,
   };
 };
 
@@ -330,6 +388,103 @@ function getDailyShiftSchedule(
 }
 
 /**
+ * Assegna in modo globale i 5 reparti al personale disponibile, massimizzando il punteggio di competenza
+ * e proteggendo i super-specialisti (9-10) nel proprio reparto d'eccellenza.
+ * GARANTISCE sempre la copertura prioritaria di TUTTI i 5 reparti presidiabili.
+ */
+function assignDepartmentsOptimal(
+  availableStaff: Employee[],
+  isMerchandiseArrival: boolean
+): {
+  primaryAssignments: { emp: Employee; dept: Department; note: string; assignedSkillScore: number }[];
+  missingDepartments: Department[];
+} {
+  const depts: Department[] = ['Cassa', 'Fioreria', 'Decor', 'Serra Calda', 'Serra Fredda'];
+  const primaryAssignments: { emp: Employee; dept: Department; note: string; assignedSkillScore: number }[] = [];
+
+  if (availableStaff.length === 0) {
+    return { primaryAssignments: [], missingDepartments: [...depts] };
+  }
+
+  // Peso dell'accoppiamento (Dipendente emp -> Reparto dept)
+  const getWeight = (emp: Employee, dept: Department): number => {
+    const baseScore = emp.skills?.[dept] ?? 1;
+    const isSpecialist = baseScore >= 9;
+    const isPrimaryRole = emp.role === dept;
+    const allSkills = Object.values(emp.skills || {});
+    const isHighestSkill = allSkills.length > 0 && allSkills.every((s) => baseScore >= s);
+
+    let bonus = 0;
+    if (isSpecialist && (isPrimaryRole || isHighestSkill)) {
+      bonus = 100; // Priorità massima per salvaguardare super-specialista nel suo campo d'eccellenza
+    } else if (isSpecialist) {
+      bonus = 40;
+    } else if (isPrimaryRole) {
+      bonus = 10;
+    }
+    return baseScore + bonus;
+  };
+
+  const deptsToCover = depts.slice(0, Math.min(depts.length, availableStaff.length));
+
+  let bestScore = -1;
+  let bestMapping: { emp: Employee; dept: Department }[] = [];
+
+  function search(
+    deptIdx: number,
+    usedEmpIds: Set<string>,
+    currentScore: number,
+    currentMapping: { emp: Employee; dept: Department }[]
+  ) {
+    if (deptIdx === deptsToCover.length) {
+      if (currentScore > bestScore) {
+        bestScore = currentScore;
+        bestMapping = [...currentMapping];
+      }
+      return;
+    }
+
+    const targetDept = deptsToCover[deptIdx];
+
+    for (const emp of availableStaff) {
+      if (!usedEmpIds.has(emp.id)) {
+        usedEmpIds.add(emp.id);
+        const w = getWeight(emp, targetDept);
+        currentMapping.push({ emp, dept: targetDept });
+        search(deptIdx + 1, usedEmpIds, currentScore + w, currentMapping);
+        currentMapping.pop();
+        usedEmpIds.delete(emp.id);
+      }
+    }
+  }
+
+  search(0, new Set(), 0, []);
+
+  const deptNotes: Record<Department, (isArrival: boolean) => string> = {
+    'Cassa': () => 'Cassa 1 Principale (Barriera Continua)',
+    'Fioreria': () => 'Banco Fioreria & Composizioni',
+    'Decor': () => 'Decor, Vasi & Oggettistica',
+    'Serra Calda': () => 'Serra Tropicale & Piante da Interno',
+    'Serra Fredda': (isArrival) =>
+      isArrival ? 'Arrivo Merce & Ricevimento Piante' : 'Vivaio Esterno & Arbusti',
+  };
+
+  bestMapping.forEach(({ emp, dept }) => {
+    const score = emp.skills?.[dept] ?? 1;
+    primaryAssignments.push({
+      emp,
+      dept,
+      note: deptNotes[dept](isMerchandiseArrival),
+      assignedSkillScore: score,
+    });
+  });
+
+  const missingDepartments = depts.filter((d) => !bestMapping.some((m) => m.dept === d));
+
+  return { primaryAssignments, missingDepartments };
+}
+
+/**
  * Algoritmo Intelligente di Pianificazione Turni Nicora Garden:
  * 1. Settimana: Domenica -> Sabato (7 giorni).
  * 2. Ciascun collaboratore lavora ESATTAMENTE 5 giorni su 7 (2 riposi garantiti).
@@ -348,6 +503,15 @@ export const generateWeeklySchedule = ({
   const storeStaff = employees.filter((e) => e.locationId === locationId && e.isActive !== false);
   const weekDays = getWeekDays(weekStartDate);
   const warnings: string[] = [];
+  const suboptimalCoverageDays: SuboptimalCoverageInfo[] = [];
+
+  const emptyDeptScores: Record<Department, number> = {
+    'Cassa': 0,
+    'Fioreria': 0,
+    'Decor': 0,
+    'Serra Calda': 0,
+    'Serra Fredda': 0,
+  };
 
   if (storeStaff.length === 0) {
     return {
@@ -355,6 +519,9 @@ export const generateWeeklySchedule = ({
       stats: {
         totalShifts: 0,
         cassaCoverageScore: 0,
+        overallSkillScore: 0,
+        departmentSkillScores: emptyDeptScores,
+        suboptimalCoverageDays: [],
         staffCount: 0,
         employeesWorkingDays: {},
         employeesWorkingHours: {},
@@ -381,8 +548,6 @@ export const generateWeeklySchedule = ({
     });
 
   // 2. Assegnazione equa dei 2 giorni di riposo per collaboratore (Vincolo 5 giorni lavorativi su 7)
-  // Rotazione sui giorni feriali (Lun=1, Mar=2, Mer=3, Gio=4) per preservare weekend (Dom=0, Sab=6) e merci (Gio=4, Ven=5).
-  // I 2 giorni di riposo garantiti sono DISGIUNTI dalle giornate di ferie (riposi + ferie + lavoro = 7 giorni esatti).
   const offDaysSchedule: Record<string, Set<number>> = {};
   const preferredOffDayPairs: [number, number][] = [
     [1, 2], // Lunedì e Martedì
@@ -398,7 +563,6 @@ export const generateWeeklySchedule = ({
   storeStaff.forEach((emp, empIdx) => {
     const offDays = new Set<number>();
 
-    // Mappa dei giorni della settimana con ferie per questo dipendente
     const leaveDayIndices = new Set<number>();
     weekDays.forEach((wDay) => {
       if (approvedLeaves[emp.id]?.has(wDay.dateStr)) {
@@ -406,7 +570,6 @@ export const generateWeeklySchedule = ({
       }
     });
 
-    // Assegna 2 giorni di riposo ordinari diversi dai giorni di ferie
     const pair = preferredOffDayPairs[empIdx % preferredOffDayPairs.length];
     for (const candidateDay of pair) {
       if (offDays.size < 2 && !offDays.has(candidateDay) && !leaveDayIndices.has(candidateDay)) {
@@ -431,7 +594,6 @@ export const generateWeeklySchedule = ({
   let cassaCoveredDays = 0;
   const uncoveredDaysList: { dateStr: string; departments: Department[] }[] = [];
 
-  // Mappa per tracciare a quale giorno di lavoro (0..4) è arrivato ciascun dipendente
   const workerDayCounter: Record<string, number> = {};
   storeStaff.forEach((emp) => {
     workerDayCounter[emp.id] = 0;
@@ -456,7 +618,6 @@ export const generateWeeklySchedule = ({
           type: 'ferie',
           areaNote: 'Ferie approvate dalla direzione',
         });
-        // Conta come una delle 5 giornate del lavoratore
         workerDayCounter[emp.id]++;
       } else if (isOff) {
         shifts.push({
@@ -477,105 +638,53 @@ export const generateWeeklySchedule = ({
       return;
     }
 
+    // Assegnazione ottimizzata globale dei 5 reparti
+    const { primaryAssignments, missingDepartments } = assignDepartmentsOptimal(
+      availableStaff,
+      isMerchandiseArrival
+    );
+
     const assignedEmpIds = new Set<string>();
+    const dayAssignments: { emp: Employee; dept: Department; note: string; assignedSkillScore: number }[] = [];
 
-    // Helper per estrarre il miglior candidato per competenza decrescente in uno specifico reparto
-    const getBestAvailableFor = (dept: Department, excludeIds: Set<string>): Employee | null => {
-      const candidates = availableStaff
-        .filter((e) => !excludeIds.has(e.id))
-        .sort((a, b) => {
-          const scoreA = a.skills?.[dept] ?? 1;
-          const scoreB = b.skills?.[dept] ?? 1;
-          return scoreB - scoreA;
+    primaryAssignments.forEach((item) => {
+      assignedEmpIds.add(item.emp.id);
+      dayAssignments.push(item);
+      if (item.dept === 'Cassa') {
+        cassaCoveredDays++;
+      }
+
+      if (item.assignedSkillScore < 9) {
+        suboptimalCoverageDays.push({
+          dateStr,
+          dayName: dayMeta.dayName,
+          department: item.dept,
+          assignedScore: item.assignedSkillScore,
+          empName: item.emp.name,
         });
-      return candidates[0] || null;
-    };
+        warnings.push(
+          `Presidio ${item.dept} il ${dayMeta.dayName} ${dateStr} affidato a ${item.emp.name} con competenza non massima (${item.assignedSkillScore}/10).`
+        );
+      }
+    });
 
-    const dayAssignments: { emp: Employee; dept: Department; note: string }[] = [];
-
-    // --- VINCOLO 1: CASSA (Presidio obbligatorio 100%) ---
-    const bestCassa = getBestAvailableFor('Cassa', assignedEmpIds);
-    if (bestCassa) {
-      assignedEmpIds.add(bestCassa.id);
-      dayAssignments.push({
-        emp: bestCassa,
-        dept: 'Cassa',
-        note: 'Cassa 1 Principale (Barriera Continua)',
-      });
-      cassaCoveredDays++;
-    } else {
-      warnings.push(`Cassa sguarnita in data ${dateStr}!`);
+    if (missingDepartments.length > 0) {
+      uncoveredDaysList.push({ dateStr, departments: missingDepartments });
+      warnings.push(`Reparti scoperti il ${dayMeta.dayName} ${dateStr}: ${missingDepartments.join(', ')}`);
     }
 
-    // --- VINCOLO 2: FIORERIA (Presidio obbligatorio) ---
-    const bestFioreria = getBestAvailableFor('Fioreria', assignedEmpIds);
-    if (bestFioreria) {
-      assignedEmpIds.add(bestFioreria.id);
-      dayAssignments.push({
-        emp: bestFioreria,
-        dept: 'Fioreria',
-        note: 'Banco Fioreria & Composizioni',
-      });
-    }
-
-    // --- VINCOLO 3: DECOR (Presidio obbligatorio) ---
-    const bestDecor = getBestAvailableFor('Decor', assignedEmpIds);
-    if (bestDecor) {
-      assignedEmpIds.add(bestDecor.id);
-      dayAssignments.push({
-        emp: bestDecor,
-        dept: 'Decor',
-        note: 'Decor, Vasi & Oggettistica',
-      });
-    }
-
-    // --- VINCOLO 4: SERRA CALDA (Presidio obbligatorio) ---
-    const bestSerraCalda = getBestAvailableFor('Serra Calda', assignedEmpIds);
-    if (bestSerraCalda) {
-      assignedEmpIds.add(bestSerraCalda.id);
-      dayAssignments.push({
-        emp: bestSerraCalda,
-        dept: 'Serra Calda',
-        note: 'Serra Tropicale & Piante da Interno',
-      });
-    }
-
-    // --- VINCOLO 5: SERRA FREDDA / VIVAIO (Presidio obbligatorio) ---
-    const bestSerraFredda = getBestAvailableFor('Serra Fredda', assignedEmpIds);
-    if (bestSerraFredda) {
-      assignedEmpIds.add(bestSerraFredda.id);
-      dayAssignments.push({
-        emp: bestSerraFredda,
-        dept: 'Serra Fredda',
-        note: isMerchandiseArrival
-          ? 'Arrivo Merce & Ricevimento Piante'
-          : 'Vivaio Esterno & Arbusti',
-      });
-    }
-
-    // Verifica se qualcuno dei 5 reparti è rimasto scoperto
-    const missingDepts: Department[] = [];
-    if (!bestCassa) missingDepts.push('Cassa');
-    if (!bestFioreria) missingDepts.push('Fioreria');
-    if (!bestDecor) missingDepts.push('Decor');
-    if (!bestSerraCalda) missingDepts.push('Serra Calda');
-    if (!bestSerraFredda) missingDepts.push('Serra Fredda');
-
-    if (missingDepts.length > 0) {
-      uncoveredDaysList.push({ dateStr, departments: missingDepts });
-      warnings.push(`Reparti scoperti il ${dayMeta.dayName} ${dateStr}: ${missingDepts.join(', ')}`);
-    }
-
-    // --- GESTIONE COLLABORATORI ECCEDENTI (Tutti devono fare le ore e i 5 giorni) ---
+    // --- GESTIONE COLLABORATORI ECCEDENTI ---
     const remainingStaff = availableStaff.filter((e) => !assignedEmpIds.has(e.id));
 
     remainingStaff.forEach((emp, remIdx) => {
       // 1° Eccedenza nel Weekend o Picco Merci: Seconda Cassa
       if ((isWeekend || isMerchandiseArrival) && remIdx === 0 && (emp.skills?.['Cassa'] ?? 0) >= 5) {
+        const score = emp.skills?.['Cassa'] ?? 1;
         dayAssignments.push({
           emp,
           dept: 'Cassa',
           note: 'Cassa 2 (Supporto Barriera & Uscite)',
+          assignedSkillScore: score,
         });
         assignedEmpIds.add(emp.id);
         return;
@@ -583,10 +692,12 @@ export const generateWeeklySchedule = ({
 
       // 1° Eccedenza nei giorni merci (Gio/Ven): Rinforzo scarico serre
       if (isMerchandiseArrival && remIdx === 0) {
+        const score = emp.skills?.['Serra Fredda'] ?? 1;
         dayAssignments.push({
           emp,
           dept: 'Serra Fredda',
           note: 'Scarico Merci Bilici & Carrelli Danesi',
+          assignedSkillScore: score,
         });
         assignedEmpIds.add(emp.id);
         return;
@@ -615,12 +726,13 @@ export const generateWeeklySchedule = ({
         emp,
         dept: bestDept,
         note,
+        assignedSkillScore: highestScore > 0 ? highestScore : (emp.skills?.[bestDept] ?? 1),
       });
       assignedEmpIds.add(emp.id);
     });
 
-    // --- ASSEGNAZIONE DEGLI ORARI SPECIFICI (Tarati sul contratto settimanale) ---
-    dayAssignments.forEach(({ emp, dept, note }) => {
+    // --- ASSEGNAZIONE DEGLI ORARI SPECIFICI ---
+    dayAssignments.forEach(({ emp, dept, note, assignedSkillScore }) => {
       const contractHours = emp.contractHours || 40;
       const dayIdx = workerDayCounter[emp.id] % 5;
       const shiftSchedule = getDailyShiftSchedule(contractHours, dayIdx, mode);
@@ -636,6 +748,7 @@ export const generateWeeklySchedule = ({
         endTime: shiftSchedule.endTime,
         areaNote: note,
         isCustomHours: shiftSchedule.isCustomHours,
+        assignedSkillScore,
       });
 
       workerDayCounter[emp.id]++;
@@ -655,11 +768,40 @@ export const generateWeeklySchedule = ({
   const cassaCoverageScore = Math.round((cassaCoveredDays / 7) * 100);
   const allDepartmentsCovered = uncoveredDaysList.length === 0;
 
+  // Calcolo competenza media globale e per reparto
+  const deptSkillSum: Record<Department, number> = { 'Cassa': 0, 'Fioreria': 0, 'Decor': 0, 'Serra Calda': 0, 'Serra Fredda': 0 };
+  const deptSkillCount: Record<Department, number> = { 'Cassa': 0, 'Fioreria': 0, 'Decor': 0, 'Serra Calda': 0, 'Serra Fredda': 0 };
+  let totalSkillSum = 0;
+  let totalSkillCount = 0;
+
+  shifts.forEach((s) => {
+    if (s.department && s.assignedSkillScore !== undefined && s.type !== 'riposo' && s.type !== 'ferie' && s.type !== 'malattia') {
+      deptSkillSum[s.department] += s.assignedSkillScore;
+      deptSkillCount[s.department]++;
+      totalSkillSum += s.assignedSkillScore;
+      totalSkillCount++;
+    }
+  });
+
+  const departmentSkillScores: Record<Department, number> = {
+    'Cassa': deptSkillCount['Cassa'] > 0 ? Math.round((deptSkillSum['Cassa'] / deptSkillCount['Cassa']) * 10) / 10 : 0,
+    'Fioreria': deptSkillCount['Fioreria'] > 0 ? Math.round((deptSkillSum['Fioreria'] / deptSkillCount['Fioreria']) * 10) / 10 : 0,
+    'Decor': deptSkillCount['Decor'] > 0 ? Math.round((deptSkillSum['Decor'] / deptSkillCount['Decor']) * 10) / 10 : 0,
+    'Serra Calda': deptSkillCount['Serra Calda'] > 0 ? Math.round((deptSkillSum['Serra Calda'] / deptSkillCount['Serra Calda']) * 10) / 10 : 0,
+    'Serra Fredda': deptSkillCount['Serra Fredda'] > 0 ? Math.round((deptSkillSum['Serra Fredda'] / deptSkillCount['Serra Fredda']) * 10) / 10 : 0,
+  };
+
+  const overallSkillAvg = totalSkillCount > 0 ? totalSkillSum / totalSkillCount : 0;
+  const overallSkillScore = Math.round((overallSkillAvg / 10) * 100);
+
   return {
     shifts,
     stats: {
       totalShifts: shifts.length,
       cassaCoverageScore,
+      overallSkillScore,
+      departmentSkillScores,
+      suboptimalCoverageDays,
       staffCount: storeStaff.length,
       employeesWorkingDays,
       employeesWorkingHours,

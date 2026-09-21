@@ -513,7 +513,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                             </div>
                           ) : (
                             <div
-                              className={`p-1 rounded-lg border text-center transition-colors ${
+                              className={`p-1 rounded-lg border text-center transition-colors relative group ${
                                 isCassa
                                   ? 'bg-rose-50 border-rose-200 text-rose-900 font-extrabold'
                                   : shift.department === 'Fioreria'
@@ -523,8 +523,25 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                   : 'bg-sky-50 border-sky-200 text-sky-900 font-bold'
                               }`}
                             >
-                              <div className="text-[10px] truncate leading-tight">
-                                {shift.department || emp.role}
+                              <div className="text-[10px] truncate leading-tight flex items-center justify-between gap-0.5">
+                                <span className="truncate">{shift.department || emp.role}</span>
+                                {(() => {
+                                  const score = shift.assignedSkillScore ?? emp.skills?.[shift.department || emp.role] ?? 1;
+                                  return (
+                                    <span
+                                      className={`text-[8px] font-black px-1 rounded-full shadow-2xs leading-none flex-shrink-0 ${
+                                        score >= 9
+                                          ? 'bg-emerald-700 text-white'
+                                          : score >= 7
+                                          ? 'bg-amber-500 text-white'
+                                          : 'bg-neutral-500 text-white'
+                                      }`}
+                                      title={`Competenza in ${shift.department || emp.role}: ${score}/10`}
+                                    >
+                                      {score}
+                                    </span>
+                                  );
+                                })()}
                               </div>
                               <div className="flex items-center justify-center gap-0.5 mt-0.5">
                                 <span className="text-[9px] text-neutral-500 block leading-none">
@@ -555,7 +572,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                     <ShieldCheck size={14} className="text-nicora-teal" />
                     <span className="font-black text-xs text-nicora-title">Presidio 5 Reparti</span>
                   </div>
-                  <span className="text-[10px] text-neutral-500 font-medium">Copertura giornaliera</span>
+                  <span className="text-[10px] text-neutral-500 font-medium">Copertura e Competenze</span>
                 </td>
                 {weekDays.map((day) => {
                   const cov = calculateDayCoverage(day.dateStr, storeShifts);
@@ -579,6 +596,11 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                           <div className="text-[9px] text-neutral-500 font-medium leading-none">
                             SC:{cov.serraCaldaCount} • SF:{cov.serraFreddaCount}
                           </div>
+                          {cov.averageSkillScore !== undefined && cov.averageSkillScore > 0 && (
+                            <div className="text-[8px] font-extrabold text-emerald-900 bg-emerald-50 rounded px-1 py-0.2 mt-0.5 inline-block">
+                              Comp: {cov.averageSkillScore}/10
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <div className="p-1 rounded-lg bg-rose-100 border border-rose-300 text-rose-800">

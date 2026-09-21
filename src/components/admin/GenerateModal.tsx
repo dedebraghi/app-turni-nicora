@@ -180,6 +180,7 @@ export const GenerateModal: React.FC<GenerateModalProps> = ({
               <li><strong>5 giorni lavorativi su 7</strong> per tutti i collaboratori (2 riposi garantiti).</li>
               <li><strong>Quadratura monte ore contrattuale</strong> sui 5 turni (es. 40h = 5x8h, 24h = 4x5h+1x4h, 20h = 5x4h).</li>
               <li><strong>Tutti e 5 i reparti presidiati</strong> ogni giorno (Cassa, Fioreria, Decor, Serra Calda, Serra Fredda).</li>
+              <li><strong>Priorità competenze 9-10</strong>: salvaguardia dei super-specialisti sul loro reparto d'eccellenza.</li>
               <li><strong>Cassa presidiata al 100%</strong> senza vuoti orari (priorità assoluta, 2 casse nei weekend).</li>
               <li>Rinforzo merci su <strong>Giovedì e Venerdì</strong> (scarico carrelli vivaio).</li>
               <li>Rispetto automatico di ferie e permessi già approvati a monte.</li>
@@ -188,10 +189,17 @@ export const GenerateModal: React.FC<GenerateModalProps> = ({
 
           {/* Risultato della generazione */}
           {resultStats && (
-            <div className="bg-emerald-100 border border-emerald-300 rounded-2xl p-4 text-emerald-900 space-y-2 animate-in fade-in">
-              <div className="font-black text-xs flex items-center gap-1.5">
-                <CheckCircle2 size={18} className="text-emerald-700" />
-                <span>Bozza Turni Generata con Successo!</span>
+            <div className="bg-emerald-100 border border-emerald-300 rounded-2xl p-4 text-emerald-900 space-y-2.5 animate-in fade-in">
+              <div className="font-black text-xs flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle2 size={18} className="text-emerald-700" />
+                  <span>Bozza Turni Generata con Successo!</span>
+                </span>
+                {resultStats.overallSkillScore !== undefined && (
+                  <span className="bg-emerald-800 text-white font-black px-2.5 py-0.5 rounded-full text-[10px] shadow-xs">
+                    Competenze: {resultStats.overallSkillScore}% ⭐
+                  </span>
+                )}
               </div>
               <div className="text-[11px] space-y-1">
                 <p>
@@ -212,6 +220,39 @@ export const GenerateModal: React.FC<GenerateModalProps> = ({
                   • Rispetto Contratti: <strong>100% monte ore coperto</strong> esattamente in 5 giorni di servizio.
                 </p>
               </div>
+
+              {/* Breakdown Competenze Medie per Reparto */}
+              {resultStats.departmentSkillScores && (
+                <div className="bg-white/80 rounded-xl p-2.5 border border-emerald-200 space-y-1">
+                  <div className="font-bold text-[10px] text-emerald-900 uppercase tracking-wider">
+                    Media Competenze Reparto (1-10):
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-[10px]">
+                    {Object.entries(resultStats.departmentSkillScores).map(([dept, score]) => (
+                      <div key={dept} className="flex items-center justify-between bg-emerald-50 px-2 py-1 rounded-lg">
+                        <span className="font-medium text-emerald-800">{dept}:</span>
+                        <span className="font-extrabold text-emerald-900">{score as number}/10</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Avvisi Copertura Sub-ottimale (< 9/10) */}
+              {resultStats.suboptimalCoverageDays && resultStats.suboptimalCoverageDays.length > 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-amber-900 space-y-1">
+                  <div className="font-bold text-[10px] text-amber-900 flex items-center gap-1">
+                    <span>⚡ Avvisi Presidio Sub-Ottimale (Competenza &lt; 9/10):</span>
+                  </div>
+                  <ul className="text-[10px] space-y-0.5 pl-1 list-disc list-inside text-amber-800">
+                    {resultStats.suboptimalCoverageDays.map((sub: any, idx: number) => (
+                      <li key={idx}>
+                        {sub.dayName}: <strong>{sub.department}</strong> presidiato da {sub.empName} ({sub.assignedScore}/10)
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
 
