@@ -23,7 +23,9 @@ export const EmergencyModal: React.FC<EmergencyModalProps> = ({
   preselectedShift,
   onApplyReplacement,
 }) => {
-  const storeStaff = employees.filter((e) => e.locationId === locationId);
+  const storeStaff = employees.filter(
+    (e) => e.locationId === locationId && e.isActive !== false
+  );
 
   const [selectedShiftDate, setSelectedShiftDate] = useState<string>(
     preselectedShift?.date || new Date().toISOString().split('T')[0]

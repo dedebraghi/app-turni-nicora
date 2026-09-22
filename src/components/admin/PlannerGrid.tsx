@@ -4,6 +4,7 @@ import { calculateFairnessMetrics } from '../../engine/fairnessTracker';
 import {
   calculateDayCoverage,
   calculateEmployeeWeeklyHours,
+  formatLocalDate,
   getSundayOfWeek,
   getWeekDays,
 } from '../../engine/schedulerEngine';
@@ -61,13 +62,12 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
 
   const baseSunday = getSundayOfWeek(new Date());
   baseSunday.setDate(baseSunday.getDate() + weekOffset * 7);
-  const baseSundayStr = baseSunday.toISOString().split('T')[0];
+  const baseSundayStr = formatLocalDate(baseSunday);
 
   const weekDays = getWeekDays(baseSundayStr);
 
   const [selectedMobileDateStr, setSelectedMobileDateStr] = useState<string>(() => {
-    const today = new Date().toISOString().split('T')[0];
-    return today;
+    return formatLocalDate(new Date());
   });
   const [viewMode, setViewMode] = useState<'responsive' | 'mobile' | 'desktop'>('responsive');
 
@@ -404,6 +404,50 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                             <ShieldAlert size={10} /> SCOPERTA!
                           </span>
                         )}
+                      </div>
+                    </th>
+                  );
+                })}
+              </tr>
+
+              {/* Sub-row: Dettaglio Copertura Reparti del Giorno */}
+              <tr className="bg-neutral-100/90 border-b border-nicora-border text-[10px]">
+                <th className="py-2 px-3 sticky left-0 bg-neutral-100 font-extrabold text-neutral-700 border-r border-nicora-border">
+                  <span className="block text-xs font-black">Copertura Reparti</span>
+                  <span className="text-[9px] text-neutral-500 font-normal">Chi presidia cosa</span>
+                </th>
+                {weekDays.map((day) => {
+                  const coverage = calculateDayCoverage(day.dateStr, storeShifts, employees);
+                  return (
+                    <th key={`cov-${day.dateStr}`} className="py-1.5 px-1.5 border-r border-nicora-border align-top font-normal bg-neutral-50/50">
+                      <div className="space-y-1">
+                        {(['Cassa', 'Fioreria', 'Decor', 'Serra Calda', 'Serra Fredda'] as Department[]).map((dept) => {
+                          const staffList = coverage.departmentStaff?.[dept] || [];
+                          const isCovered = staffList.length > 0;
+                          const deptShort = dept === 'Serra Calda' ? 'S. Calda' : dept === 'Serra Fredda' ? 'S. Fredda' : dept;
+                          return (
+                            <div
+                              key={dept}
+                              className={`p-1 rounded-lg text-[9.5px] leading-tight flex flex-col border ${
+                                isCovered
+                                  ? 'bg-white border-neutral-200 text-neutral-800 shadow-2xs'
+                                  : 'bg-rose-100 border-rose-300 text-rose-900 font-bold'
+                              }`}
+                            >
+                              <div className="flex justify-between items-center font-bold">
+                                <span>{deptShort}</span>
+                                <span>{isCovered ? `(${staffList.length})` : '⚠️'}</span>
+                              </div>
+                              {isCovered ? (
+                                <div className="text-[9px] text-nicora-teal font-semibold truncate mt-0.5">
+                                  {staffList.map((s) => s.name.split(' ')[0]).join(', ')}
+                                </div>
+                              ) : (
+                                <div className="text-[8.5px] text-rose-700 font-extrabold uppercase">Non coperto</div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </th>
                   );

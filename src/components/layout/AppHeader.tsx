@@ -2,7 +2,7 @@ import React from 'react';
 import { NicoraLogo } from '../NicoraLogo';
 import { InstallPWAButton } from '../InstallPWAButton';
 import { LOCATIONS } from '../../domain/mockData';
-import { LocationId, UserSession } from '../../domain/types';
+import { Employee, LocationId, UserSession } from '../../domain/types';
 import { LogOut, MapPin, ShieldCheck, Cloud, CloudOff } from 'lucide-react';
 import { getCloudStatus } from '../../services/supabaseService';
 
@@ -13,6 +13,7 @@ interface AppHeaderProps {
   onToggleManagerMode: () => void;
   activeLocation: LocationId;
   onChangeLocation: (loc: LocationId) => void;
+  employees?: Employee[];
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
@@ -22,6 +23,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   onToggleManagerMode,
   activeLocation,
   onChangeLocation,
+  employees = [],
 }) => {
   const isManagerUser = session.role === 'manager' || session.user.isManager;
   const cloudStatus = getCloudStatus();
@@ -53,6 +55,10 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         <div className="flex items-center gap-1 bg-black/25 p-1 rounded-xl border border-white/10">
           {LOCATIONS.map((loc) => {
             const isActive = loc.id === activeLocation;
+            const dynamicStaffCount = employees.length > 0
+              ? employees.filter((e) => e.locationId === loc.id && e.isActive !== false).length
+              : loc.defaultStaffCount;
+
             return (
               <button
                 key={loc.id}
@@ -70,7 +76,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                     isActive ? 'bg-black/30 text-white' : 'bg-white/15 text-white/70'
                   }`}
                 >
-                  {loc.defaultStaffCount}
+                  {dynamicStaffCount}
                 </span>
               </button>
             );
@@ -101,22 +107,15 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
           <InstallPWAButton />
 
-          {/* Toggle Modalità Manager / Collaboratore */}
+          {/* Badge Ruolo Direzione (senza toggle ridondante per login separati) */}
           {isManagerUser && (
-            <button
-              onClick={onToggleManagerMode}
-              className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-xl transition-all shadow-xs active:scale-95 ${
-                isManagerMode
-                  ? 'bg-amber-400 text-amber-950 ring-2 ring-amber-300'
-                  : 'bg-white/15 text-white hover:bg-white/25'
-              }`}
-              title="Attiva la modalità pianificazione e modifica turni"
+            <div
+              className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-xl bg-amber-400 text-amber-950 border border-amber-300/60 shadow-xs"
+              title="Accesso effettuato come Direzione / Responsabile"
             >
               <ShieldCheck size={14} />
-              <span className="hidden sm:inline">
-                {isManagerMode ? 'Vista Direzione (ON)' : 'Vista Direzione'}
-              </span>
-            </button>
+              <span className="hidden sm:inline">Direzione</span>
+            </div>
           )}
 
           {/* User Badge */}

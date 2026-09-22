@@ -19,7 +19,9 @@ export const findBestReplacements = ({
   employees,
   shifts,
 }: FindReplacementParams): ReplacementSuggestion[] => {
-  const storeStaff = employees.filter((e) => e.locationId === targetShift.locationId);
+  const storeStaff = employees.filter(
+    (e) => e.locationId === targetShift.locationId && e.isActive !== false
+  );
 
   // Escludi il dipendente attualmente titolare del turno
   const candidates = storeStaff.filter((e) => e.id !== targetShift.employeeId);
@@ -78,6 +80,11 @@ export const findBestReplacements = ({
     };
   });
 
-  // Ordina per punteggio decrescente
-  return suggestions.sort((a, b) => b.score - a.score);
+  // Ordina per disponibilità (liberi/subentro prima) e poi per punteggio decrescente
+  return suggestions.sort((a, b) => {
+    if (a.isAvailableOnDay !== b.isAvailableOnDay) {
+      return a.isAvailableOnDay ? -1 : 1;
+    }
+    return b.score - a.score;
+  });
 };

@@ -47,6 +47,16 @@ export interface ScheduleGenerationResult {
 }
 
 /**
+ * Formatta un oggetto Date nel formato locale YYYY-MM-DD senza alterazioni di fuso orario UTC.
+ */
+export const formatLocalDate = (d: Date = new Date()): string => {
+  const year = d.getFullYear();
+  const month = (d.getMonth() + 1).toString().padStart(2, '0');
+  const day = d.getDate().toString().padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+/**
  * Calcola la data della Domenica iniziale per una data qualsiasi.
  */
 export const getSundayOfWeek = (d: Date = new Date()): Date => {
@@ -62,8 +72,8 @@ export const getSundayOfWeek = (d: Date = new Date()): Date => {
  */
 export const getWeekDays = (sundayDateStr: string): WeekDayMeta[] => {
   const [y, m, d] = sundayDateStr.split('-').map(Number);
-  const sunday = new Date(y, m - 1, d);
-  const todayStr = new Date().toISOString().split('T')[0];
+  const sunday = new Date(y, m - 1, d, 12, 0, 0); // Mezzogiorno locale per prevenire scostamenti
+  const todayStr = formatLocalDate(new Date());
 
   const days: WeekDayMeta[] = [];
   const dayNames = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
@@ -72,7 +82,7 @@ export const getWeekDays = (sundayDateStr: string): WeekDayMeta[] => {
   for (let i = 0; i < 7; i++) {
     const curr = new Date(sunday);
     curr.setDate(sunday.getDate() + i);
-    const dateStr = curr.toISOString().split('T')[0];
+    const dateStr = formatLocalDate(curr);
     const isWeekend = i === 0 || i === 6; // Dom e Sab
     const isMerchandiseArrival = i === 4 || i === 5; // Gio e Ven
     const isToday = dateStr === todayStr;
@@ -180,7 +190,8 @@ export const calculateEmployeeWeeklyHours = (
  */
 export const calculateDayCoverage = (
   dateStr: string,
-  shifts: Shift[]
+  shifts: Shift[],
+  employees: Employee[] = []
 ): DayCoverageSummary => {
   const dayShifts = shifts.filter(
     (s) => s.date === dateStr && s.type !== 'riposo' && s.type !== 'ferie' && s.type !== 'malattia'
@@ -191,6 +202,14 @@ export const calculateDayCoverage = (
   let decorCount = 0;
   let serraCaldaCount = 0;
   let serraFreddaCount = 0;
+
+  const departmentStaff: Record<Department, { employeeId: string; name: string; department: Department; hours: string }[]> = {
+    'Cassa': [],
+    'Fioreria': [],
+    'Decor': [],
+    'Serra Calda': [],
+    'Serra Fredda': [],
+  };
 
   const deptScoresSum: Record<Department, number> = {
     'Cassa': 0,
@@ -217,6 +236,19 @@ export const calculateDayCoverage = (
       else if (s.department === 'Decor') decorCount++;
       else if (s.department === 'Serra Calda') serraCaldaCount++;
       else if (s.department === 'Serra Fredda') serraFreddaCount++;
+
+      const emp = employees.find((e) => e.id === s.employeeId);
+      const empName = emp ? emp.name : s.employeeId;
+      const hours = s.startTime && s.endTime ? `${s.startTime}-${s.endTime}` : s.type;
+
+      if (departmentStaff[s.department]) {
+        departmentStaff[s.department].push({
+          employeeId: s.employeeId,
+          name: empName,
+          department: s.department,
+          hours,
+        });
+      }
 
       if (s.assignedSkillScore !== undefined) {
         deptScoresSum[s.department] += s.assignedSkillScore;
@@ -271,6 +303,7 @@ export const calculateDayCoverage = (
     averageSkillScore,
     departmentSkillScores,
     suboptimalDepartments,
+    departmentStaff,
   };
 };
 
@@ -547,20 +580,11 @@ export const generateWeeklySchedule = ({
       }
     });
 
-  // 2. Assegnazione equa dei 2 giorni di riposo per collaboratore (Vincolo 5 giorni lavorativi su 7)
+  // Tracker per bilanciare i riposi in modo uniforme su tutti i 7 giorni (0=Dom, 1=Lun, ..., 6=Sab)
   const offDaysSchedule: Record<string, Set<number>> = {};
-  const preferredOffDayPairs: [number, number][] = [
-    [1, 2], // Lunedì e Martedì
-    [2, 3], // Martedì e Mercoledì
-    [1, 3], // Lunedì e Mercoledì
-    [3, 4], // Mercoledì e Giovedì
-    [1, 4], // Lunedì e Giovedì
-    [2, 4], // Martedì e Giovedì
-    [1, 5], // Lunedì e Venerdì
-    [3, 5], // Mercoledì e Venerdì
-  ];
+  const offCountsPerDay: number[] = [0, 0, 0, 0, 0, 0, 0];
 
-  storeStaff.forEach((emp, empIdx) => {
+  storeStaff.forEach((emp) => {
     const offDays = new Set<number>();
 
     const leaveDayIndices = new Set<number>();
@@ -570,20 +594,37 @@ export const generateWeeklySchedule = ({
       }
     });
 
-    const pair = preferredOffDayPairs[empIdx % preferredOffDayPairs.length];
-    for (const candidateDay of pair) {
-      if (offDays.size < 2 && !offDays.has(candidateDay) && !leaveDayIndices.has(candidateDay)) {
-        offDays.add(candidateDay);
+    // Se ci sono ferie approvate, contano ai fini dei giorni non di servizio
+    leaveDayIndices.forEach((dIdx) => {
+      if (offDays.size < 2) {
+        offDays.add(dIdx);
+        offCountsPerDay[dIdx]++;
       }
-    }
-    for (let d = 1; d <= 4 && offDays.size < 2; d++) {
-      if (!offDays.has(d) && !leaveDayIndices.has(d)) {
-        offDays.add(d);
+    });
+
+    // Se servono ancora giorni di riposo per arrivare a 2:
+    while (offDays.size < 2) {
+      // Seleziona il giorno con il minor numero di riposi già assegnati.
+      // Diamo un lieve svantaggio (+0.4) al weekend (Dom=0, Sab=6) per garantire presenze leggermente superiori nei giorni di punta.
+      let bestDay = -1;
+      let minScore = Infinity;
+
+      for (let d = 0; d < 7; d++) {
+        if (!offDays.has(d)) {
+          const weekendPenalty = (d === 0 || d === 6) ? 0.4 : 0;
+          const score = offCountsPerDay[d] + weekendPenalty;
+          if (score < minScore) {
+            minScore = score;
+            bestDay = d;
+          }
+        }
       }
-    }
-    for (let d = 0; d <= 6 && offDays.size < 2; d++) {
-      if (!offDays.has(d) && !leaveDayIndices.has(d)) {
-        offDays.add(d);
+
+      if (bestDay !== -1) {
+        offDays.add(bestDay);
+        offCountsPerDay[bestDay]++;
+      } else {
+        break;
       }
     }
 

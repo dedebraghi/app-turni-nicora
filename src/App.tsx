@@ -16,7 +16,7 @@ import { NotificationToast, ToastMessage } from './components/common/Notificatio
 
 import { ActiveTab, Department, Employee, LocationId, Shift, ShiftRequest, UserSession } from './domain/types';
 import { LOCATIONS } from './domain/mockData';
-import { getSundayOfWeek, getWeekDays } from './engine/schedulerEngine';
+import { formatLocalDate, getSundayOfWeek, getWeekDays } from './engine/schedulerEngine';
 import {
   loadStoredEmployees,
   loadStoredLocation,
@@ -224,9 +224,13 @@ export const App: React.FC = () => {
     department: Department
   ) => {
     setShifts((prev) => {
+      let absentFound = false;
+      let replacementFound = false;
+
       const next = prev.map((s) => {
         // Se è il turno della persona assente -> diventa malattia
         if (s.employeeId === absentShift.employeeId && s.date === absentShift.date) {
+          absentFound = true;
           return {
             ...s,
             type: 'malattia' as const,
@@ -237,17 +241,50 @@ export const App: React.FC = () => {
 
         // Se è il turno del sostituto nella stessa data -> prende in carico il turno e il reparto
         if (s.employeeId === replacementEmployeeId && s.date === absentShift.date) {
+          replacementFound = true;
           return {
             ...s,
-            type: s.type === 'riposo' ? ('giornata' as const) : s.type,
+            type: s.type === 'riposo' || s.type === 'ferie' || s.type === 'malattia' ? ('giornata' as const) : s.type,
             department,
-            areaNote: `Sostituzione per assenza ${absentShift.employeeId} (${department})`,
+            startTime: s.startTime || absentShift.startTime || '08:30',
+            endTime: s.endTime || absentShift.endTime || '19:30',
+            areaNote: `Sostituzione per assenza (${department})`,
             isManualOverride: true,
           };
         }
 
         return s;
       });
+
+      // Se il turno della persona assente non era nel DB/state, aggiungilo come malattia
+      if (!absentFound) {
+        next.push({
+          id: `shift-malattia-${absentShift.employeeId}-${absentShift.date}`,
+          employeeId: absentShift.employeeId,
+          locationId: absentShift.locationId || activeLocation,
+          date: absentShift.date,
+          type: 'malattia',
+          areaNote: 'Assenza per malattia / emergenza',
+        });
+      }
+
+      // Se il turno del sostituto non era nel DB/state (es. era a riposo senza record), crea il turno
+      if (!replacementFound) {
+        const replacementEmp = employees.find((e) => e.id === replacementEmployeeId);
+        next.push({
+          id: `shift-repl-${replacementEmployeeId}-${absentShift.date}`,
+          employeeId: replacementEmployeeId,
+          locationId: replacementEmp?.locationId || activeLocation,
+          date: absentShift.date,
+          type: 'giornata',
+          department,
+          startTime: absentShift.startTime || '08:30',
+          endTime: absentShift.endTime || '19:30',
+          areaNote: `Sostituzione per assenza (${department})`,
+          isManualOverride: true,
+        });
+      }
+
       saveCloudShifts(next);
       return next;
     });
@@ -421,7 +458,7 @@ export const App: React.FC = () => {
   const locationInfo = LOCATIONS.find((l) => l.id === activeLocation) || LOCATIONS[0];
 
   const currentSunday = getSundayOfWeek(new Date());
-  const currentWeekDays = getWeekDays(currentSunday.toISOString().split('T')[0]);
+  const currentWeekDays = getWeekDays(formatLocalDate(currentSunday));
 
   return (
     <div className="min-h-screen bg-nicora-bg text-nicora-text flex flex-col antialiased">
@@ -434,6 +471,7 @@ export const App: React.FC = () => {
         onToggleManagerMode={() => setIsManagerMode(!isManagerMode)}
         activeLocation={activeLocation}
         onChangeLocation={setActiveLocation}
+        employees={employees}
       />
 
       {/* Navigazione Responsive (Desktop Top Bar / Mobile Bottom Nav) */}
@@ -466,6 +504,7 @@ export const App: React.FC = () => {
             currentEmployee={currentEmployee}
             shifts={shifts}
             activeLocation={activeLocation}
+            onSaveEmployee={handleSaveEmployee}
           />
         )}
 

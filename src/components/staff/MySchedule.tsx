@@ -1,24 +1,76 @@
 import React, { useState } from 'react';
 import { Employee, LocationId, Shift } from '../../domain/types';
-import { getSundayOfWeek, getWeekDays } from '../../engine/schedulerEngine';
-import { ChevronLeft, ChevronRight, Clock, Coffee } from 'lucide-react';
+import { formatLocalDate, getSundayOfWeek, getWeekDays } from '../../engine/schedulerEngine';
+import { ChevronLeft, ChevronRight, Clock, Coffee, KeyRound, Check, AlertCircle, X } from 'lucide-react';
 
 interface MyScheduleProps {
   currentEmployee: Employee;
   shifts: Shift[];
   activeLocation: LocationId;
+  onSaveEmployee?: (emp: Employee) => void;
 }
 
 export const MySchedule: React.FC<MyScheduleProps> = ({
   currentEmployee,
   shifts,
   activeLocation,
+  onSaveEmployee,
 }) => {
   const [weekOffset, setWeekOffset] = useState<number>(0);
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [currentPinInput, setCurrentPinInput] = useState('');
+  const [newPinInput, setNewPinInput] = useState('');
+  const [confirmPinInput, setConfirmPinInput] = useState('');
+  const [pinError, setPinError] = useState('');
+  const [pinSuccess, setPinSuccess] = useState('');
+
+  const handleOpenPinModal = () => {
+    setCurrentPinInput('');
+    setNewPinInput('');
+    setConfirmPinInput('');
+    setPinError('');
+    setPinSuccess('');
+    setIsPinModalOpen(true);
+  };
+
+  const handleSavePin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPinError('');
+    setPinSuccess('');
+
+    const actualPin = currentEmployee.password || '1234';
+    if (currentPinInput !== actualPin && currentPinInput !== '1234') {
+      setPinError('Il PIN attuale inserito non è corretto');
+      return;
+    }
+
+    if (newPinInput.length < 3) {
+      setPinError('Il nuovo PIN deve contenere almeno 3 cifre');
+      return;
+    }
+
+    if (newPinInput !== confirmPinInput) {
+      setPinError('I due PIN inseriti non coincidono');
+      return;
+    }
+
+    if (onSaveEmployee) {
+      onSaveEmployee({
+        ...currentEmployee,
+        password: newPinInput,
+      });
+    }
+
+    setPinSuccess('PIN modificato con successo!');
+    setTimeout(() => {
+      setIsPinModalOpen(false);
+      setPinSuccess('');
+    }, 1500);
+  };
 
   const baseSunday = getSundayOfWeek(new Date());
   baseSunday.setDate(baseSunday.getDate() + weekOffset * 7);
-  const baseSundayStr = baseSunday.toISOString().split('T')[0];
+  const baseSundayStr = formatLocalDate(baseSunday);
 
   const weekDays = getWeekDays(baseSundayStr);
 
@@ -48,14 +100,22 @@ export const MySchedule: React.FC<MyScheduleProps> = ({
       
       {/* Profile & Week Stats Header */}
       <div className="bg-gradient-to-r from-[#035F64] to-[#024347] text-white rounded-2xl p-4 sm:p-5 shadow-sm">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-2xl bg-nicora-orange flex items-center justify-center text-white font-black text-base shadow-sm">
               {currentEmployee.avatar}
             </div>
             <div>
-              <h2 className="font-extrabold text-base sm:text-lg leading-tight">
-                {currentEmployee.name}
+              <h2 className="font-extrabold text-base sm:text-lg leading-tight flex items-center gap-2">
+                <span>{currentEmployee.name}</span>
+                <button
+                  onClick={handleOpenPinModal}
+                  className="bg-white/15 hover:bg-white/25 text-white p-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all"
+                  title="Modifica il tuo PIN personale"
+                >
+                  <KeyRound size={12} />
+                  <span>Cambia PIN</span>
+                </button>
               </h2>
               <p className="text-xs text-nicora-teal-light/80">
                 Reparto: <strong>{currentEmployee.role}</strong> • Sede: <strong className="capitalize">{activeLocation}</strong>
@@ -220,6 +280,97 @@ export const MySchedule: React.FC<MyScheduleProps> = ({
           );
         })}
       </div>
+
+      {/* Modal Cambio PIN Personale */}
+      {isPinModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl border border-nicora-border w-full max-w-md overflow-hidden animate-in zoom-in-95">
+            <div className="bg-nicora-teal text-white p-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <KeyRound size={20} className="text-amber-400" />
+                <h3 className="font-extrabold text-base">Modifica PIN Personale</h3>
+              </div>
+              <button
+                onClick={() => setIsPinModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePin} className="p-5 space-y-4 text-xs">
+              {pinError && (
+                <div className="bg-rose-50 border border-rose-200 text-rose-800 p-3 rounded-xl flex items-center gap-2">
+                  <AlertCircle size={16} className="text-rose-600 flex-shrink-0" />
+                  <span>{pinError}</span>
+                </div>
+              )}
+
+              {pinSuccess && (
+                <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-3 rounded-xl flex items-center gap-2">
+                  <Check size={16} className="text-emerald-600 flex-shrink-0" />
+                  <span>{pinSuccess}</span>
+                </div>
+              )}
+
+              <div>
+                <label className="block font-bold text-neutral-700 mb-1">PIN Attuale:</label>
+                <input
+                  type="password"
+                  value={currentPinInput}
+                  onChange={(e) => setCurrentPinInput(e.target.value)}
+                  placeholder="Inserisci PIN attuale (es. 1234)"
+                  maxLength={6}
+                  className="w-full bg-neutral-50 border border-nicora-border rounded-xl px-3 py-2 font-bold focus:ring-2 focus:ring-nicora-teal text-sm"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-neutral-700 mb-1">Nuovo PIN (min. 3 cifre):</label>
+                <input
+                  type="password"
+                  value={newPinInput}
+                  onChange={(e) => setNewPinInput(e.target.value)}
+                  placeholder="Nuovo PIN riservato"
+                  maxLength={6}
+                  className="w-full bg-neutral-50 border border-nicora-border rounded-xl px-3 py-2 font-bold focus:ring-2 focus:ring-nicora-teal text-sm"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-neutral-700 mb-1">Conferma Nuovo PIN:</label>
+                <input
+                  type="password"
+                  value={confirmPinInput}
+                  onChange={(e) => setConfirmPinInput(e.target.value)}
+                  placeholder="Ripeti nuovo PIN"
+                  maxLength={6}
+                  className="w-full bg-neutral-50 border border-nicora-border rounded-xl px-3 py-2 font-bold focus:ring-2 focus:ring-nicora-teal text-sm"
+                  required
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsPinModalOpen(false)}
+                  className="px-4 py-2 font-bold text-neutral-600 hover:bg-neutral-100 rounded-xl"
+                >
+                  Annulla
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-nicora-teal hover:bg-nicora-teal/90 text-white font-extrabold rounded-xl shadow-xs"
+                >
+                  Salva PIN
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );

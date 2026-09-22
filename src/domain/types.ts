@@ -95,6 +95,13 @@ export interface WeekDayMeta {
   isToday: boolean;
 }
 
+export interface DepartmentStaffAssignment {
+  employeeId: string;
+  name: string;
+  department: Department;
+  hours: string;
+}
+
 export interface DayCoverageSummary {
   dateStr: string;
   totalPresent: number;
@@ -111,6 +118,7 @@ export interface DayCoverageSummary {
   averageSkillScore?: number;
   departmentSkillScores?: Record<Department, number>;
   suboptimalDepartments?: Department[];
+  departmentStaff?: Record<Department, DepartmentStaffAssignment[]>;
 }
 
 export interface ReplacementSuggestion {
