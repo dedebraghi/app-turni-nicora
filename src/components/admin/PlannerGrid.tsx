@@ -115,6 +115,8 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
     };
   });
 
+  const [displayMode, setDisplayMode] = useState<'shifts' | 'coverage'>('shifts');
+
   return (
     <div className="space-y-4 pb-20 md:pb-8 max-w-full">
       
@@ -131,8 +133,8 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
       {/* Management Toolbar */}
       <div className="bg-white rounded-2xl p-4 border border-nicora-border shadow-clean flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
         
-        {/* Left: Week Navigation */}
-        <div className="flex items-center gap-2">
+        {/* Left: Week Navigation & View Toggle */}
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-xl">
             <button
               onClick={() => setWeekOffset((p) => p - 1)}
@@ -157,62 +159,29 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
             {weekOffset === 0 ? 'Settimana Attuale' : weekOffset === 1 ? 'Prossima Settimana' : `Offset: ${weekOffset} sett.`}
           </span>
 
-          {/* Selettore Vista Dispositivo */}
-          <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-xl text-neutral-600">
+          {/* Toggle Vista: Turni Dipendenti vs Copertura Reparti */}
+          <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-xl text-neutral-600 ml-0 sm:ml-2">
             <button
-              onClick={() => setViewMode('mobile')}
-              className={`px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition-all ${
-                viewMode === 'mobile' ? 'bg-white text-nicora-teal shadow-xs' : 'hover:text-neutral-900'
+              onClick={() => setDisplayMode('shifts')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                displayMode === 'shifts' ? 'bg-nicora-teal text-white shadow-xs' : 'hover:text-neutral-900'
               }`}
-              title="Vista Schede Verticali Touch (Smartphone)"
             >
-              <Smartphone size={13} />
-              <span className="hidden sm:inline">Schede</span>
+              Turni Dipendenti
             </button>
             <button
-              onClick={() => setViewMode('desktop')}
-              className={`px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition-all ${
-                viewMode === 'desktop' ? 'bg-white text-nicora-teal shadow-xs' : 'hover:text-neutral-900'
+              onClick={() => setDisplayMode('coverage')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                displayMode === 'coverage' ? 'bg-nicora-teal text-white shadow-xs' : 'hover:text-neutral-900'
               }`}
-              title="Vista Tabellone Settimanale (Spreadsheet)"
             >
-              <Monitor size={13} />
-              <span className="hidden sm:inline">Tabellone</span>
-            </button>
-            <button
-              onClick={() => setViewMode('responsive')}
-              className={`px-2 py-1 rounded-lg text-xs font-bold transition-all ${
-                viewMode === 'responsive' ? 'bg-white text-neutral-800 shadow-xs' : 'hover:text-neutral-900'
-              }`}
-              title="Layout automatico in base alle dimensioni dello schermo"
-            >
-              Auto
+              Copertura Reparti
             </button>
           </div>
         </div>
 
         {/* Right: Actions */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Sostituzione Emergenza */}
-          <button
-            onClick={() => onOpenEmergencyModal()}
-            className="bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs px-3 py-2 rounded-xl border border-rose-200 flex items-center gap-1.5 active:scale-95 transition-all"
-            title="Trova sostituto per assenza imprevista o malattia"
-          >
-            <ShieldAlert size={14} className="text-rose-600" />
-            <span>Sostituzione Rapida</span>
-          </button>
-
-          {/* Matrice Competenze & Personale */}
-          <button
-            onClick={onOpenSkillsModal}
-            className="bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-bold text-xs px-3 py-2 rounded-xl flex items-center gap-1.5 active:scale-95 transition-all"
-            title="Visualizza o modifica ore da contratto e competenze 1-10"
-          >
-            <Award size={14} className="text-amber-500" />
-            <span>Personale & Competenze</span>
-          </button>
-
           {/* Stampa / WhatsApp */}
           <button
             onClick={onOpenExportModal}
@@ -410,53 +379,62 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                 })}
               </tr>
 
-              {/* Sub-row: Dettaglio Copertura Reparti del Giorno */}
-              <tr className="bg-neutral-100/90 border-b border-nicora-border text-[10px]">
-                <th className="py-2 px-3 sticky left-0 bg-neutral-100 font-extrabold text-neutral-700 border-r border-nicora-border">
-                  <span className="block text-xs font-black">Copertura Reparti</span>
-                  <span className="text-[9px] text-neutral-500 font-normal">Chi presidia cosa</span>
-                </th>
-                {weekDays.map((day) => {
-                  const coverage = calculateDayCoverage(day.dateStr, storeShifts, employees);
-                  return (
-                    <th key={`cov-${day.dateStr}`} className="py-1.5 px-1.5 border-r border-nicora-border align-top font-normal bg-neutral-50/50">
-                      <div className="space-y-1">
-                        {(['Cassa', 'Fioreria', 'Decor', 'Serra Calda', 'Serra Fredda'] as Department[]).map((dept) => {
-                          const staffList = coverage.departmentStaff?.[dept] || [];
-                          const isCovered = staffList.length > 0;
-                          const deptShort = dept === 'Serra Calda' ? 'S. Calda' : dept === 'Serra Fredda' ? 'S. Fredda' : dept;
-                          return (
-                            <div
-                              key={dept}
-                              className={`p-1 rounded-lg text-[9.5px] leading-tight flex flex-col border ${
-                                isCovered
-                                  ? 'bg-white border-neutral-200 text-neutral-800 shadow-2xs'
-                                  : 'bg-rose-100 border-rose-300 text-rose-900 font-bold'
-                              }`}
-                            >
-                              <div className="flex justify-between items-center font-bold">
-                                <span>{deptShort}</span>
-                                <span>{isCovered ? `(${staffList.length})` : '⚠️'}</span>
-                              </div>
-                              {isCovered ? (
-                                <div className="text-[9px] text-nicora-teal font-semibold truncate mt-0.5">
-                                  {staffList.map((s) => s.name.split(' ')[0]).join(', ')}
+              {/* Sub-row: Dettaglio Copertura Reparti del Giorno (visibile quando lo switch è su 'coverage' o come riga di riepilogo) */}
+              {displayMode === 'coverage' && (
+                <tr className="bg-neutral-100/90 border-b border-nicora-border text-[10px]">
+                  <th className="py-2.5 px-3 sticky left-0 bg-neutral-100 font-extrabold text-neutral-700 border-r border-nicora-border">
+                    <span className="block text-xs font-black">Copertura Reparti</span>
+                    <span className="text-[9px] text-neutral-500 font-normal">Chi presidia ciascun reparto</span>
+                  </th>
+                  {weekDays.map((day) => {
+                    const coverage = calculateDayCoverage(day.dateStr, storeShifts, employees);
+                    return (
+                      <th key={`cov-${day.dateStr}`} className="py-2 px-2 border-r border-nicora-border align-top font-normal bg-neutral-50/80">
+                        <div className="space-y-1.5">
+                          {(['Cassa', 'Fioreria', 'Decor', 'Serra Calda', 'Serra Fredda'] as Department[]).map((dept) => {
+                            const staffList = coverage.departmentStaff?.[dept] || [];
+                            const isCovered = staffList.length > 0;
+                            const deptShort = dept === 'Serra Calda' ? 'S. Calda' : dept === 'Serra Fredda' ? 'S. Fredda' : dept;
+                            return (
+                              <div
+                                key={dept}
+                                className={`p-1.5 rounded-xl text-[10px] leading-tight flex flex-col border shadow-xs ${
+                                  isCovered
+                                    ? 'bg-white border-neutral-200 text-neutral-800'
+                                    : 'bg-rose-100 border-rose-300 text-rose-900 font-bold'
+                                }`}
+                              >
+                                <div className="flex justify-between items-center font-black text-nicora-title">
+                                  <span>{deptShort}</span>
+                                  <span className={isCovered ? 'text-nicora-teal font-extrabold' : 'text-rose-600'}>
+                                    {isCovered ? `(${staffList.length})` : '⚠️ Vuoto'}
+                                  </span>
                                 </div>
-                              ) : (
-                                <div className="text-[8.5px] text-rose-700 font-extrabold uppercase">Non coperto</div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </th>
-                  );
-                })}
-              </tr>
+                                {isCovered ? (
+                                  <div className="text-[9.5px] text-neutral-600 font-semibold mt-1 space-y-0.5">
+                                    {staffList.map((s) => (
+                                      <div key={s.employeeId} className="truncate bg-neutral-100 px-1 py-0.5 rounded text-neutral-800 font-bold">
+                                        • {s.name}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className="text-[8.5px] text-rose-700 font-extrabold uppercase mt-0.5">Nessun Presidio</div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </th>
+                    );
+                  })}
+                </tr>
+              )}
             </thead>
 
-            {/* Table Body: Righe Collaboratori */}
-            <tbody className="divide-y divide-neutral-100 text-xs">
+            {/* Table Body: Righe Collaboratori (visibili in displayMode === 'shifts') */}
+            {displayMode === 'shifts' && (
+              <tbody className="divide-y divide-neutral-100 text-xs">
               {filteredEmployees.map((emp) => {
                 const metrics = fairnessMetrics[emp.id];
                 const workedDaysCount = metrics?.totalWorkingShifts || 0;
@@ -607,6 +585,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                 );
               })}
             </tbody>
+            )}
 
             {/* Table Footer: Riga Copertura Presidio 5 Reparti */}
             <tfoot className="bg-neutral-50/95 border-t-2 border-neutral-300 font-extrabold text-[11px]">
