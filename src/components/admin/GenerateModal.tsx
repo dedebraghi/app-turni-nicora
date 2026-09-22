@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Employee, LocationId, ScheduleMode, Shift, ShiftRequest } from '../../domain/types';
-import { generateWeeklySchedule, getSundayOfWeek } from '../../engine/schedulerEngine';
+import { generateMonthlySchedule, generateWeeklySchedule, getSundayOfWeek } from '../../engine/schedulerEngine';
 import { X, Sparkles, CheckCircle2, Calendar, Clock, ShieldCheck } from 'lucide-react';
 
 interface GenerateModalProps {
@@ -11,6 +11,7 @@ interface GenerateModalProps {
   requests: ShiftRequest[];
   onApplyShifts: (newShifts: Shift[]) => void;
 }
+
 
 export const GenerateModal: React.FC<GenerateModalProps> = ({
   isOpen,
@@ -24,26 +25,43 @@ export const GenerateModal: React.FC<GenerateModalProps> = ({
   const nextSunday = new Date(currentSunday);
   nextSunday.setDate(currentSunday.getDate() + 7);
 
+  const now = new Date();
+  const [targetType, setTargetType] = useState<'month' | 'week'>('month');
   const [selectedSundayStr, setSelectedSundayStr] = useState<string>(
     currentSunday.toISOString().split('T')[0]
   );
+  const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
   const [mode, setMode] = useState<ScheduleMode>('standard');
   const [resultStats, setResultStats] = useState<any | null>(null);
 
   if (!isOpen) return null;
 
   const handleGenerate = () => {
-    const result = generateWeeklySchedule({
-      locationId,
-      employees,
-      weekStartDate: selectedSundayStr,
-      requests,
-      mode,
-    });
+    let result;
+    if (targetType === 'month') {
+      result = generateMonthlySchedule({
+        locationId,
+        employees,
+        year: selectedYear,
+        month: selectedMonth,
+        requests,
+        mode,
+      });
+    } else {
+      result = generateWeeklySchedule({
+        locationId,
+        employees,
+        weekStartDate: selectedSundayStr,
+        requests,
+        mode,
+      });
+    }
 
     setResultStats(result.stats);
     onApplyShifts(result.shifts);
   };
+
 
   const storeStaff = employees.filter((e) => e.locationId === locationId);
 
