@@ -29,7 +29,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   const cloudStatus = getCloudStatus();
 
   return (
-    <header className="sticky top-0 z-30 bg-nicora-teal-dark text-white shadow-clean border-b border-white/10 pt-safe">
+    <header className="hidden md:block sticky top-0 z-30 bg-nicora-teal-dark text-white shadow-clean border-b border-white/10 pt-safe">
       {/* Top Main Navigation Bar */}
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex items-center justify-between">
         

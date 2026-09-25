@@ -10,6 +10,7 @@ interface TodayPresenceProps {
   shifts: Shift[];
   isManagerMode: boolean;
   activeLocation: LocationId;
+  onChangeLocation?: (loc: LocationId) => void;
   onEditShift: (shift: Shift) => void;
 }
 

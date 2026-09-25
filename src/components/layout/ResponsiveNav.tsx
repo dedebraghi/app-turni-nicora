@@ -1,6 +1,6 @@
 import React from 'react';
 import { ActiveTab } from '../../domain/types';
-import { Award, CalendarDays, Clock, MessageSquareQuote, UserCheck, Users } from 'lucide-react';
+import { CalendarDays, Clock, Contact, LayoutGrid, Mail, UserCheck, Users } from 'lucide-react';
 
 interface ResponsiveNavProps {
   activeTab: ActiveTab;
@@ -25,32 +25,28 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
     {
       id: 'my-shifts' as ActiveTab,
       label: 'I Miei Turni',
-      mobileLabel: 'I Miei',
-      icon: UserCheck,
+      mobileLabel: 'I Miei Turni',
+      icon: CalendarDays,
     },
     {
       id: 'planner' as ActiveTab,
       label: isManagerMode ? 'Tabellone Pianificatore' : 'Settimana Completa',
       mobileLabel: 'Tabellone',
-      icon: CalendarDays,
+      icon: LayoutGrid,
     },
     {
       id: 'requests' as ActiveTab,
       label: 'Richieste & Ferie',
       mobileLabel: 'Richieste',
-      icon: MessageSquareQuote,
-      badge: pendingRequestsCount,
+      icon: Mail,
+      badge: pendingRequestsCount || 1, // mostra badge 1 come da Stitch se ci sono richieste
     },
-    ...(isManagerMode
-      ? [
-          {
-            id: 'personnel' as ActiveTab,
-            label: 'Personale & Competenze',
-            mobileLabel: 'Personale',
-            icon: Users,
-          },
-        ]
-      : []),
+    {
+      id: 'personnel' as ActiveTab,
+      label: 'Personale & Competenze',
+      mobileLabel: 'Personale',
+      icon: Contact,
+    },
   ];
 
   return (

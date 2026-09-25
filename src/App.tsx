@@ -483,7 +483,7 @@ export const App: React.FC = () => {
       />
 
       {/* Area Contenuto Principale */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
+      <main className="flex-1 w-full max-w-7xl mx-auto md:px-6 md:py-6">
         
         {/* Tab 1: Oggi in Sede */}
         {activeTab === 'today' && (
@@ -494,6 +494,7 @@ export const App: React.FC = () => {
             shifts={shifts}
             isManagerMode={isManagerMode}
             activeLocation={activeLocation}
+            onChangeLocation={setActiveLocation}
             onEditShift={(shift) => setEditingShift(shift)}
           />
         )}
