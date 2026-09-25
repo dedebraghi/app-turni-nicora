@@ -147,16 +147,17 @@ export const INITIAL_EMPLOYEES: Employee[] = [
   },
   {
     id: 'emp-gz-10',
-    name: 'Elina',
+    name: 'Marco',
     locationId: 'gazzada',
-    role: 'Fioreria',
-    skills: { Cassa: 5, Fioreria: 6, Decor: 5, 'Serra Calda': 6, 'Serra Fredda': 7 },
-    avatar: 'EL',
-    email: 'elina.gz@nicoragarden.it',
+    role: 'Serra Fredda',
+    skills: { Cassa: 4, Fioreria: 3, Decor: 4, 'Serra Calda': 8, 'Serra Fredda': 10 },
+    avatar: 'MA',
+    email: 'marco.gz@nicoragarden.it',
     phone: '340 1000010',
     password: '123',
-    contractHours: 24,
-    color: '#a855f7',
+    contractHours: 40,
+    color: '#22c55e',
+    isActive: true,
   },
   {
     id: 'emp-gz-11',
@@ -170,6 +171,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     password: '123',
     contractHours: 40,
     color: '#64748b',
+    isActive: false,
   },
   {
     id: 'emp-gz-12',
@@ -183,6 +185,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     password: '123',
     contractHours: 20,
     color: '#3b82f6',
+    isActive: false,
   },
 
   // ==========================================
@@ -201,6 +204,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     isManager: true,
     contractHours: 40,
     color: '#ec4899', // Pink
+    isActive: true,
   },
   {
     id: 'emp-va-2',
@@ -214,6 +218,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     password: '123',
     contractHours: 40,
     color: '#f97316', // Orange
+    isActive: true,
   },
   {
     id: 'emp-va-3',
@@ -227,6 +232,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     password: '123',
     contractHours: 40,
     color: '#f97316',
+    isActive: true,
   },
   {
     id: 'emp-va-4',
@@ -240,6 +246,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     password: '123',
     contractHours: 40,
     color: '#a855f7', // Decor/Emporio
+    isActive: true,
   },
   {
     id: 'emp-va-5',
@@ -253,6 +260,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     password: '123',
     contractHours: 40,
     color: '#a855f7',
+    isActive: true,
   },
   {
     id: 'emp-va-6',
@@ -266,6 +274,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     password: '123',
     contractHours: 40,
     color: '#eab308',
+    isActive: true,
   },
   {
     id: 'emp-va-7',
@@ -279,6 +288,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     password: '123',
     contractHours: 40,
     color: '#eab308',
+    isActive: true,
   },
   {
     id: 'emp-va-8',
@@ -292,6 +302,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     password: '123',
     contractHours: 40,
     color: '#06b6d4',
+    isActive: true,
   },
   {
     id: 'emp-va-9',
@@ -305,6 +316,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     password: '123',
     contractHours: 40,
     color: '#f97316',
+    isActive: true,
   },
   {
     id: 'emp-va-10',
@@ -318,6 +330,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     password: '123',
     contractHours: 24,
     color: '#ec4899',
+    isActive: true,
   },
   {
     id: 'emp-va-11',
@@ -331,6 +344,8 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     password: '123',
     contractHours: 24,
     color: '#22c55e',
+    isActive: true,
+    isMobile: true,
   },
   {
     id: 'emp-va-12',
@@ -344,6 +359,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     password: '123',
     contractHours: 40,
     color: '#22c55e',
+    isActive: true,
   },
   {
     id: 'emp-va-13',
@@ -357,6 +373,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     password: '123',
     contractHours: 40,
     color: '#06b6d4',
+    isActive: true,
   },
   {
     id: 'emp-va-14',
@@ -370,6 +387,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     password: '123',
     contractHours: 40,
     color: '#06b6d4',
+    isActive: true,
   },
   {
     id: 'emp-va-15',
@@ -383,6 +401,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     password: '123',
     contractHours: 30,
     color: '#a855f7',
+    isActive: false,
   },
   {
     id: 'emp-va-16',
@@ -396,6 +415,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     password: '123',
     contractHours: 24,
     color: '#ec4899',
+    isActive: false,
   },
   {
     id: 'emp-va-17',
@@ -409,6 +429,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     password: '123',
     contractHours: 24,
     color: '#f97316',
+    isActive: false,
   },
   {
     id: 'emp-va-18',
@@ -422,6 +443,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     password: '123',
     contractHours: 40,
     color: '#06b6d4',
+    isActive: false,
   },
   {
     id: 'emp-va-19',
@@ -435,6 +457,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     password: '123',
     contractHours: 20,
     color: '#ec4899',
+    isActive: false,
   },
   {
     id: 'emp-va-20',
@@ -448,6 +471,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     password: '123',
     contractHours: 20,
     color: '#f97316',
+    isActive: false,
   },
 ];
 

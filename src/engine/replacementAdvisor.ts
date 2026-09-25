@@ -20,7 +20,7 @@ export const findBestReplacements = ({
   shifts,
 }: FindReplacementParams): ReplacementSuggestion[] => {
   const storeStaff = employees.filter(
-    (e) => e.locationId === targetShift.locationId && e.isActive !== false
+    (e) => (e.locationId === targetShift.locationId || e.isMobile) && e.isActive !== false
   );
 
   // Escludi il dipendente attualmente titolare del turno

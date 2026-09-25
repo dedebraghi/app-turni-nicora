@@ -710,8 +710,36 @@ export const generateWeeklySchedule = ({
     });
 
     if (missingDepartments.length > 0) {
-      uncoveredDaysList.push({ dateStr, departments: missingDepartments });
-      warnings.push(`Reparti scoperti il ${dayMeta.dayName} ${dateStr}: ${missingDepartments.join(', ')}`);
+      // Tenta la copertura di rinforzo tramite dipendenti mobili dell'altra sede
+      const mobileCandidates = employees.filter(
+        (e) => e.locationId !== locationId && e.isMobile && e.isActive !== false
+      );
+
+      missingDepartments.forEach((dept) => {
+        const candidate = mobileCandidates.find((m) => {
+          const isAssignedToday = assignedEmpIds.has(m.id);
+          const isOff = offDaysSchedule[m.id]?.has(dayIndex);
+          const isLeave = approvedLeaves[m.id]?.has(dateStr);
+          return !isAssignedToday && !isOff && !isLeave;
+        });
+
+        if (candidate) {
+          const score = candidate.skills?.[dept] ?? 5;
+          assignedEmpIds.add(candidate.id);
+          dayAssignments.push({
+            emp: candidate,
+            dept,
+            note: `Trasferta Mobile da ${candidate.locationId === 'gazzada' ? 'Gazzada' : 'Varese'} (Presidio ${dept})`,
+            assignedSkillScore: score,
+          });
+          warnings.push(
+            `Presidio ${dept} il ${dayMeta.dayName} ${dateStr} coperto in trasferta da ${candidate.name} (Sede base: ${candidate.locationId}).`
+          );
+        } else {
+          uncoveredDaysList.push({ dateStr, departments: [dept] });
+          warnings.push(`Reparto scoperto il ${dayMeta.dayName} ${dateStr}: ${dept}`);
+        }
+      });
     }
 
     // --- GESTIONE COLLABORATORI ECCEDENTI ---

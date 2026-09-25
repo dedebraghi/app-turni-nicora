@@ -80,8 +80,8 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
     }
   }, [baseSundayStr]);
 
-  const storeEmployees = employees.filter((e) => e.locationId === location.id && e.isActive !== false);
-  const storeShifts = shifts.filter((s) => s.locationId === location.id);
+  const storeEmployees = employees.filter((e) => (e.locationId === location.id || e.isMobile) && e.isActive !== false);
+  const storeShifts = shifts; // Conserviamo tutti i turni per poter rilevare i turni dei dipendenti mobili nell'altra sede
 
   // Metriche di equità
   const fairnessMetrics = calculateFairnessMetrics(storeEmployees, storeShifts);
@@ -96,9 +96,9 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
     return matchesSearch && matchesDept;
   });
 
-  // Calcolo statistiche giornaliere
+  // Calcolo statistiche giornaliere per la sede corrente
   const dayStats = weekDays.map((d) => {
-    const dayShifts = storeShifts.filter((s) => s.date === d.dateStr);
+    const dayShifts = storeShifts.filter((s) => s.locationId === location.id && s.date === d.dateStr);
     const working = dayShifts.filter(
       (s) => s.type !== 'riposo' && s.type !== 'ferie' && s.type !== 'malattia'
     );
@@ -131,39 +131,39 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
       )}
 
       {/* Management Toolbar */}
-      <div className="bg-white rounded-2xl p-4 border border-nicora-border shadow-clean flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+      <div className="bg-nicora-card rounded-2xl p-4.5 border border-nicora-sage-border shadow-clean flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
         
         {/* Left: Week Navigation & View Toggle */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-xl">
+          <div className="flex items-center gap-1 bg-nicora-sage-light p-1 rounded-full border border-nicora-sage-border">
             <button
               onClick={() => setWeekOffset((p) => p - 1)}
-              className="p-1.5 rounded-lg text-neutral-600 hover:bg-white hover:text-neutral-900 active:scale-90 transition-all shadow-xs"
+              className="p-1.5 rounded-full text-nicora-text hover:bg-white active:scale-90 transition-all shadow-xs"
               title="Settimana precedente"
             >
-              <ChevronLeft size={18} />
+              <ChevronLeft size={16} />
             </button>
-            <span className="font-extrabold text-xs px-2 text-neutral-800 whitespace-nowrap">
+            <span className="font-serif font-semibold text-xs px-2.5 text-nicora-title whitespace-nowrap">
               Dom {weekDays[0].dayNum} — Sab {weekDays[6].dayNum}
             </span>
             <button
               onClick={() => setWeekOffset((p) => p + 1)}
-              className="p-1.5 rounded-lg text-neutral-600 hover:bg-white hover:text-neutral-900 active:scale-90 transition-all shadow-xs"
+              className="p-1.5 rounded-full text-nicora-text hover:bg-white active:scale-90 transition-all shadow-xs"
               title="Settimana successiva"
             >
-              <ChevronRight size={18} />
+              <ChevronRight size={16} />
             </button>
           </div>
 
-          <span className="text-xs font-bold text-nicora-orange bg-nicora-orange-light px-2.5 py-1 rounded-xl border border-nicora-orange-border/40 whitespace-nowrap">
+          <span className="text-xs font-semibold text-nicora-orange bg-nicora-orange-light px-3 py-1 rounded-full border border-nicora-orange-border whitespace-nowrap">
             {weekOffset === 0 ? 'Settimana Attuale' : weekOffset === 1 ? 'Prossima Settimana' : `Offset: ${weekOffset} sett.`}
           </span>
 
           {/* Toggle Vista: Turni Dipendenti vs Copertura Reparti */}
-          <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-xl text-neutral-600 ml-0 sm:ml-2">
+          <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-full text-neutral-600 ml-0 sm:ml-2">
             <button
               onClick={() => setDisplayMode('shifts')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
                 displayMode === 'shifts' ? 'bg-nicora-teal text-white shadow-xs' : 'hover:text-neutral-900'
               }`}
             >
@@ -171,7 +171,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
             </button>
             <button
               onClick={() => setDisplayMode('coverage')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
                 displayMode === 'coverage' ? 'bg-nicora-teal text-white shadow-xs' : 'hover:text-neutral-900'
               }`}
             >
@@ -185,7 +185,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
           {/* Stampa / WhatsApp */}
           <button
             onClick={onOpenExportModal}
-            className="bg-nicora-teal-light hover:bg-nicora-teal-border/30 text-nicora-teal font-bold text-xs px-3 py-2 rounded-xl border border-nicora-teal-border/40 flex items-center gap-1.5 active:scale-95 transition-all"
+            className="bg-nicora-teal-light hover:bg-nicora-teal-border/30 text-nicora-teal font-semibold text-xs px-3.5 py-2 rounded-xl border border-nicora-teal-border/40 flex items-center gap-1.5 active:scale-95 transition-all"
             title="Stampa bacheca A4 o copia testo WhatsApp"
           >
             <Share2 size={14} />
@@ -195,7 +195,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
           {/* Genera Bozza */}
           <button
             onClick={onOpenGenerateModal}
-            className="bg-nicora-orange hover:bg-nicora-orange-hover text-white font-extrabold text-xs px-3.5 py-2 rounded-xl shadow-xs flex items-center gap-1.5 active:scale-95 transition-transform"
+            className="bg-nicora-orange hover:bg-nicora-orange-hover text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs flex items-center gap-1.5 active:scale-95 transition-transform"
           >
             <Zap size={15} />
             <span>Genera Bozza Turni</span>
@@ -250,7 +250,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Filtra collaboratore..."
-              className="w-full bg-white border border-nicora-border rounded-xl pl-8 pr-3 py-1.5 text-xs font-semibold focus:ring-2 focus:ring-nicora-teal focus:outline-none shadow-clean"
+              className="w-full bg-white border border-nicora-sage-border rounded-xl pl-8 pr-3 py-1.5 text-xs font-semibold focus:ring-2 focus:ring-nicora-teal focus:outline-none shadow-clean"
             />
             <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-neutral-400">
               <Search size={13} />
@@ -260,7 +260,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
           <select
             value={selectedDeptFilter}
             onChange={(e) => setSelectedDeptFilter(e.target.value)}
-            className="bg-white border border-nicora-border rounded-xl px-2.5 py-1.5 text-xs font-semibold text-neutral-700 shadow-clean cursor-pointer"
+            className="bg-white border border-nicora-sage-border rounded-xl px-2.5 py-1.5 text-xs font-semibold text-neutral-700 shadow-clean cursor-pointer"
           >
             <option value="all">Tutti i reparti ({storeEmployees.length})</option>
             <option value="Cassa">Cassa</option>
@@ -310,16 +310,16 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
       {/* --- MASTER SPREADSHEET GRID (DESKTOP) --- */}
       {(viewMode === 'desktop' || viewMode === 'responsive') && (
         <div className={viewMode === 'responsive' ? 'hidden md:block' : 'block'}>
-          <div className="bg-white rounded-2xl border border-nicora-border shadow-clean overflow-hidden">
+          <div className="bg-white rounded-2xl border border-nicora-sage-border shadow-clean overflow-hidden">
             <div className="overflow-x-auto scrollbar-thin">
               <table className="w-full text-left border-collapse min-w-[950px]">
             
             {/* Table Header: Giorni della settimana (Domenica -> Sabato) */}
             <thead>
-              <tr className="bg-neutral-50 border-b border-nicora-border">
+              <tr className="bg-neutral-50 border-b border-nicora-sage-border">
                 
                 {/* Colonna Collaboratore */}
-                <th className="py-3 px-3.5 text-xs font-extrabold text-neutral-700 w-52 sticky left-0 bg-neutral-50 z-10 border-r border-nicora-border">
+                <th className="py-3 px-3.5 text-xs font-extrabold text-neutral-700 w-52 sticky left-0 bg-neutral-50 z-10 border-r border-nicora-sage-border">
                   <div className="flex items-center justify-between">
                     <span>Collaboratore ({filteredEmployees.length})</span>
                     <span className="text-[10px] text-neutral-400 font-normal">Giorni</span>
@@ -333,7 +333,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                   return (
                     <th
                       key={day.dateStr}
-                      className={`py-2 px-2.5 text-center border-r border-nicora-border last:border-r-0 min-w-[110px] ${
+                      className={`py-2 px-2.5 text-center border-r border-nicora-sage-border last:border-r-0 min-w-[110px] ${
                         day.isToday
                           ? 'bg-nicora-orange-light/40 ring-1 ring-inset ring-nicora-orange/40'
                           : day.isWeekend
@@ -381,15 +381,15 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
 
               {/* Sub-row: Dettaglio Copertura Reparti del Giorno (visibile quando lo switch è su 'coverage' o come riga di riepilogo) */}
               {displayMode === 'coverage' && (
-                <tr className="bg-neutral-100/90 border-b border-nicora-border text-[10px]">
-                  <th className="py-2.5 px-3 sticky left-0 bg-neutral-100 font-extrabold text-neutral-700 border-r border-nicora-border">
+                <tr className="bg-neutral-100/90 border-b border-nicora-sage-border text-[10px]">
+                  <th className="py-2.5 px-3 sticky left-0 bg-neutral-100 font-extrabold text-neutral-700 border-r border-nicora-sage-border">
                     <span className="block text-xs font-black">Copertura Reparti</span>
                     <span className="text-[9px] text-neutral-500 font-normal">Chi presidia ciascun reparto</span>
                   </th>
                   {weekDays.map((day) => {
                     const coverage = calculateDayCoverage(day.dateStr, storeShifts, employees);
                     return (
-                      <th key={`cov-${day.dateStr}`} className="py-2 px-2 border-r border-nicora-border align-top font-normal bg-neutral-50/80">
+                      <th key={`cov-${day.dateStr}`} className="py-2 px-2 border-r border-nicora-sage-border align-top font-normal bg-neutral-50/80">
                         <div className="space-y-1.5">
                           {(['Cassa', 'Fioreria', 'Decor', 'Serra Calda', 'Serra Fredda'] as Department[]).map((dept) => {
                             const staffList = coverage.departmentStaff?.[dept] || [];
@@ -443,7 +443,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                   <tr key={emp.id} className="hover:bg-neutral-50/70 transition-colors">
                     
                     {/* Collaboratore Info Cell */}
-                    <td className="py-2.5 px-3.5 sticky left-0 bg-white hover:bg-neutral-50 z-10 border-r border-nicora-border">
+                    <td className="py-2.5 px-3.5 sticky left-0 bg-white hover:bg-neutral-50 z-10 border-r border-nicora-sage-border">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className="w-7 h-7 rounded-lg bg-neutral-100 text-neutral-700 font-bold text-xs flex items-center justify-center flex-shrink-0">
@@ -498,9 +498,28 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                         return (
                           <td
                             key={day.dateStr}
-                            className="py-2 px-1 text-center border-r border-nicora-border last:border-r-0 text-neutral-300"
+                            className="py-2 px-1 text-center border-r border-nicora-sage-border last:border-r-0 text-neutral-300"
                           >
                             -
+                          </td>
+                        );
+                      }
+
+                      const isOtherLocation = shift.locationId !== location.id;
+                      const otherLocationName = shift.locationId === 'gazzada' ? 'Gazzada' : 'Varese';
+
+                      if (isOtherLocation && shift.type !== 'riposo' && shift.type !== 'ferie' && shift.type !== 'malattia') {
+                        return (
+                          <td
+                            key={day.dateStr}
+                            className={`py-1.5 px-1.5 text-center border-r border-nicora-sage-border last:border-r-0 ${
+                              day.isToday ? 'bg-nicora-orange-light/10' : ''
+                            }`}
+                          >
+                            <div className="py-1 px-1 rounded-lg bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-extrabold flex flex-col items-center justify-center gap-0.5 shadow-xs">
+                              <span>🔄 Trasferta</span>
+                              <span className="text-[9px] text-amber-800 font-bold">In turno a {otherLocationName}</span>
+                            </div>
                           </td>
                         );
                       }
@@ -514,7 +533,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                         <td
                           key={day.dateStr}
                           onClick={() => isManagerMode && onEditShift(shift)}
-                          className={`py-1.5 px-1.5 text-center border-r border-nicora-border last:border-r-0 transition-all ${
+                          className={`py-1.5 px-1.5 text-center border-r border-nicora-sage-border last:border-r-0 transition-all ${
                             isManagerMode
                               ? 'cursor-pointer hover:bg-nicora-orange-light/30 active:scale-[0.98]'
                               : ''

@@ -25,7 +25,7 @@ export const LeaveRequests: React.FC<LeaveRequestsProps> = ({
 }) => {
   const [requestType, setRequestType] = useState<'swap' | 'leave' | 'schedule_change'>('leave');
   
-  const storeEmployees = employees.filter((e) => e.locationId === activeLocation);
+  const storeEmployees = employees.filter((e) => e.locationId === activeLocation && e.isActive !== false);
   const eligibleColleagues = storeEmployees.filter((e) => e.id !== currentEmployeeId);
 
   const [targetEmployeeId, setTargetEmployeeId] = useState<string>(
@@ -79,15 +79,15 @@ export const LeaveRequests: React.FC<LeaveRequestsProps> = ({
       )}
 
       {/* Form di Inserimento Richiesta */}
-      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-nicora-border shadow-clean">
+      <div className="bg-nicora-card rounded-2xl p-4 sm:p-5 border border-nicora-sage-border shadow-clean">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Sparkles size={18} className="text-nicora-orange" />
-            <h3 className="font-extrabold text-sm sm:text-base text-nicora-title">
+            <h3 className="font-serif text-base sm:text-lg font-semibold text-nicora-title">
               Invia Richiesta Ferie o Cambio Turno
             </h3>
           </div>
-          <span className="text-xs bg-neutral-100 text-neutral-600 font-bold px-2.5 py-1 rounded-full">
+          <span className="text-xs bg-nicora-teal-light text-nicora-teal font-bold px-2.5 py-1 rounded-full border border-nicora-teal-border/40">
             {locationInfo?.shortName}
           </span>
         </div>
@@ -100,7 +100,7 @@ export const LeaveRequests: React.FC<LeaveRequestsProps> = ({
             className={`flex items-center justify-center gap-2 py-3 px-2 rounded-xl text-xs font-bold border transition-all touch-manipulation ${
               requestType === 'leave'
                 ? 'bg-nicora-teal text-white border-nicora-teal shadow-xs'
-                : 'bg-neutral-50 text-neutral-600 border-nicora-border hover:bg-neutral-100'
+                : 'bg-neutral-50 text-neutral-600 border-nicora-sage-border hover:bg-neutral-100'
             }`}
           >
             <CalendarOff size={15} />
@@ -113,7 +113,7 @@ export const LeaveRequests: React.FC<LeaveRequestsProps> = ({
             className={`flex items-center justify-center gap-2 py-3 px-2 rounded-xl text-xs font-bold border transition-all touch-manipulation ${
               requestType === 'swap'
                 ? 'bg-nicora-orange text-white border-nicora-orange shadow-xs'
-                : 'bg-neutral-50 text-neutral-600 border-nicora-border hover:bg-neutral-100'
+                : 'bg-neutral-50 text-neutral-600 border-nicora-sage-border hover:bg-neutral-100'
             }`}
           >
             <ArrowLeftRight size={15} />
@@ -125,8 +125,8 @@ export const LeaveRequests: React.FC<LeaveRequestsProps> = ({
             onClick={() => setRequestType('schedule_change')}
             className={`flex items-center justify-center gap-2 py-3 px-2 rounded-xl text-xs font-bold border transition-all touch-manipulation ${
               requestType === 'schedule_change'
-                ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
-                : 'bg-neutral-50 text-neutral-600 border-nicora-border hover:bg-neutral-100'
+                ? 'bg-[#b7791f] text-white border-[#b7791f] shadow-xs'
+                : 'bg-neutral-50 text-neutral-600 border-nicora-sage-border hover:bg-neutral-100'
             }`}
           >
             <Clock size={15} />
@@ -138,14 +138,14 @@ export const LeaveRequests: React.FC<LeaveRequestsProps> = ({
           
           {/* Data richiesta */}
           <div>
-            <label className="block font-bold text-neutral-700 mb-1">
+            <label className="block font-semibold text-neutral-700 mb-1">
               Data interessata (si raccomanda preavviso):
             </label>
             <input
               type="date"
               value={shiftDate}
               onChange={(e) => setShiftDate(e.target.value)}
-              className="w-full bg-neutral-50 border border-nicora-border rounded-xl px-3 py-2.5 text-neutral-800 font-semibold focus:ring-2 focus:ring-nicora-orange min-h-[44px]"
+              className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl px-3.5 py-2.5 text-neutral-800 font-semibold focus:ring-2 focus:ring-nicora-orange focus:outline-none min-h-[44px]"
               required
             />
           </div>
@@ -154,7 +154,7 @@ export const LeaveRequests: React.FC<LeaveRequestsProps> = ({
           {requestType === 'schedule_change' && (
             <div className="space-y-2.5 bg-amber-50/50 p-3 rounded-2xl border border-amber-200">
               <label className="block font-bold text-neutral-800">
-                Template Rapidi & Orario Flessibile Richiesto:
+                Template Rapidi &amp; Orario Flessibile Richiesto:
               </label>
 
               {/* Preset 1-Click */}
@@ -204,7 +204,7 @@ export const LeaveRequests: React.FC<LeaveRequestsProps> = ({
                     type="time"
                     value={requestedStartTime}
                     onChange={(e) => setRequestedStartTime(e.target.value)}
-                    className="w-full bg-white border border-amber-300 rounded-xl px-3 py-2 font-bold text-sm min-h-[44px]"
+                    className="w-full bg-white border border-amber-300 rounded-xl px-3 py-2 font-bold text-sm min-h-[44px] focus:outline-none"
                     required
                   />
                 </div>
@@ -216,7 +216,7 @@ export const LeaveRequests: React.FC<LeaveRequestsProps> = ({
                     type="time"
                     value={requestedEndTime}
                     onChange={(e) => setRequestedEndTime(e.target.value)}
-                    className="w-full bg-white border border-amber-300 rounded-xl px-3 py-2 font-bold text-sm min-h-[44px]"
+                    className="w-full bg-white border border-amber-300 rounded-xl px-3 py-2 font-bold text-sm min-h-[44px] focus:outline-none"
                     required
                   />
                 </div>
@@ -227,13 +227,13 @@ export const LeaveRequests: React.FC<LeaveRequestsProps> = ({
           {/* Collega con cui scambiare (solo per swap) */}
           {requestType === 'swap' && (
             <div>
-              <label className="block font-bold text-neutral-700 mb-1">
+              <label className="block font-semibold text-neutral-700 mb-1">
                 Collega con cui concordare lo scambio ({locationInfo?.shortName}):
               </label>
               <select
                 value={targetEmployeeId}
                 onChange={(e) => setTargetEmployeeId(e.target.value)}
-                className="w-full bg-neutral-50 border border-nicora-border rounded-xl px-3 py-2.5 text-neutral-800 font-semibold focus:ring-2 focus:ring-nicora-orange min-h-[44px]"
+                className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl px-3.5 py-2.5 text-neutral-800 font-semibold focus:ring-2 focus:ring-nicora-orange focus:outline-none min-h-[44px]"
               >
                 {eligibleColleagues.map((emp) => (
                   <option key={emp.id} value={emp.id}>
@@ -246,7 +246,7 @@ export const LeaveRequests: React.FC<LeaveRequestsProps> = ({
 
           {/* Motivazione */}
           <div>
-            <label className="block font-bold text-neutral-700 mb-1">
+            <label className="block font-semibold text-neutral-700 mb-1">
               Motivazione o dettagli:
             </label>
             <textarea
@@ -255,9 +255,9 @@ export const LeaveRequests: React.FC<LeaveRequestsProps> = ({
               placeholder={
                 requestType === 'swap'
                   ? 'Es. Posso coprire la tua domenica se copri il mio giovedì...'
-                  : 'Es. Visita medica dal dentista, gita programmata al mercoledì...'
+                  : 'Es. Visita medica programmata, necessità personale di famiglia...'
               }
-              className="w-full bg-neutral-50 border border-nicora-border rounded-xl px-3 py-2 text-neutral-800 font-medium focus:ring-2 focus:ring-nicora-orange min-h-[75px]"
+              className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl px-3.5 py-2 text-neutral-800 font-medium focus:ring-2 focus:ring-nicora-orange focus:outline-none min-h-[75px]"
               rows={3}
               required
             />
@@ -280,7 +280,7 @@ export const LeaveRequests: React.FC<LeaveRequestsProps> = ({
         </h3>
 
         {storeRequests.length === 0 ? (
-          <div className="bg-white rounded-2xl p-6 border border-dashed border-nicora-border text-center text-xs text-neutral-400">
+          <div className="bg-nicora-card rounded-2xl p-6 border border-dashed border-nicora-sage-border text-center text-xs text-neutral-400">
             Nessuna richiesta presentata al momento per questa sede.
           </div>
         ) : (
@@ -293,18 +293,18 @@ export const LeaveRequests: React.FC<LeaveRequestsProps> = ({
               return (
                 <div
                   key={req.id}
-                  className={`bg-white rounded-2xl p-4 border shadow-clean text-xs space-y-2.5 ${
+                  className={`bg-nicora-card rounded-2xl p-4 border shadow-clean text-xs space-y-2.5 ${
                     isMyReq
                       ? 'border-nicora-orange/60 ring-1 ring-nicora-orange/20'
-                      : 'border-nicora-border'
+                      : 'border-nicora-sage-border'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="font-extrabold text-sm text-nicora-title">
+                      <span className="font-serif text-sm font-semibold text-nicora-title">
                         {requester?.name} {isMyReq && '(Tu)'}
                       </span>
-                      <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
                         req.type === 'schedule_change'
                           ? 'bg-amber-100 text-amber-800'
                           : req.type === 'swap'

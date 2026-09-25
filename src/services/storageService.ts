@@ -3,12 +3,12 @@ import { Employee, LocationId, Shift, ShiftRequest, UserSession } from '../domai
 import { generateWeeklySchedule, getSundayOfWeek } from '../engine/schedulerEngine';
 
 const STORAGE_KEYS = {
-  LOCATION: 'nicora_v3_location',
-  EMPLOYEES: 'nicora_v3_employees',
-  SHIFTS: 'nicora_v3_shifts',
-  REQUESTS: 'nicora_v3_requests',
-  SESSION: 'nicora_v3_session',
-  MODE: 'nicora_v3_schedule_mode',
+  LOCATION: 'nicora_v4_location',
+  EMPLOYEES: 'nicora_v4_employees',
+  SHIFTS: 'nicora_v4_shifts',
+  REQUESTS: 'nicora_v4_requests',
+  SESSION: 'nicora_v4_session',
+  MODE: 'nicora_v4_schedule_mode',
 };
 
 export const generateInitialShifts = (): Shift[] => {

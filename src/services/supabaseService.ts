@@ -18,6 +18,7 @@ import {
   saveStoredRequests,
   saveStoredShifts,
 } from './storageService';
+import { INITIAL_EMPLOYEES } from '../domain/mockData';
 
 /**
  * Informazioni sullo stato di connessione a Supabase
@@ -45,9 +46,44 @@ export const fetchCloudEmployees = async (): Promise<Employee[]> => {
 
     if (error) throw error;
     if (data && data.length > 0) {
+      // Controllo se i dati su Supabase sono ancora quelli fittizi delle vecchie demo
+      const hasMockDemoNames = data.some((e: any) =>
+        e.name === 'Cecilia T.' || e.name === 'Marco V.' || e.name === 'Alessandro N.' || e.name === 'Andrea P.'
+      );
+
+      if (hasMockDemoNames) {
+        console.info('[Supabase] Rilevati nomi fittizi nel DB: pulizia ed eliminazione definitiva...');
+        
+        // 1. Elimina da Supabase i vecchi dipendenti fittizi che non appartengono allo staff reale
+        const realIds = INITIAL_EMPLOYEES.map((e) => e.id);
+        const mockRecords = data.filter((e: any) => !realIds.includes(e.id));
+        for (const mockEmp of mockRecords) {
+          await supabase.from('employees').delete().eq('id', mockEmp.id);
+        }
+
+        // 2. Inserisci o aggiorna tutti i dipendenti reali
+        for (const emp of INITIAL_EMPLOYEES) {
+          await supabase.from('employees').upsert(mapEmployeeToDb(emp));
+        }
+
+        // 3. Ricarica la lista pulita
+        const { data: updatedData } = await supabase.from('employees').select('*').order('name');
+        if (updatedData && updatedData.length > 0) {
+          const mapped = updatedData.map(mapDbToEmployee);
+          saveStoredEmployees(mapped);
+          return mapped;
+        }
+      }
+
       const mapped = data.map(mapDbToEmployee);
       saveStoredEmployees(mapped);
       return mapped;
+    } else {
+      // Se la tabella era vuota, inserisci i dipendenti reali
+      for (const emp of INITIAL_EMPLOYEES) {
+        await supabase.from('employees').upsert(mapEmployeeToDb(emp));
+      }
+      return INITIAL_EMPLOYEES;
     }
   } catch (err) {
     console.warn('[Supabase] Fallback a cache locale per i collaboratori:', err);

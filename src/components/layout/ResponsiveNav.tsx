@@ -56,7 +56,7 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
   return (
     <>
       {/* --- DESKTOP / TABLET TOP TAB BAR --- */}
-      <nav className="hidden md:flex items-center justify-between border-b border-nicora-border bg-white px-6 py-1.5 shadow-xs sticky top-[57px] z-20">
+      <nav className="hidden md:flex items-center justify-between border-b border-nicora-sage-border bg-nicora-card/95 backdrop-blur-sm px-6 py-2 shadow-clean sticky top-[57px] z-20">
         <div className="flex items-center gap-1.5">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -69,18 +69,18 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
               <button
                 key={tab.id}
                 onClick={() => onChangeTab(tab.id)}
-                className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                className={`relative flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all ${
                   isActive
                     ? 'bg-nicora-teal text-white shadow-xs'
-                    : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
+                    : 'text-nicora-muted hover:text-nicora-title hover:bg-nicora-sage-light'
                 }`}
               >
-                <Icon size={15} className={isActive ? 'text-amber-300' : 'text-neutral-400'} />
+                <Icon size={15} className={isActive ? 'text-amber-300' : 'text-nicora-muted'} />
                 <span>{tab.label}</span>
 
                 {Boolean(tab.badge && tab.badge > 0) && (
                   <span
-                    className={`text-[10px] font-black px-1.5 py-0.2 rounded-full leading-none ml-1 ${
+                    className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full leading-none ml-1 ${
                       isActive ? 'bg-nicora-orange text-white' : 'bg-rose-500 text-white'
                     }`}
                   >
@@ -92,16 +92,16 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
           })}
         </div>
 
-        <div className="text-[11px] text-neutral-400 font-medium flex items-center gap-2">
-          <span>Settimana Lavorativa: <strong>Domenica ➔ Sabato</strong></span>
+        <div className="text-[11px] text-nicora-muted font-normal flex items-center gap-2">
+          <span>Settimana Lavorativa: <strong className="font-semibold text-nicora-text">Domenica ➔ Sabato</strong></span>
           <span>•</span>
-          <span>Regola: <strong>5 giorni / 2 riposi</strong></span>
+          <span>Regola: <strong className="font-semibold text-nicora-text">5 giorni / 2 riposi</strong></span>
         </div>
       </nav>
 
       {/* --- MOBILE FIXED BOTTOM BAR --- */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-nicora-border shadow-modal pb-safe">
-        <div className="grid grid-flow-col auto-cols-fr items-center justify-around h-14 max-w-lg mx-auto px-1">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-nicora-card/95 backdrop-blur-md border-t border-nicora-sage-border shadow-modal pb-safe">
+        <div className="grid grid-flow-col auto-cols-fr items-center justify-around h-15 max-w-lg mx-auto px-1 py-1">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive =
@@ -114,13 +114,13 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
                 key={tab.id}
                 onClick={() => onChangeTab(tab.id)}
                 className={`flex flex-col items-center justify-center relative py-1 transition-all touch-manipulation ${
-                  isActive ? 'text-nicora-orange font-black' : 'text-neutral-500 hover:text-neutral-800'
+                  isActive ? 'text-nicora-orange font-bold' : 'text-nicora-muted hover:text-nicora-text'
                 }`}
               >
                 <div className="relative">
                   <Icon size={19} className={isActive ? 'stroke-[2.5]' : 'stroke-[1.8]'} />
                   {Boolean(tab.badge && tab.badge > 0) && (
-                    <span className="absolute -top-1 -right-2.5 bg-rose-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-white animate-pulse">
+                    <span className="absolute -top-1 -right-2.5 bg-rose-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white animate-pulse">
                       {tab.badge}
                     </span>
                   )}
@@ -129,7 +129,7 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
                   {tab.mobileLabel}
                 </span>
                 {isActive && (
-                  <span className="w-1 h-1 bg-nicora-orange rounded-full absolute bottom-0.5" />
+                  <span className="w-1.5 h-1.5 bg-nicora-orange rounded-full absolute bottom-0 shadow-xs" />
                 )}
               </button>
             );

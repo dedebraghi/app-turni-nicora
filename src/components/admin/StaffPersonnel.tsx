@@ -104,8 +104,8 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
     setSelectedMonth(today.getMonth() + 1);
   };
 
-  // Dipendenti della sede corrente
-  const storeEmployees = employees.filter((e) => e.locationId === activeLocation);
+  // Dipendenti della sede corrente (oppure mobili attivi)
+  const storeEmployees = employees.filter((e) => e.locationId === activeLocation || (e.isMobile && e.isActive !== false));
   const activeEmployees = storeEmployees.filter((e) => e.isActive !== false);
   const archivedEmployees = storeEmployees.filter((e) => e.isActive === false);
 
@@ -219,6 +219,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
     email: string;
     phone: string;
     isManager: boolean;
+    isMobile: boolean;
     skills: SkillScores;
   }>({
     id: '',
@@ -230,6 +231,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
     email: '',
     phone: '',
     isManager: false,
+    isMobile: false,
     skills: { Cassa: 5, Fioreria: 5, Decor: 5, 'Serra Calda': 5, 'Serra Fredda': 5 },
   });
 
@@ -244,6 +246,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
       email: '',
       phone: '',
       isManager: false,
+      isMobile: false,
       skills: { Cassa: 6, Fioreria: 5, Decor: 5, 'Serra Calda': 5, 'Serra Fredda': 5 },
     });
     setEditingEmployee(null);
@@ -262,6 +265,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
       email: emp.email || '',
       phone: emp.phone || '',
       isManager: Boolean(emp.isManager),
+      isMobile: Boolean(emp.isMobile),
       skills: currentQuick?.skills ? { ...currentQuick.skills } : { ...emp.skills },
     });
     setEditingEmployee(emp);
@@ -290,6 +294,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
       phone: formData.phone.trim() || undefined,
       password: formData.password.trim() || '1234',
       isManager: formData.isManager,
+      isMobile: formData.isMobile,
       contractHours: Number(formData.contractHours) || 40,
       isActive: editingEmployee ? editingEmployee.isActive !== false : true,
     };
@@ -330,7 +335,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
     <div className="space-y-4 pb-20 md:pb-8 max-w-5xl mx-auto">
       
       {/* Header & Dashboard Metriche Personale */}
-      <div className="bg-white rounded-3xl p-4 sm:p-6 border border-nicora-border shadow-clean space-y-4">
+      <div className="bg-nicora-card rounded-2xl p-4 sm:p-6 border border-nicora-sage-border shadow-clean space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <div className="flex items-center gap-2.5">
@@ -338,11 +343,11 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                 <Users size={22} />
               </div>
               <div>
-                <h2 className="text-lg sm:text-xl font-black text-nicora-title tracking-tight">
-                  Personale & Competenze
+                <h2 className="font-serif text-lg sm:text-xl font-semibold text-nicora-title tracking-tight">
+                  Personale &amp; Competenze
                 </h2>
                 <p className="text-xs text-neutral-500">
-                  Punto Vendita: <strong className="text-neutral-800 capitalize">{activeLocation}</strong> ({storeEmployees.length} collaboratori registrati)
+                  Punto Vendita: <strong className="text-neutral-800 capitalize">{activeLocation === 'gazzada' ? 'Gazzada Schianno' : 'Varese'}</strong> ({storeEmployees.length} collaboratori registrati)
                 </p>
               </div>
             </div>
@@ -521,7 +526,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Cerca collaboratore per nome o reparto..."
-            className="w-full bg-white border border-nicora-border rounded-xl pl-8 pr-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-nicora-teal focus:outline-none shadow-clean"
+            className="w-full bg-white border border-nicora-sage-border rounded-xl pl-8 pr-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-nicora-teal focus:outline-none shadow-clean"
           />
           <Search size={14} className="absolute left-2.5 top-2.5 text-neutral-400 pointer-events-none" />
         </div>
@@ -542,7 +547,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
             return (
               <div
                 key={emp.id}
-                className="bg-white rounded-2xl p-4 sm:p-5 border border-nicora-border shadow-clean space-y-3.5 transition-all hover:border-nicora-teal-border/70"
+                className="bg-white rounded-2xl p-4 sm:p-5 border border-nicora-sage-border shadow-clean space-y-3.5 transition-all hover:border-nicora-teal-border/70"
               >
                 {/* Header Collaboratore & Selettore Rapido Ore Contratto */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-neutral-100">
@@ -692,7 +697,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
       {activeSubView === 'roster' && (
         <div className="space-y-3">
           {displayedEmployees.length === 0 ? (
-            <div className="bg-white rounded-2xl p-8 text-center text-neutral-400 border border-nicora-border text-xs">
+            <div className="bg-white rounded-2xl p-8 text-center text-neutral-400 border border-nicora-sage-border text-xs">
               <Users size={32} className="mx-auto mb-2 text-neutral-300" />
               Nessun collaboratore trovato in questa categoria.
             </div>
@@ -707,7 +712,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                   className={`bg-white rounded-2xl p-4 border transition-all shadow-clean ${
                     isArchived
                       ? 'opacity-75 bg-neutral-50/70 border-dashed border-neutral-300'
-                      : 'border-nicora-border'
+                      : 'border-nicora-sage-border'
                   }`}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -834,7 +839,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
       {activeSubView === 'monthly-report' && (
         <div className="space-y-4">
           {/* Barra Controlli Mese & Azioni di Esportazione */}
-          <div className="bg-white rounded-3xl p-4 sm:p-6 border border-nicora-border shadow-clean space-y-4">
+          <div className="bg-white rounded-3xl p-4 sm:p-6 border border-nicora-sage-border shadow-clean space-y-4">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               
               {/* Selettore Mese Navigabile */}
@@ -949,7 +954,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
 
           {/* Dettaglio Collaboratori per il Mese */}
           {monthlySummary.totalWorkedHours === 0 && monthlySummary.totalLeaveDays === 0 ? (
-            <div className="bg-white rounded-3xl p-8 text-center text-neutral-400 border border-nicora-border shadow-clean space-y-2">
+            <div className="bg-white rounded-3xl p-8 text-center text-neutral-400 border border-nicora-sage-border shadow-clean space-y-2">
               <Calendar size={36} className="mx-auto text-neutral-300" />
               <p className="font-extrabold text-sm text-neutral-700">
                 Nessun turno registrato per {monthlySummary.monthLabel} a {locationName}
@@ -961,7 +966,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
           ) : (
             <>
               {/* TABELLA DESKTOP */}
-              <div className="hidden lg:block bg-white rounded-3xl border border-nicora-border shadow-clean overflow-hidden">
+              <div className="hidden lg:block bg-white rounded-3xl border border-nicora-sage-border shadow-clean overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
@@ -1151,7 +1156,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                     return (
                       <div
                         key={s.employee.id}
-                        className="bg-white rounded-2xl p-4 border border-nicora-border shadow-clean space-y-3"
+                        className="bg-white rounded-2xl p-4 border border-nicora-sage-border shadow-clean space-y-3"
                       >
                         <div className="flex items-center justify-between gap-2 border-b border-neutral-100 pb-2.5">
                           <div className="flex items-center gap-2.5">
@@ -1274,7 +1279,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Es. Elena Rossi o Elena R."
-                  className="w-full bg-neutral-50 border border-nicora-border rounded-xl px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-nicora-teal min-h-[44px]"
+                  className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-nicora-teal min-h-[44px]"
                   required
                 />
               </div>
@@ -1316,7 +1321,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                   <select
                     value={formData.role}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value as Department })}
-                    className="w-full bg-neutral-50 border border-nicora-border rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-nicora-teal min-h-[44px]"
+                    className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-nicora-teal min-h-[44px]"
                   >
                     {DEPARTMENTS.map((d) => (
                       <option key={d} value={d}>
@@ -1334,7 +1339,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                     max={50}
                     value={formData.contractHours}
                     onChange={(e) => setFormData({ ...formData, contractHours: Number(e.target.value) })}
-                    className="w-full bg-neutral-50 border border-nicora-border rounded-xl px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-nicora-teal min-h-[44px]"
+                    className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-nicora-teal min-h-[44px]"
                     required
                   />
                 </div>
@@ -1352,7 +1357,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     placeholder="1234"
-                    className="w-full bg-neutral-50 border border-nicora-border rounded-xl px-3 py-2 text-sm font-bold tracking-widest focus:ring-2 focus:ring-nicora-teal min-h-[44px]"
+                    className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl px-3 py-2 text-sm font-bold tracking-widest focus:ring-2 focus:ring-nicora-teal min-h-[44px]"
                     required
                   />
                 </div>
@@ -1364,7 +1369,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="+39 340 ..."
-                    className="w-full bg-neutral-50 border border-nicora-border rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-nicora-teal min-h-[44px]"
+                    className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-nicora-teal min-h-[44px]"
                   />
                 </div>
               </div>
@@ -1376,7 +1381,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="nome.cognome@nicoragarden.it"
-                  className="w-full bg-neutral-50 border border-nicora-border rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-nicora-teal min-h-[44px]"
+                  className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-nicora-teal min-h-[44px]"
                 />
               </div>
 
@@ -1423,6 +1428,19 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                 />
                 <label htmlFor="isManager" className="font-bold text-neutral-800 cursor-pointer">
                   Autorizza come Direzione / Manager (accesso a modifiche turni e approvazioni)
+                </label>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1 bg-amber-50 p-2.5 rounded-xl border border-amber-200">
+                <input
+                  type="checkbox"
+                  id="isMobile"
+                  checked={formData.isMobile}
+                  onChange={(e) => setFormData({ ...formData, isMobile: e.target.checked })}
+                  className="w-4 h-4 rounded text-amber-600 accent-amber-600"
+                />
+                <label htmlFor="isMobile" className="font-bold text-amber-900 cursor-pointer">
+                  Collaboratore Mobile / Jolly (disponibile per trasferte nell'altra sede in caso di deficit)
                 </label>
               </div>
 

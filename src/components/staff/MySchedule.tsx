@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Employee, LocationId, Shift } from '../../domain/types';
 import { formatLocalDate, getSundayOfWeek, getWeekDays } from '../../engine/schedulerEngine';
-import { ChevronLeft, ChevronRight, Clock, Coffee, KeyRound, Check, AlertCircle, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, Coffee, KeyRound, Check, AlertCircle, X, Calendar, Sparkles } from 'lucide-react';
 
 interface MyScheduleProps {
   currentEmployee: Employee;
@@ -98,27 +98,31 @@ export const MySchedule: React.FC<MyScheduleProps> = ({
   return (
     <div className="space-y-4 pb-20 md:pb-8 max-w-3xl mx-auto">
       
-      {/* Profile & Week Stats Header */}
-      <div className="bg-gradient-to-r from-[#035F64] to-[#024347] text-white rounded-2xl p-4 sm:p-5 shadow-sm">
-        <div className="flex items-center justify-between flex-wrap gap-3">
+      {/* Profile & Week Stats Header (Botanica Nobile) */}
+      <div className="bg-gradient-to-br from-nicora-teal-dark via-nicora-teal to-[#072e31] text-white rounded-2xl p-5 sm:p-6 shadow-clean border border-white/10 relative overflow-hidden">
+        <div className="absolute -right-6 -bottom-6 opacity-10 pointer-events-none">
+          <Sparkles size={140} />
+        </div>
+
+        <div className="flex items-center justify-between flex-wrap gap-3 relative z-10">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-nicora-orange flex items-center justify-center text-white font-black text-base shadow-sm">
-              {currentEmployee.avatar}
+            <div className="w-12 h-12 rounded-full bg-nicora-orange flex items-center justify-center text-white font-extrabold text-base shadow-sm border-2 border-white/20">
+              {currentEmployee.avatar || currentEmployee.name.slice(0, 2).toUpperCase()}
             </div>
             <div>
-              <h2 className="font-extrabold text-base sm:text-lg leading-tight flex items-center gap-2">
+              <h2 className="font-serif text-lg sm:text-xl font-medium leading-tight flex items-center gap-2">
                 <span>{currentEmployee.name}</span>
                 <button
                   onClick={handleOpenPinModal}
-                  className="bg-white/15 hover:bg-white/25 text-white p-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all"
+                  className="bg-white/15 hover:bg-white/25 text-white px-2 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1 transition-all border border-white/15"
                   title="Modifica il tuo PIN personale"
                 >
-                  <KeyRound size={12} />
-                  <span>Cambia PIN</span>
+                  <KeyRound size={11} className="text-amber-300" />
+                  <span>PIN</span>
                 </button>
               </h2>
-              <p className="text-xs text-nicora-teal-light/80">
-                Reparto: <strong>{currentEmployee.role}</strong> • Sede: <strong className="capitalize">{activeLocation}</strong>
+              <p className="text-xs text-emerald-200/80 mt-0.5">
+                Reparto: <strong className="text-white">{currentEmployee.role}</strong> • Sede: <strong className="text-white capitalize">{activeLocation === 'gazzada' ? 'Gazzada Schianno' : 'Varese'}</strong>
               </p>
             </div>
           </div>
@@ -127,31 +131,31 @@ export const MySchedule: React.FC<MyScheduleProps> = ({
             <span className="text-[10px] font-bold uppercase tracking-wider text-nicora-orange-border block">
               Contratto 5/7
             </span>
-            <span className="text-xl font-black">
-              {workedShifts.length} / 5 <span className="text-xs font-medium text-nicora-teal-light">giorni</span>
+            <span className="font-serif text-2xl font-medium">
+              {workedShifts.length} / 5 <span className="text-xs font-sans font-normal text-emerald-200">giorni</span>
             </span>
           </div>
         </div>
 
         {/* Counters summary */}
-        <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-white/10 text-center">
-          <div className="bg-white/10 rounded-xl p-2">
-            <span className="block text-[10px] uppercase font-bold text-nicora-teal-light/80">Lavoro</span>
-            <span className="text-sm font-black">{workedShifts.length} turni</span>
+        <div className="grid grid-cols-3 gap-2.5 mt-5 pt-3.5 border-t border-white/10 text-center relative z-10">
+          <div className="bg-white/10 rounded-xl p-2.5 backdrop-blur-xs">
+            <span className="block text-[9px] uppercase font-bold text-emerald-200 tracking-wider">In Turno</span>
+            <span className="text-base font-extrabold">{workedShifts.length} gg</span>
           </div>
-          <div className="bg-white/10 rounded-xl p-2">
-            <span className="block text-[10px] uppercase font-bold text-nicora-teal-light/80">Riposi</span>
-            <span className="text-sm font-black">{restShifts.length} giorni</span>
+          <div className="bg-white/10 rounded-xl p-2.5 backdrop-blur-xs">
+            <span className="block text-[9px] uppercase font-bold text-emerald-200 tracking-wider">Riposi</span>
+            <span className="text-base font-extrabold">{restShifts.length} gg</span>
           </div>
-          <div className="bg-white/10 rounded-xl p-2">
-            <span className="block text-[10px] uppercase font-bold text-nicora-teal-light/80">Ferie / Permessi</span>
-            <span className="text-sm font-black">{leaveShifts.length}</span>
+          <div className="bg-white/10 rounded-xl p-2.5 backdrop-blur-xs">
+            <span className="block text-[9px] uppercase font-bold text-emerald-200 tracking-wider">Ferie / Ass.</span>
+            <span className="text-base font-extrabold">{leaveShifts.length} gg</span>
           </div>
         </div>
       </div>
 
       {/* Week Navigator */}
-      <div className="flex items-center justify-between bg-white rounded-2xl p-2.5 border border-nicora-border shadow-clean text-xs">
+      <div className="flex items-center justify-between bg-nicora-card rounded-2xl p-2.5 border border-nicora-sage-border shadow-clean text-xs">
         <button
           onClick={() => setWeekOffset((prev) => prev - 1)}
           className="p-1.5 rounded-xl text-neutral-600 hover:bg-neutral-100 active:scale-95 transition-all"
@@ -161,11 +165,11 @@ export const MySchedule: React.FC<MyScheduleProps> = ({
         </button>
 
         <div className="text-center font-bold text-neutral-800">
-          <span className="text-sm">
+          <span className="font-serif text-sm">
             Domenica {weekDays[0].dayNum} — Sabato {weekDays[6].dayNum}
           </span>
           <span className="block text-[11px] font-semibold text-nicora-orange">
-            {weekOffset === 0 ? 'Settimana in Corso' : weekOffset === 1 ? 'Prossima Settimana' : `Offset: ${weekOffset} sett.`}
+            {weekOffset === 0 ? 'Settimana in Corso' : weekOffset === 1 ? 'Prossima Settimana' : `Offset: ${weekOffset > 0 ? `+${weekOffset}` : weekOffset} sett.`}
           </span>
         </div>
 
@@ -187,13 +191,13 @@ export const MySchedule: React.FC<MyScheduleProps> = ({
           return (
             <div
               key={day.dateStr}
-              className={`bg-white rounded-2xl p-3.5 sm:p-4 border transition-all shadow-clean flex items-center justify-between ${
+              className={`bg-nicora-card rounded-2xl p-3.5 sm:p-4 border transition-all shadow-clean flex items-center justify-between gap-3 ${
                 isToday
-                  ? 'border-nicora-orange ring-2 ring-nicora-orange/40 bg-nicora-orange-light/15'
-                  : 'border-nicora-border'
+                  ? 'border-nicora-orange ring-1 ring-nicora-orange/60 bg-amber-50/20'
+                  : 'border-nicora-sage-border'
               }`}
             >
-              <div className="flex items-center gap-3.5">
+              <div className="flex items-center gap-3.5 min-w-0">
                 {/* Day Pill */}
                 <div
                   className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center flex-shrink-0 transition-colors ${
@@ -208,13 +212,13 @@ export const MySchedule: React.FC<MyScheduleProps> = ({
                   <span className="text-lg leading-none mt-1">{day.dayNum}</span>
                 </div>
 
-                <div>
+                <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-extrabold text-xs sm:text-sm text-nicora-title">
+                    <span className="font-serif text-sm font-semibold text-nicora-title">
                       {day.dayName}
                     </span>
                     {isToday && (
-                      <span className="text-[9px] bg-nicora-orange text-white font-black px-2 py-0.5 rounded-full uppercase">
+                      <span className="text-[9px] bg-nicora-orange text-white font-extrabold px-2 py-0.5 rounded-full uppercase">
                         Oggi
                       </span>
                     )}
@@ -225,10 +229,10 @@ export const MySchedule: React.FC<MyScheduleProps> = ({
                     )}
                   </div>
 
-                  <div className="mt-1 flex items-center gap-2 text-xs">
+                  <div className="mt-1 flex items-center gap-2 text-xs flex-wrap">
                     {shift?.department && !isOff && (
                       <span
-                        className={`text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider ${
+                        className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
                           shift.department === 'Cassa'
                             ? 'bg-rose-600 text-white'
                             : 'bg-nicora-teal-light text-nicora-teal border border-nicora-teal-border/50'
@@ -238,8 +242,8 @@ export const MySchedule: React.FC<MyScheduleProps> = ({
                       </span>
                     )}
                     {shift?.areaNote && !isOff && (
-                      <span className="text-neutral-500 truncate max-w-[200px]">
-                        {shift.areaNote}
+                      <span className="text-neutral-500 text-[11px] truncate max-w-[200px]">
+                        • {shift.areaNote}
                       </span>
                     )}
                   </div>
@@ -247,7 +251,7 @@ export const MySchedule: React.FC<MyScheduleProps> = ({
               </div>
 
               {/* Status / Hours */}
-              <div className="text-right">
+              <div className="text-right flex-shrink-0">
                 {shift ? (
                   shift.type === 'riposo' ? (
                     <span className="inline-flex items-center gap-1 text-xs font-bold text-neutral-400 bg-neutral-100 px-3 py-1.5 rounded-xl">
@@ -263,12 +267,12 @@ export const MySchedule: React.FC<MyScheduleProps> = ({
                     </span>
                   ) : (
                     <div>
-                      <span className="inline-flex items-center gap-1 text-xs font-black text-nicora-teal bg-neutral-100 px-2.5 py-1 rounded-xl">
+                      <span className="inline-flex items-center gap-1 text-xs font-black text-nicora-teal bg-neutral-100/90 px-2.5 py-1 rounded-xl">
                         <Clock size={12} className="text-nicora-orange" />
                         {shift.startTime || '08:30'} — {shift.endTime || '19:30'}
                       </span>
                       <span className="block text-[10px] font-semibold text-neutral-400 mt-0.5 capitalize">
-                        Turno {shift.type}
+                        Turno {shift.type === 'giornata' ? 'Giornata' : shift.type}
                       </span>
                     </div>
                   )
@@ -284,11 +288,11 @@ export const MySchedule: React.FC<MyScheduleProps> = ({
       {/* Modal Cambio PIN Personale */}
       {isPinModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in">
-          <div className="bg-white rounded-3xl shadow-2xl border border-nicora-border w-full max-w-md overflow-hidden animate-in zoom-in-95">
+          <div className="bg-white rounded-3xl shadow-2xl border border-nicora-sage-border w-full max-w-md overflow-hidden animate-in zoom-in-95">
             <div className="bg-nicora-teal text-white p-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <KeyRound size={20} className="text-amber-400" />
-                <h3 className="font-extrabold text-base">Modifica PIN Personale</h3>
+                <h3 className="font-serif text-base font-semibold">Modifica PIN Personale</h3>
               </div>
               <button
                 onClick={() => setIsPinModalOpen(false)}
@@ -321,7 +325,7 @@ export const MySchedule: React.FC<MyScheduleProps> = ({
                   onChange={(e) => setCurrentPinInput(e.target.value)}
                   placeholder="Inserisci PIN attuale (es. 1234)"
                   maxLength={6}
-                  className="w-full bg-neutral-50 border border-nicora-border rounded-xl px-3 py-2 font-bold focus:ring-2 focus:ring-nicora-teal text-sm"
+                  className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl px-3.5 py-2.5 font-bold focus:ring-2 focus:ring-nicora-teal text-sm focus:outline-none"
                   required
                 />
               </div>
@@ -334,7 +338,7 @@ export const MySchedule: React.FC<MyScheduleProps> = ({
                   onChange={(e) => setNewPinInput(e.target.value)}
                   placeholder="Nuovo PIN riservato"
                   maxLength={6}
-                  className="w-full bg-neutral-50 border border-nicora-border rounded-xl px-3 py-2 font-bold focus:ring-2 focus:ring-nicora-teal text-sm"
+                  className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl px-3.5 py-2.5 font-bold focus:ring-2 focus:ring-nicora-teal text-sm focus:outline-none"
                   required
                 />
               </div>
@@ -347,7 +351,7 @@ export const MySchedule: React.FC<MyScheduleProps> = ({
                   onChange={(e) => setConfirmPinInput(e.target.value)}
                   placeholder="Ripeti nuovo PIN"
                   maxLength={6}
-                  className="w-full bg-neutral-50 border border-nicora-border rounded-xl px-3 py-2 font-bold focus:ring-2 focus:ring-nicora-teal text-sm"
+                  className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl px-3.5 py-2.5 font-bold focus:ring-2 focus:ring-nicora-teal text-sm focus:outline-none"
                   required
                 />
               </div>
@@ -362,7 +366,7 @@ export const MySchedule: React.FC<MyScheduleProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-nicora-teal hover:bg-nicora-teal/90 text-white font-extrabold rounded-xl shadow-xs"
+                  className="px-5 py-2.5 bg-nicora-teal hover:bg-nicora-teal-hover text-white font-extrabold rounded-xl shadow-xs"
                 >
                   Salva PIN
                 </button>

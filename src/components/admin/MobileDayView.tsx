@@ -89,7 +89,7 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
     <div className="space-y-3">
       
       {/* --- SELETTORE GIORNI SETTIMANA A PILLOLE --- */}
-      <div className="bg-white rounded-2xl p-2 border border-nicora-border shadow-clean">
+      <div className="bg-white rounded-2xl p-2 border border-nicora-sage-border shadow-clean">
         <div className="grid grid-cols-7 gap-1">
           {weekDays.map((day) => {
             const isSelected = day.dateStr === selectedDayMeta.dateStr;
@@ -143,7 +143,7 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
       </div>
 
       {/* --- BANNER STATO GIORNO SELEZIONATO --- */}
-      <div className="bg-white rounded-2xl p-3.5 border border-nicora-border shadow-clean space-y-2.5">
+      <div className="bg-white rounded-2xl p-3.5 border border-nicora-sage-border shadow-clean space-y-2.5">
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
@@ -215,7 +215,7 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
       {/* --- SCHEDE VERTICALI DEI COLLABORATORI --- */}
       <div className="space-y-2">
         {sortedEmployees.length === 0 ? (
-          <div className="bg-white rounded-2xl p-6 text-center text-neutral-400 border border-nicora-border text-xs">
+          <div className="bg-white rounded-2xl p-6 text-center text-neutral-400 border border-nicora-sage-border text-xs">
             <Users size={28} className="mx-auto mb-2 text-neutral-300" />
             Nessun collaboratore trovato per i filtri attuali.
           </div>
@@ -240,7 +240,7 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
                 className={`bg-white rounded-2xl p-3.5 border transition-all ${
                   isManagerMode
                     ? 'cursor-pointer hover:border-nicora-teal active:scale-[0.99] shadow-clean hover:shadow-md'
-                    : 'border-nicora-border shadow-xs'
+                    : 'border-nicora-sage-border shadow-xs'
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">

@@ -34,6 +34,7 @@ export interface Employee {
   isManager?: boolean;
   contractHours?: number; // es. 40h o 24h
   isActive?: boolean;     // Se false: collaboratore archiviato/cessato (soft-delete)
+  isMobile?: boolean;     // Se true: collaboratore mobile (sede primaria + trasferte nell'altra sede)
 }
 
 export interface UserSession {
