@@ -5,10 +5,10 @@ import { NicoraLogo } from '../NicoraLogo';
 import { 
   CheckCircle2, 
   Clock, 
+  LogOut,
   Sparkles, 
   Store, 
   Sun, 
-  Truck, 
   Utensils 
 } from 'lucide-react';
 
@@ -21,6 +21,7 @@ interface TodayPresenceMobileProps {
   activeLocation: LocationId;
   onChangeLocation?: (loc: LocationId) => void;
   onEditShift: (shift: Shift) => void;
+  onLogout?: () => void;
 }
 
 export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
@@ -32,8 +33,10 @@ export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
   activeLocation,
   onChangeLocation,
   onEditShift,
+  onLogout,
 }) => {
   const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>('all');
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   const storeEmployees = employees.filter((e) => e.locationId === activeLocation && e.isActive !== false);
   const locationInfo = LOCATIONS.find((l) => l.id === activeLocation);
@@ -118,19 +121,68 @@ export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
               </div>
             </div>
 
-            {/* Profilo Sabrina / Utente */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <div className="flex flex-col items-end text-right">
-                <span className="text-xs font-bold text-neutral-900 leading-tight">
-                  {myEmployee?.name || 'Sabrina'}
-                </span>
-                <span className="text-[10px] text-neutral-500 leading-none">
-                  {myEmployee?.role ? `Rep. ${myEmployee.role}` : 'Rep. Cassa'}
-                </span>
-              </div>
-              <div className="w-8 h-8 rounded-full bg-[#002f32] flex items-center justify-center text-white font-serif font-bold text-xs shadow-xs">
-                {myEmployee?.name?.charAt(0) || 'S'}
-              </div>
+            {/* Profilo Sabrina / Utente con dropdown di logout */}
+            <div className="relative flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                className="flex items-center gap-2 text-left focus:outline-none active:opacity-80 transition-opacity"
+                title="Profilo e opzioni sessione"
+              >
+                <div className="flex flex-col items-end text-right">
+                  <span className="text-xs font-bold text-neutral-900 leading-tight">
+                    {myEmployee?.name || 'Sabrina'}
+                  </span>
+                  <span className="text-[10px] text-neutral-500 leading-none">
+                    {myEmployee?.role ? `Rep. ${myEmployee.role}` : 'Rep. Cassa'}
+                  </span>
+                </div>
+                <div className="w-8 h-8 rounded-full bg-[#002f32] flex items-center justify-center text-white font-serif font-bold text-xs shadow-xs ring-2 ring-transparent active:ring-[#a73a00]">
+                  {myEmployee?.name?.charAt(0) || 'S'}
+                </div>
+              </button>
+
+              {/* Menu Profilo e Logout Popup */}
+              {isProfileMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40 bg-black/20"
+                    onClick={() => setIsProfileMenuOpen(false)}
+                  />
+                  <div className="absolute right-0 top-11 z-50 w-56 rounded-2xl bg-white p-3.5 shadow-modal border border-[#e2e8e4] animate-in fade-in zoom-in-95 duration-150">
+                    <div className="flex items-center gap-2.5 pb-2.5 border-b border-neutral-100">
+                      <div className="w-9 h-9 rounded-full bg-[#002f32] text-white flex items-center justify-center font-serif font-bold text-sm">
+                        {myEmployee?.name?.charAt(0) || 'S'}
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-xs font-bold text-neutral-900 truncate">
+                          {myEmployee?.name || 'Sabrina'}
+                        </span>
+                        <span className="text-[10px] text-neutral-500">
+                          {myEmployee?.role ? `Reparto ${myEmployee.role}` : 'Collaboratore'}
+                        </span>
+                        <span className="text-[9px] text-[#a73a00] font-semibold uppercase mt-0.5">
+                          {activeLocation === 'gazzada' ? 'Sede Gazzada' : 'Sede Varese'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsProfileMenuOpen(false);
+                          onLogout?.();
+                        }}
+                        className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-colors"
+                      >
+                        <LogOut size={14} />
+                        <span>Esci dalla sessione</span>
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -173,7 +225,7 @@ export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
       {/* ========================================================
           2. CORPO PRINCIPALE MOBILE (Stitch 132668eb8842442486ad04adfa3a5308)
           ======================================================== */}
-      <div className="pt-34 px-4 pb-24 space-y-4">
+      <div className="pt-[calc(9.25rem+env(safe-area-inset-top,0px))] px-4 pb-24 space-y-4">
         
         {/* Header Data & Meteo Context */}
         <div className="flex items-center justify-between pt-1">
@@ -220,7 +272,7 @@ export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
         </div>
 
         {/* 2. Hero Turno Collaboratore (Ottanio Deep Scuro & Terracotta Accent) */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#002f32] via-[#0a474b] to-[#072e31] text-white p-4.5 shadow-md border border-white/10">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#002f32] via-[#0a474b] to-[#072e31] text-white p-5 sm:p-6 shadow-md border border-white/10">
           <div className="absolute -right-8 -bottom-8 w-36 h-36 rounded-full bg-white/5 blur-xl pointer-events-none" />
 
           <div className="relative z-10 flex flex-col gap-3.5">
@@ -399,24 +451,6 @@ export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
                 </div>
               );
             })}
-          </div>
-        </div>
-
-        {/* 5. Operational Notes Card */}
-        <div className="p-4 rounded-xl bg-[#fdf3ee] border border-[#edd9cd] shadow-2xs flex items-start gap-3 mt-2">
-          <div className="w-8 h-8 rounded-full bg-[#a73a00] flex items-center justify-center text-white flex-shrink-0 mt-0.5">
-            <Truck size={17} />
-          </div>
-          <div className="flex flex-col gap-1 min-w-0">
-            <div className="flex items-center justify-between gap-1">
-              <span className="text-[10px] uppercase text-[#a73a00] font-bold tracking-wider">
-                Nota Operativa del Giorno
-              </span>
-              <span className="text-[10px] text-[#a73a00] font-bold">15:30</span>
-            </div>
-            <p className="text-xs text-neutral-800 leading-snug">
-              Consegna speciale alberature vivaio e piante esemplari prevista per le <strong>15:30</strong>. Richiesto presidio carrello elevatore all'ingresso merci.
-            </p>
           </div>
         </div>
 
