@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Employee, LocationId, ScheduleMode, Shift, ShiftRequest } from '../../domain/types';
-import { generateMonthlySchedule, generateWeeklySchedule, getSundayOfWeek } from '../../engine/schedulerEngine';
+import { formatLocalDate, generateMonthlySchedule, generateWeeklySchedule, getSundayOfWeek } from '../../engine/schedulerEngine';
 import { X, Sparkles, CheckCircle2, Calendar, Clock, ShieldCheck } from 'lucide-react';
 
 interface GenerateModalProps {
@@ -28,7 +28,7 @@ export const GenerateModal: React.FC<GenerateModalProps> = ({
   const now = new Date();
   const [targetType, setTargetType] = useState<'month' | 'week'>('month');
   const [selectedSundayStr, setSelectedSundayStr] = useState<string>(
-    currentSunday.toISOString().split('T')[0]
+    formatLocalDate(currentSunday)
   );
   const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
@@ -106,11 +106,11 @@ export const GenerateModal: React.FC<GenerateModalProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  setSelectedSundayStr(currentSunday.toISOString().split('T')[0]);
+                  setSelectedSundayStr(formatLocalDate(currentSunday));
                   setResultStats(null);
                 }}
                 className={`p-2.5 rounded-xl border font-bold text-center transition-all ${
-                  selectedSundayStr === currentSunday.toISOString().split('T')[0]
+                  selectedSundayStr === formatLocalDate(currentSunday)
                     ? 'bg-nicora-teal text-white border-nicora-teal shadow-xs'
                     : 'bg-white text-neutral-700 border-nicora-border hover:bg-neutral-100'
                 }`}
@@ -124,11 +124,11 @@ export const GenerateModal: React.FC<GenerateModalProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  setSelectedSundayStr(nextSunday.toISOString().split('T')[0]);
+                  setSelectedSundayStr(formatLocalDate(nextSunday));
                   setResultStats(null);
                 }}
                 className={`p-2.5 rounded-xl border font-bold text-center transition-all ${
-                  selectedSundayStr === nextSunday.toISOString().split('T')[0]
+                  selectedSundayStr === formatLocalDate(nextSunday)
                     ? 'bg-nicora-teal text-white border-nicora-teal shadow-xs'
                     : 'bg-white text-neutral-700 border-nicora-border hover:bg-neutral-100'
                 }`}

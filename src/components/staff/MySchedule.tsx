@@ -5,8 +5,11 @@ import { MyScheduleDesktop } from './MyScheduleDesktop';
 
 interface MyScheduleProps {
   currentEmployee: Employee;
+  employees?: Employee[];
   shifts: Shift[];
   activeLocation: LocationId;
+  onChangeLocation?: (loc: LocationId) => void;
+  onLogout?: () => void;
   onSaveEmployee?: (emp: Employee) => void;
 }
 

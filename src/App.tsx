@@ -67,7 +67,7 @@ export const App: React.FC = () => {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [emergencyTargetShift, setEmergencyTargetShift] = useState<Shift | null>(null);
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = formatLocalDate(new Date());
 
   // Toast Notifica Realtime per il collaboratore
   const [toast, setToast] = useState<ToastMessage | null>(null);
@@ -504,8 +504,11 @@ export const App: React.FC = () => {
         {activeTab === 'my-shifts' && (
           <MySchedule
             currentEmployee={currentEmployee}
+            employees={employees}
             shifts={shifts}
             activeLocation={activeLocation}
+            onChangeLocation={setActiveLocation}
+            onLogout={handleLogout}
             onSaveEmployee={handleSaveEmployee}
           />
         )}

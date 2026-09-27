@@ -1,6 +1,6 @@
 import { INITIAL_EMPLOYEES, INITIAL_REQUESTS } from '../domain/mockData';
 import { Employee, LocationId, Shift, ShiftRequest, UserSession } from '../domain/types';
-import { generateWeeklySchedule, getSundayOfWeek } from '../engine/schedulerEngine';
+import { formatLocalDate, generateWeeklySchedule, getSundayOfWeek } from '../engine/schedulerEngine';
 
 const STORAGE_KEYS = {
   LOCATION: 'nicora_v4_location',
@@ -13,7 +13,7 @@ const STORAGE_KEYS = {
 
 export const generateInitialShifts = (): Shift[] => {
   const currentSunday = getSundayOfWeek(new Date());
-  const sundayStr = currentSunday.toISOString().split('T')[0];
+  const sundayStr = formatLocalDate(currentSunday);
 
   const gzRes = generateWeeklySchedule({
     locationId: 'gazzada',
@@ -60,11 +60,21 @@ export const saveStoredEmployees = (employees: Employee[]) => {
 export const loadStoredShifts = (): Shift[] => {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.SHIFTS);
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const parsed: Shift[] = JSON.parse(saved);
+      // Verifica che i turni in cache coprano la domenica corrente corretta
+      const currentSundayStr = formatLocalDate(getSundayOfWeek(new Date()));
+      const hasCurrentSunday = parsed.some((s) => s.date === currentSundayStr);
+      if (hasCurrentSunday) {
+        return parsed;
+      }
+    }
   } catch (e) {
     console.error('Errore caricamento turni:', e);
   }
-  return generateInitialShifts();
+  const initial = generateInitialShifts();
+  saveStoredShifts(initial);
+  return initial;
 };
 
 export const saveStoredShifts = (shifts: Shift[]) => {

@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
-import { Employee, LocationId, Shift } from '../../domain/types';
+import { Department, Employee, LocationId, Shift } from '../../domain/types';
 import { LOCATIONS } from '../../domain/mockData';
-import { NicoraLogo } from '../NicoraLogo';
+import { MobileHeader } from '../layout/MobileHeader';
 import { 
   CheckCircle2, 
   Clock, 
-  LogOut,
+  Coffee,
   Sparkles, 
-  Store, 
-  Sun, 
-  Utensils 
+  Store,
+  Sun,
+  Utensils
 } from 'lucide-react';
 
 interface TodayPresenceMobileProps {
@@ -36,7 +36,6 @@ export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
   onLogout,
 }) => {
   const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>('all');
-  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   const storeEmployees = employees.filter((e) => e.locationId === activeLocation && e.isActive !== false);
   const locationInfo = LOCATIONS.find((l) => l.id === activeLocation);
@@ -50,6 +49,11 @@ export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
 
   const getEmployee = (empId: string) => storeEmployees.find((e) => e.id === empId);
 
+  // Helper univoco: determina il reparto effettivo assegnato al turno
+  const getShiftDept = (s: Shift): Department => {
+    return s.department || getEmployee(s.employeeId)?.role || 'Cassa';
+  };
+
   // Turni in servizio vs riposo/ferie
   const workingShifts = todayStoreShifts.filter(
     (s) => s.type !== 'riposo' && s.type !== 'ferie' && s.type !== 'malattia'
@@ -58,36 +62,44 @@ export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
     (s) => s.type === 'riposo' || s.type === 'ferie' || s.type === 'malattia'
   );
 
-  // Presidio Cassa
-  const cassaShifts = workingShifts.filter(
-    (s) => s.department === 'Cassa' || s.areaNote?.toLowerCase().includes('cassa') || getEmployee(s.employeeId)?.role === 'Cassa'
-  );
+  // Presidio Cassa calcolato sul reparto effettivo
+  const cassaShifts = workingShifts.filter((s) => getShiftDept(s) === 'Cassa');
 
-  // Turno personale
-  const myShift = todayStoreShifts.find((s) => s.employeeId === currentEmployeeId);
+  // Turno personale Sabrina / Utente loggato (cerca a livello globale sui turni di oggi)
+  const myShift = shifts.find((s) => s.employeeId === currentEmployeeId && s.date === currentDate);
   const myEmployee = employees.find((e) => e.id === currentEmployeeId);
+  const myShiftDept = myShift ? getShiftDept(myShift) : (myEmployee?.role || 'Cassa');
 
-  // Filtro dipartimento
+  const isMyShiftOff = !myShift || myShift.type === 'riposo' || myShift.type === 'ferie' || myShift.type === 'malattia';
+
+  // Filtro dipartimento: assegna a ogni turno un solo reparto univoco
   const filteredWorkingShifts = workingShifts.filter((s) => {
     if (selectedDeptFilter === 'all') return true;
-    return s.department === selectedDeptFilter || (selectedDeptFilter === 'Cassa' && (s.department === 'Cassa' || s.areaNote?.toLowerCase().includes('cassa')));
+    return getShiftDept(s) === selectedDeptFilter;
   });
 
-  const deptCounts: Record<string, number> = {
-    cassa: workingShifts.filter((s) => s.department === 'Cassa' || s.areaNote?.toLowerCase().includes('cassa') || getEmployee(s.employeeId)?.role === 'Cassa').length,
-    fioreria: workingShifts.filter((s) => s.department === 'Fioreria' || getEmployee(s.employeeId)?.role === 'Fioreria').length,
-    decor: workingShifts.filter((s) => s.department === 'Decor' || getEmployee(s.employeeId)?.role === 'Decor').length,
-    serraCalda: workingShifts.filter((s) => s.department === 'Serra Calda' || getEmployee(s.employeeId)?.role === 'Serra Calda').length,
-    serraFredda: workingShifts.filter((s) => s.department === 'Serra Fredda' || getEmployee(s.employeeId)?.role === 'Serra Fredda').length,
+  const deptCounts: Record<Department, number> = {
+    'Cassa': 0,
+    'Fioreria': 0,
+    'Decor': 0,
+    'Serra Calda': 0,
+    'Serra Fredda': 0,
   };
+
+  workingShifts.forEach((s) => {
+    const dept = getShiftDept(s);
+    if (deptCounts[dept] !== undefined) {
+      deptCounts[dept]++;
+    }
+  });
 
   const deptFilterList = [
     { id: 'all', label: 'Tutti', count: workingShifts.length },
-    { id: 'Cassa', label: 'Cassa', count: deptCounts.cassa },
-    { id: 'Fioreria', label: 'Fioreria', count: deptCounts.fioreria },
-    { id: 'Decor', label: 'Decor', count: deptCounts.decor },
-    { id: 'Serra Calda', label: 'Serra Calda', count: deptCounts.serraCalda },
-    { id: 'Serra Fredda', label: 'Serra Fredda', count: deptCounts.serraFredda },
+    { id: 'Cassa', label: 'Cassa', count: deptCounts['Cassa'] },
+    { id: 'Fioreria', label: 'Fioreria', count: deptCounts['Fioreria'] },
+    { id: 'Decor', label: 'Decor', count: deptCounts['Decor'] },
+    { id: 'Serra Calda', label: 'Serra Calda', count: deptCounts['Serra Calda'] },
+    { id: 'Serra Fredda', label: 'Serra Fredda', count: deptCounts['Serra Fredda'] },
   ].filter((d) => d.id === 'all' || d.count > 0);
 
   const formatDisplayDate = (dStr: string) => {
@@ -103,125 +115,24 @@ export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
     <div className="min-h-screen bg-[#f2fcf7] text-[#151d1b] flex flex-col font-sans">
       
       {/* ========================================================
-          1. HEADER NATIVO STITCH MOBILE (132668eb8842442486ad04adfa3a5308)
+          1. HEADER NATIVO STITCH MOBILE CONDIVISO
           ======================================================== */}
-      <header className="fixed top-0 inset-x-0 z-40 bg-[#f2fcf7]/95 backdrop-blur-xl shadow-[0_4px_20px_-4px_rgba(10,71,75,0.06)] border-b border-[#e2e8e4]/60 pt-safe">
-        <div className="px-4 pt-2.5 pb-2 flex flex-col gap-2">
-          {/* Riga 1: Logo & Brand + Utente loggato */}
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <NicoraLogo size={32} variant="icon" />
-              <div className="flex flex-col min-w-0">
-                <span className="text-[10px] text-[#a73a00] font-bold uppercase tracking-widest leading-none truncate">
-                  ATELIER BOTANICO &amp; VIVAI
-                </span>
-                <span className="font-serif text-xl font-bold text-[#0a474b] leading-tight truncate">
-                  Oggi
-                </span>
-              </div>
-            </div>
-
-            {/* Profilo Sabrina / Utente con dropdown di logout */}
-            <div className="relative flex-shrink-0">
-              <button
-                type="button"
-                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                className="flex items-center gap-2 text-left focus:outline-none active:opacity-80 transition-opacity"
-                title="Profilo e opzioni sessione"
-              >
-                <div className="flex flex-col items-end text-right">
-                  <span className="text-xs font-bold text-neutral-900 leading-tight">
-                    {myEmployee?.name || 'Sabrina'}
-                  </span>
-                  <span className="text-[10px] text-neutral-500 leading-none">
-                    {myEmployee?.role ? `Rep. ${myEmployee.role}` : 'Rep. Cassa'}
-                  </span>
-                </div>
-                <div className="w-8 h-8 rounded-full bg-[#002f32] flex items-center justify-center text-white font-serif font-bold text-xs shadow-xs ring-2 ring-transparent active:ring-[#a73a00]">
-                  {myEmployee?.name?.charAt(0) || 'S'}
-                </div>
-              </button>
-
-              {/* Menu Profilo e Logout Popup */}
-              {isProfileMenuOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40 bg-black/20"
-                    onClick={() => setIsProfileMenuOpen(false)}
-                  />
-                  <div className="absolute right-0 top-11 z-50 w-56 rounded-2xl bg-white p-3.5 shadow-modal border border-[#e2e8e4] animate-in fade-in zoom-in-95 duration-150">
-                    <div className="flex items-center gap-2.5 pb-2.5 border-b border-neutral-100">
-                      <div className="w-9 h-9 rounded-full bg-[#002f32] text-white flex items-center justify-center font-serif font-bold text-sm">
-                        {myEmployee?.name?.charAt(0) || 'S'}
-                      </div>
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-xs font-bold text-neutral-900 truncate">
-                          {myEmployee?.name || 'Sabrina'}
-                        </span>
-                        <span className="text-[10px] text-neutral-500">
-                          {myEmployee?.role ? `Reparto ${myEmployee.role}` : 'Collaboratore'}
-                        </span>
-                        <span className="text-[9px] text-[#a73a00] font-semibold uppercase mt-0.5">
-                          {activeLocation === 'gazzada' ? 'Sede Gazzada' : 'Sede Varese'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="pt-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsProfileMenuOpen(false);
-                          onLogout?.();
-                        }}
-                        className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-colors"
-                      >
-                        <LogOut size={14} />
-                        <span>Esci dalla sessione</span>
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Riga 2: Switch Sedi compatto */}
-          <div className="flex items-center">
-            <div className="inline-flex items-center p-0.5 rounded-full bg-[#e1eae5]">
-              <button
-                type="button"
-                onClick={() => onChangeLocation?.('gazzada')}
-                className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
-                  activeLocation === 'gazzada'
-                    ? 'bg-[#a73a00] text-white shadow-xs'
-                    : 'text-neutral-600 hover:text-neutral-900'
-                }`}
-              >
-                Gazzada {gazzadaStaffCount || 10}
-              </button>
-              <button
-                type="button"
-                onClick={() => onChangeLocation?.('varese')}
-                className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
-                  activeLocation === 'varese'
-                    ? 'bg-[#a73a00] text-white shadow-xs'
-                    : 'text-neutral-600 hover:text-neutral-900'
-                }`}
-              >
-                Varese {vareseStaffCount || 16}
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <MobileHeader
+        title="Oggi"
+        employee={myEmployee}
+        activeLocation={activeLocation}
+        onChangeLocation={onChangeLocation}
+        gazzadaStaffCount={gazzadaStaffCount}
+        vareseStaffCount={vareseStaffCount}
+        onLogout={onLogout}
+      />
 
       {/* ========================================================
-          2. CORPO PRINCIPALE MOBILE (Stitch 132668eb8842442486ad04adfa3a5308)
+          2. CORPO PRINCIPALE MOBILE
           ======================================================== */}
       <div className="pt-[calc(6.25rem+env(safe-area-inset-top,0px))] px-4 pb-24 space-y-4">
         
-        {/* Header Data & Meteo Context */}
+        {/* Header Data Context */}
         <div className="flex items-center justify-between pt-1">
           <div className="flex flex-col">
             <span className="text-[10px] font-bold text-[#a73a00] uppercase tracking-widest">
@@ -265,68 +176,131 @@ export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
           </div>
         </div>
 
-        {/* 2. Hero Turno Collaboratore (Ottanio Deep Scuro & Terracotta Accent) */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#002f32] via-[#0a474b] to-[#072e31] text-white p-5 sm:p-6 shadow-md border border-white/10">
+        {/* 2. Hero Turno Collaboratore (Dinamico e coerente con riposo/ferie/servizio) */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#002f32] via-[#0a474b] to-[#072e31] text-white p-5 shadow-md border border-white/10">
           <div className="absolute -right-8 -bottom-8 w-36 h-36 rounded-full bg-white/5 blur-xl pointer-events-none" />
 
           <div className="relative z-10 flex flex-col gap-3.5">
             {/* Top Badges */}
             <div className="flex items-center justify-between gap-2">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 text-white backdrop-blur-xs text-[11px]">
-                <Clock size={13} className="text-emerald-300" />
-                <span className="font-bold tracking-wider">
-                  IL TUO TURNO • {myEmployee?.name?.toUpperCase() || 'SABRINA'} #{myEmployee?.id || '4082'}
-                </span>
-              </div>
-              <span className="px-2.5 py-0.5 rounded-full bg-[#fd651e] text-white font-bold text-[10px] tracking-wide uppercase shadow-xs">
-                {myShift?.department ? `REP. ${myShift.department.toUpperCase()}` : (myEmployee?.role ? `REP. ${myEmployee.role.toUpperCase()}` : 'REP. CASSA')}
-              </span>
-            </div>
-
-            {/* Turno & Orari */}
-            <div>
-              <div className="flex items-baseline gap-2">
-                <span className="font-serif text-3xl font-semibold tracking-tight text-white">
-                  {myShift?.startTime || '08:30'} — {myShift?.endTime || '19:30'}
-                </span>
-              </div>
-              <p className="text-xs text-emerald-200/80 mt-0.5 font-medium">
-                {myShift?.type === 'mattina' || myShift?.type === 'pomeriggio' ? 'Mezza Giornata' : 'Turno Completo • Giornata Intera'}
-              </p>
-            </div>
-
-            {/* Shift Details Bento Inside Hero */}
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <div className="p-2.5 rounded-xl bg-black/25 backdrop-blur-xs flex flex-col justify-center border border-white/5 min-h-[52px]">
-                <span className="text-[10px] text-emerald-300 uppercase tracking-wider flex items-center gap-1 font-bold">
-                  <Store size={12} /> Postazione
-                </span>
-                <span className="text-xs font-bold text-white truncate mt-0.5">
-                  {myShift?.department || myEmployee?.role || 'Cassa'}
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-white text-xs font-semibold backdrop-blur-xs">
+                {myShift?.type === 'riposo' ? (
+                  <Coffee size={13} className="text-amber-300" />
+                ) : myShift?.type === 'ferie' ? (
+                  <Sparkles size={13} className="text-purple-300" />
+                ) : (
+                  <Clock size={13} className="text-emerald-300" />
+                )}
+                <span>
+                  {myShift?.type === 'riposo'
+                    ? 'Il tuo stato • ' + (myEmployee?.name || 'Sabrina')
+                    : 'Il tuo turno • ' + (myEmployee?.name || 'Sabrina')}
                 </span>
               </div>
 
-              <div className="p-2.5 rounded-xl bg-black/25 backdrop-blur-xs flex flex-col justify-center border border-white/5 min-h-[52px]">
-                <span className="text-[10px] text-emerald-300 uppercase tracking-wider flex items-center gap-1 font-bold">
-                  <Utensils size={12} /> Pausa Pranzo
+              {myShift?.type === 'riposo' ? (
+                <span className="px-3 py-1 rounded-full bg-white/20 text-emerald-200 font-bold text-xs uppercase shadow-xs">
+                  Riposo
                 </span>
-                <span className="text-xs font-bold text-white mt-0.5">
-                  13:00 — 14:00
+              ) : myShift?.type === 'ferie' ? (
+                <span className="px-3 py-1 rounded-full bg-purple-500 text-white font-bold text-xs uppercase shadow-xs">
+                  Ferie
                 </span>
-              </div>
+              ) : myShift?.type === 'malattia' ? (
+                <span className="px-3 py-1 rounded-full bg-rose-600 text-white font-bold text-xs uppercase shadow-xs">
+                  Malattia
+                </span>
+              ) : myShift ? (
+                <span className="px-3 py-1 rounded-full bg-[#fd651e] text-white font-bold text-xs shadow-xs">
+                  {myShiftDept}
+                </span>
+              ) : (
+                <span className="px-3 py-1 rounded-full bg-white/15 text-white/70 font-bold text-xs shadow-xs">
+                  Non Assegnato
+                </span>
+              )}
             </div>
 
-            {/* Timbratura Status Footer */}
-            <div className="flex items-center justify-between pt-2 border-t border-white/10 mt-0.5">
-              <div className="flex items-center gap-2">
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            {/* Turno & Orari con gestione stati reali */}
+            {myShift?.type === 'riposo' ? (
+              <div>
+                <span className="font-serif text-3xl font-bold tracking-tight text-white">
+                  Giorno di Riposo ☕
                 </span>
-                <span className="text-xs text-white font-medium">Badge Timbrato regolarmente</span>
+                <p className="text-xs text-emerald-200/80 mt-1 font-medium">
+                  Nessun turno di servizio programmato per oggi • Recupero contrattuale
+                </p>
               </div>
-              <span className="text-[11px] text-emerald-300 font-bold">08:24 IN</span>
-            </div>
+            ) : myShift?.type === 'ferie' ? (
+              <div>
+                <span className="font-serif text-3xl font-bold tracking-tight text-white">
+                  In Ferie 🌴
+                </span>
+                <p className="text-xs text-emerald-200/80 mt-1 font-medium">
+                  {myShift.areaNote || 'Assenza programmata approvata dalla direzione'}
+                </p>
+              </div>
+            ) : myShift?.type === 'malattia' ? (
+              <div>
+                <span className="font-serif text-3xl font-bold tracking-tight text-white">
+                  In Malattia 🏥
+                </span>
+                <p className="text-xs text-emerald-200/80 mt-1 font-medium">
+                  Assenza per malattia registrata
+                </p>
+              </div>
+            ) : myShift ? (
+              <div>
+                <span className="font-serif text-3xl font-bold tracking-tight text-white">
+                  {myShift.startTime || '08:30'} — {myShift.endTime || '19:30'}
+                </span>
+                <p className="text-xs text-emerald-200/80 mt-1 font-medium">
+                  {myShift.type === 'mattina' || myShift.type === 'pomeriggio' ? 'Mezza Giornata' : 'Turno Completo • Giornata Intera'}
+                </p>
+
+                {/* Shift Details Bento Inside Hero */}
+                <div className="grid grid-cols-2 gap-2 pt-2.5">
+                  <div className="p-2.5 rounded-xl bg-black/25 backdrop-blur-xs flex flex-col justify-center border border-white/5 min-h-[52px]">
+                    <span className="text-[10px] text-emerald-300 uppercase tracking-wider flex items-center gap-1 font-bold">
+                      <Store size={12} /> Postazione
+                    </span>
+                    <span className="text-xs font-bold text-white truncate mt-0.5">
+                      {myShift.areaNote || myShiftDept}
+                    </span>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-black/25 backdrop-blur-xs flex flex-col justify-center border border-white/5 min-h-[52px]">
+                    <span className="text-[10px] text-emerald-300 uppercase tracking-wider flex items-center gap-1 font-bold">
+                      <Utensils size={12} /> Pausa Pranzo
+                    </span>
+                    <span className="text-xs font-bold text-white mt-0.5">
+                      {myShift.type === 'giornata' ? '13:00 — 14:00' : 'Nessuna (Mezza g.)'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Timbratura Status Footer */}
+                <div className="flex items-center justify-between pt-2 border-t border-white/10 mt-1">
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                    </span>
+                    <span className="text-xs text-white font-medium">Badge Timbrato regolarmente</span>
+                  </div>
+                  <span className="text-[11px] text-emerald-300 font-bold">08:24 IN</span>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <span className="font-serif text-2xl font-bold tracking-tight text-white">
+                  Nessun Turno
+                </span>
+                <p className="text-xs text-emerald-200/80 mt-1 font-medium">
+                  Non risultano turni assegnati per oggi
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -362,10 +336,10 @@ export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
         <div className="flex flex-col gap-2.5 pt-1">
           <div className="flex items-center justify-between">
             <h2 className="font-serif text-base font-bold text-neutral-900">
-              Fascia Mattina &amp; Pomeriggio
+              Collaboratori in turno
             </h2>
-            <span className="text-[10px] font-bold text-[#a73a00] uppercase tracking-wider">
-              Orario Continuato
+            <span className="text-xs font-semibold text-neutral-500">
+              {filteredWorkingShifts.length} {filteredWorkingShifts.length === 1 ? 'presente' : 'presenti'}
             </span>
           </div>
 
@@ -375,6 +349,8 @@ export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
               if (!emp) return null;
               const isMe = emp.id === currentEmployeeId;
               const isResp = emp.isManager;
+              const shiftDept = getShiftDept(shift);
+              const isCassa = shiftDept === 'Cassa';
 
               return (
                 <div
@@ -412,8 +388,8 @@ export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
                           </span>
                         )}
                       </div>
-                      <span className={`text-[11px] truncate ${(shift.department === 'Cassa' || emp.role === 'Cassa') ? 'text-[#a73a00] font-semibold' : 'text-neutral-500'}`}>
-                        {shift.department || emp.role || 'Cassa'}
+                      <span className={`text-[11px] truncate ${isCassa ? 'text-[#a73a00] font-semibold' : 'text-neutral-500'}`}>
+                        {shiftDept}
                       </span>
                     </div>
                   </div>
@@ -423,7 +399,7 @@ export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
                       {shift.startTime || '08:30'} — {shift.endTime || '19:30'}
                     </span>
                     <span className="text-[10px] font-semibold flex items-center gap-0.5 mt-0.5">
-                      {(shift.department === 'Cassa' || emp.role === 'Cassa') ? (
+                      {isCassa ? (
                         <span className="text-emerald-700 flex items-center gap-0.5">
                           <CheckCircle2 size={11} /> In Cassa
                         </span>

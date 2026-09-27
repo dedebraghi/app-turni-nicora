@@ -74,7 +74,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
   useEffect(() => {
     const exists = weekDays.some((d) => d.dateStr === selectedMobileDateStr);
     if (!exists) {
-      const today = new Date().toISOString().split('T')[0];
+      const today = formatLocalDate(new Date());
       const todayInWeek = weekDays.find((d) => d.dateStr === today);
       setSelectedMobileDateStr(todayInWeek ? todayInWeek.dateStr : weekDays[0].dateStr);
     }

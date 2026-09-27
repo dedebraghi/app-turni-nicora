@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Department, Employee, LocationId, Shift } from '../../domain/types';
 import { DEPARTMENTS } from '../../domain/rules';
 import { findBestReplacements } from '../../engine/replacementAdvisor';
+import { formatLocalDate } from '../../engine/schedulerEngine';
 import { X, ShieldAlert, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
 
 interface EmergencyModalProps {
@@ -28,7 +29,7 @@ export const EmergencyModal: React.FC<EmergencyModalProps> = ({
   );
 
   const [selectedShiftDate, setSelectedShiftDate] = useState<string>(
-    preselectedShift?.date || new Date().toISOString().split('T')[0]
+    preselectedShift?.date || formatLocalDate(new Date())
   );
   const [absentEmployeeId, setAbsentEmployeeId] = useState<string>(
     preselectedShift?.employeeId || storeStaff[0]?.id || ''
