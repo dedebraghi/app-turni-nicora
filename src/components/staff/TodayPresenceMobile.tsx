@@ -106,7 +106,7 @@ export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
           1. HEADER NATIVO STITCH MOBILE (132668eb8842442486ad04adfa3a5308)
           ======================================================== */}
       <header className="fixed top-0 inset-x-0 z-40 bg-[#f2fcf7]/95 backdrop-blur-xl shadow-[0_4px_20px_-4px_rgba(10,71,75,0.06)] border-b border-[#e2e8e4]/60 pt-safe">
-        <div className="h-32 px-4 flex flex-col justify-between py-2.5">
+        <div className="px-4 pt-2.5 pb-2 flex flex-col gap-2">
           {/* Riga 1: Logo & Brand + Utente loggato */}
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
@@ -186,8 +186,8 @@ export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
             </div>
           </div>
 
-          {/* Riga 2: Switch Sedi & Orario Operativo */}
-          <div className="flex items-center justify-between gap-2">
+          {/* Riga 2: Switch Sedi compatto */}
+          <div className="flex items-center">
             <div className="inline-flex items-center p-0.5 rounded-full bg-[#e1eae5]">
               <button
                 type="button"
@@ -198,7 +198,7 @@ export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
                     : 'text-neutral-600 hover:text-neutral-900'
                 }`}
               >
-                Gazzada {gazzadaStaffCount || 12}
+                Gazzada {gazzadaStaffCount || 10}
               </button>
               <button
                 type="button"
@@ -209,14 +209,8 @@ export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
                     : 'text-neutral-600 hover:text-neutral-900'
                 }`}
               >
-                Varese {vareseStaffCount || 20}
+                Varese {vareseStaffCount || 16}
               </button>
-            </div>
-
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#e6f0eb] text-[#072e31]">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span className="text-[10px] text-neutral-600 font-medium">08:30-12:30 / 14:30-19:30</span>
-              <span className="text-[10px] font-bold text-emerald-700 ml-0.5">100%</span>
             </div>
           </div>
         </div>
@@ -225,7 +219,7 @@ export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
       {/* ========================================================
           2. CORPO PRINCIPALE MOBILE (Stitch 132668eb8842442486ad04adfa3a5308)
           ======================================================== */}
-      <div className="pt-[calc(9.25rem+env(safe-area-inset-top,0px))] px-4 pb-24 space-y-4">
+      <div className="pt-[calc(6.25rem+env(safe-area-inset-top,0px))] px-4 pb-24 space-y-4">
         
         {/* Header Data & Meteo Context */}
         <div className="flex items-center justify-between pt-1">
@@ -303,27 +297,21 @@ export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
 
             {/* Shift Details Bento Inside Hero */}
             <div className="grid grid-cols-2 gap-2 pt-1">
-              <div className="p-2.5 rounded-xl bg-black/25 backdrop-blur-xs flex flex-col gap-0.5 border border-white/5">
+              <div className="p-2.5 rounded-xl bg-black/25 backdrop-blur-xs flex flex-col justify-center border border-white/5 min-h-[52px]">
                 <span className="text-[10px] text-emerald-300 uppercase tracking-wider flex items-center gap-1 font-bold">
                   <Store size={12} /> Postazione
                 </span>
-                <span className="text-xs font-bold text-white truncate">
-                  {myShift?.areaNote || (myEmployee?.role === 'Cassa' ? 'Cassa 1 Principale' : 'Presidio di Reparto')}
-                </span>
-                <span className="text-[10px] text-white/70">
-                  {myEmployee?.role === 'Cassa' ? 'Barriera Continua' : 'Assistenza Clienti'}
+                <span className="text-xs font-bold text-white truncate mt-0.5">
+                  {myShift?.department || myEmployee?.role || 'Cassa'}
                 </span>
               </div>
 
-              <div className="p-2.5 rounded-xl bg-black/25 backdrop-blur-xs flex flex-col gap-0.5 border border-white/5">
+              <div className="p-2.5 rounded-xl bg-black/25 backdrop-blur-xs flex flex-col justify-center border border-white/5 min-h-[52px]">
                 <span className="text-[10px] text-emerald-300 uppercase tracking-wider flex items-center gap-1 font-bold">
                   <Utensils size={12} /> Pausa Pranzo
                 </span>
-                <span className="text-xs font-bold text-white">
+                <span className="text-xs font-bold text-white mt-0.5">
                   13:00 — 14:00
-                </span>
-                <span className="text-[10px] text-white/70">
-                  Sala Relax Piano 1
                 </span>
               </div>
             </div>
@@ -424,8 +412,8 @@ export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
                           </span>
                         )}
                       </div>
-                      <span className={`text-[11px] truncate ${emp.role === 'Cassa' ? 'text-[#a73a00] font-semibold' : 'text-neutral-500'}`}>
-                        {shift.areaNote || (emp.role === 'Cassa' ? 'Cassa 1 Principale' : `Reparto ${emp.role}`)}
+                      <span className={`text-[11px] truncate ${(shift.department === 'Cassa' || emp.role === 'Cassa') ? 'text-[#a73a00] font-semibold' : 'text-neutral-500'}`}>
+                        {shift.department || emp.role || 'Cassa'}
                       </span>
                     </div>
                   </div>
@@ -435,14 +423,12 @@ export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
                       {shift.startTime || '08:30'} — {shift.endTime || '19:30'}
                     </span>
                     <span className="text-[10px] font-semibold flex items-center gap-0.5 mt-0.5">
-                      {emp.role === 'Cassa' ? (
+                      {(shift.department === 'Cassa' || emp.role === 'Cassa') ? (
                         <span className="text-emerald-700 flex items-center gap-0.5">
                           <CheckCircle2 size={11} /> In Cassa
                         </span>
                       ) : (shift.type === 'mattina' || shift.type === 'pomeriggio') ? (
                         <span className="text-amber-600 font-semibold">Mattina (Mezza g.)</span>
-                      ) : isResp ? (
-                        <span className="text-[#0a474b] font-semibold">Ricevimento Piante</span>
                       ) : (
                         <span className="text-neutral-500 font-medium">In turno</span>
                       )}

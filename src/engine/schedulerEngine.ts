@@ -494,12 +494,11 @@ function assignDepartmentsOptimal(
   search(0, new Set(), 0, []);
 
   const deptNotes: Record<Department, (isArrival: boolean) => string> = {
-    'Cassa': () => 'Cassa 1 Principale (Barriera Continua)',
-    'Fioreria': () => 'Banco Fioreria & Composizioni',
-    'Decor': () => 'Decor, Vasi & Oggettistica',
-    'Serra Calda': () => 'Serra Tropicale & Piante da Interno',
-    'Serra Fredda': (isArrival) =>
-      isArrival ? 'Arrivo Merce & Ricevimento Piante' : 'Vivaio Esterno & Arbusti',
+    'Cassa': () => 'Cassa',
+    'Fioreria': () => 'Fioreria',
+    'Decor': () => 'Decor',
+    'Serra Calda': () => 'Serra Calda',
+    'Serra Fredda': () => 'Serra Fredda',
   };
 
   bestMapping.forEach(({ emp, dept }) => {
@@ -752,7 +751,7 @@ export const generateWeeklySchedule = ({
         dayAssignments.push({
           emp,
           dept: 'Cassa',
-          note: 'Cassa 2 (Supporto Barriera & Uscite)',
+          note: 'Cassa',
           assignedSkillScore: score,
         });
         assignedEmpIds.add(emp.id);
@@ -765,7 +764,7 @@ export const generateWeeklySchedule = ({
         dayAssignments.push({
           emp,
           dept: 'Serra Fredda',
-          note: 'Scarico Merci Bilici & Carrelli Danesi',
+          note: 'Serra Fredda',
           assignedSkillScore: score,
         });
         assignedEmpIds.add(emp.id);
@@ -784,17 +783,10 @@ export const generateWeeklySchedule = ({
         }
       });
 
-      let note = `Supporto ${bestDept}`;
-      if (bestDept === 'Fioreria') note = 'Fioreria (Confezioni & Allestimento)';
-      else if (bestDept === 'Serra Calda') note = 'Serra Calda (Manutenzione & Clienti)';
-      else if (bestDept === 'Decor') note = 'Decor (Riassortimento Scaffali)';
-      else if (bestDept === 'Serra Fredda') note = 'Vivaio (Cura Piante & Spostamenti)';
-      else if (bestDept === 'Cassa') note = 'Cassa di Supporto & Accoglienza';
-
       dayAssignments.push({
         emp,
         dept: bestDept,
-        note,
+        note: bestDept,
         assignedSkillScore: highestScore > 0 ? highestScore : (emp.skills?.[bestDept] ?? 1),
       });
       assignedEmpIds.add(emp.id);
