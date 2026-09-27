@@ -7,9 +7,6 @@ import {
   Clock, 
   Coffee,
   Sparkles, 
-  Store,
-  Sun,
-  Utensils
 } from 'lucide-react';
 
 interface TodayPresenceMobileProps {
@@ -142,10 +139,6 @@ export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
               {formatDisplayDate(currentDate)}
             </h1>
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white shadow-2xs border border-[#e2e8e4] text-neutral-800">
-            <Sun size={16} className="text-[#a73a00]" />
-            <span className="text-xs font-semibold">21°C</span>
-          </div>
         </div>
 
         {/* 1. Quick Indicators (3 Compact Stat Boxes) */}
@@ -255,41 +248,8 @@ export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
                   {myShift.startTime || '08:30'} — {myShift.endTime || '19:30'}
                 </span>
                 <p className="text-xs text-emerald-200/80 mt-1 font-medium">
-                  {myShift.type === 'mattina' || myShift.type === 'pomeriggio' ? 'Mezza Giornata' : 'Turno Completo • Giornata Intera'}
+                  {myShift.type === 'mattina' || myShift.type === 'pomeriggio' ? 'Mezza Giornata' : 'Turno Completo'}
                 </p>
-
-                {/* Shift Details Bento Inside Hero */}
-                <div className="grid grid-cols-2 gap-2 pt-2.5">
-                  <div className="p-2.5 rounded-xl bg-black/25 backdrop-blur-xs flex flex-col justify-center border border-white/5 min-h-[52px]">
-                    <span className="text-[10px] text-emerald-300 uppercase tracking-wider flex items-center gap-1 font-bold">
-                      <Store size={12} /> Postazione
-                    </span>
-                    <span className="text-xs font-bold text-white truncate mt-0.5">
-                      {myShift.areaNote || myShiftDept}
-                    </span>
-                  </div>
-
-                  <div className="p-2.5 rounded-xl bg-black/25 backdrop-blur-xs flex flex-col justify-center border border-white/5 min-h-[52px]">
-                    <span className="text-[10px] text-emerald-300 uppercase tracking-wider flex items-center gap-1 font-bold">
-                      <Utensils size={12} /> Pausa Pranzo
-                    </span>
-                    <span className="text-xs font-bold text-white mt-0.5">
-                      {myShift.type === 'giornata' ? '13:00 — 14:00' : 'Nessuna (Mezza g.)'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Timbratura Status Footer */}
-                <div className="flex items-center justify-between pt-2 border-t border-white/10 mt-1">
-                  <div className="flex items-center gap-2">
-                    <span className="relative flex h-2.5 w-2.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-                    </span>
-                    <span className="text-xs text-white font-medium">Badge Timbrato regolarmente</span>
-                  </div>
-                  <span className="text-[11px] text-emerald-300 font-bold">08:24 IN</span>
-                </div>
               </div>
             ) : (
               <div>
