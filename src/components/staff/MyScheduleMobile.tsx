@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Employee, LocationId, Shift } from '../../domain/types';
 import { formatLocalDate, getSundayOfWeek, getWeekDays } from '../../engine/schedulerEngine';
 import { MobileHeader } from '../layout/MobileHeader';
-import { ChevronLeft, ChevronRight, Clock, Coffee, KeyRound, Check, AlertCircle, X, Sparkles, Calendar } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, Coffee, KeyRound, Check, AlertCircle, X, Calendar } from 'lucide-react';
 
 interface MyScheduleMobileProps {
   currentEmployee: Employee;
