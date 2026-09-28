@@ -1405,12 +1405,14 @@ export interface MonthlySchedulerOptions {
   existingShifts?: Shift[];
   mode?: ScheduleMode;
   isChristmasSeason?: boolean;
+  overwriteExisting?: boolean; // Se true (default), sovrascrive e ricalcola da zero la bozza del mese per questa sede
 }
 
 /**
  * Genera la bozza automatica dell'INTERO MESE selezionato (es. dal 1 al 30/31 del mese).
- * Calcola tutte le settimane comprese nel mese ed esegue l'algoritmo completo preservando
- * i turni già pianificati o fissati in precedenza.
+ * Calcola tutte le settimane comprese nel mese ed esegue l'algoritmo completo.
+ * Con overwriteExisting = true (default), sovrascrive e ricalcola i turni del mese corrente per la sede,
+ * applicando i nuovi parametri (es. toggle Natale, orari, competenze) senza essere bloccato da vecchi turni.
  */
 export const generateMonthlySchedule = ({
   locationId,
@@ -1421,6 +1423,7 @@ export const generateMonthlySchedule = ({
   existingShifts = [],
   mode = 'standard',
   isChristmasSeason = false,
+  overwriteExisting = true,
 }: MonthlySchedulerOptions): ScheduleGenerationResult => {
   // Calcola il primo e l'ultimo giorno del mese
   const firstDayOfMonth = new Date(year, month - 1, 1);
@@ -1428,6 +1431,9 @@ export const generateMonthlySchedule = ({
 
   // Trova la prima Domenica precedente o coincidente con il 1° del mese
   const firstSunday = getSundayOfWeek(firstDayOfMonth);
+  const firstSundayStr = formatLocalDate(firstSunday);
+  const lastDayStr = formatLocalDate(lastDayOfMonth);
+  const monthPrefix = `${year}-${month.toString().padStart(2, '0')}`;
   
   const allShifts: Shift[] = [];
   const warnings: string[] = [];
@@ -1436,8 +1442,19 @@ export const generateMonthlySchedule = ({
 
   let currSunday = new Date(firstSunday);
 
-  // Manteniamo una lista cumulativa dei turni per preservare i turni preesistenti
-  const accumulatedShifts = [...(existingShifts || [])];
+  // Se overwriteExisting è true, filtriamo via i turni esistenti per la sede corrente
+  // nel periodo del mese, permettendo la rigenerazione completa con i parametri aggiornati.
+  const baseExisting = overwriteExisting
+    ? (existingShifts || []).filter(
+        (s) =>
+          !(
+            s.locationId === locationId &&
+            (s.date.startsWith(monthPrefix) || (s.date >= firstSundayStr && s.date <= lastDayStr))
+          )
+      )
+    : (existingShifts || []);
+
+  const accumulatedShifts = [...baseExisting];
 
   while (currSunday <= lastDayOfMonth) {
     const weekStartStr = formatLocalDate(currSunday);

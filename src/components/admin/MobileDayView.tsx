@@ -28,6 +28,7 @@ import {
   Sparkles,
   ShoppingBag,
   Sun,
+  Trash2,
   TreePine,
   Wrench,
   UserSearch,
@@ -49,6 +50,7 @@ interface MobileDayViewProps {
   onEditShift: (shift: Shift) => void;
   onOpenGenerateModal?: () => void;
   onOpenExportModal?: () => void;
+  onClearShifts?: (locationId: LocationId, year?: number, month?: number) => void;
   onOpenEmergencyModal?: (shift?: Shift) => void;
   onApplyShift?: (newShift: Shift) => void;
   currentEmployee?: Employee;
@@ -136,6 +138,7 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
   onEditShift,
   onOpenGenerateModal,
   onOpenExportModal,
+  onClearShifts,
   onOpenEmergencyModal,
   onApplyShift,
   currentEmployee,

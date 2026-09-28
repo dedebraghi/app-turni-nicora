@@ -1,4 +1,4 @@
-import { Employee, Shift, ShiftRequest } from '../domain/types';
+import { Employee, LocationId, Shift, ShiftRequest } from '../domain/types';
 import {
   isSupabaseConfigured,
   mapDbToEmployee,
@@ -170,16 +170,39 @@ export const fetchCloudShifts = async (): Promise<Shift[]> => {
       saveStoredShifts(mapped);
       return mapped;
     } else {
-      // Se la tabella turni su Supabase è ancora vuota, creiamo e sincronizziamo i turni iniziali
-      const initial = generateInitialShifts();
-      await saveCloudShifts(initial);
-      return initial;
+      return [];
     }
   } catch (err) {
     console.warn('[Supabase] Fallback a cache locale per i turni:', err);
   }
 
   return loadStoredShifts();
+};
+
+/**
+ * Cancella i turni da Supabase e da cache locale
+ */
+export const deleteCloudShifts = async (
+  locationId?: LocationId,
+  startDate?: string,
+  endDate?: string
+): Promise<{ success: boolean; error?: string }> => {
+  if (!isSupabaseConfigured || !supabase) {
+    return { success: true };
+  }
+  try {
+    let query = supabase.from('shifts').delete();
+    if (locationId) query = query.eq('location_id', locationId);
+    if (startDate) query = query.gte('date', startDate);
+    if (endDate) query = query.lte('date', endDate);
+    if (!locationId && !startDate) query = query.neq('id', 'placeholder_non_existent');
+    const { error } = await query;
+    if (error) throw error;
+    return { success: true };
+  } catch (err: any) {
+    console.error('[Supabase] Errore cancellazione turni:', err);
+    return { success: false, error: err.message };
+  }
 };
 
 /**

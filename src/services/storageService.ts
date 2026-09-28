@@ -5,7 +5,7 @@ import { formatLocalDate, generateWeeklySchedule, getSundayOfWeek } from '../eng
 const STORAGE_KEYS = {
   LOCATION: 'nicora_v4_location',
   EMPLOYEES: 'nicora_v4_employees',
-  SHIFTS: 'nicora_v4_shifts',
+  SHIFTS: 'nicora_v5_shifts',
   REQUESTS: 'nicora_v4_requests',
   SESSION: 'nicora_v4_session',
   MODE: 'nicora_v4_schedule_mode',
@@ -59,26 +59,38 @@ export const saveStoredEmployees = (employees: Employee[]) => {
 
 export const loadStoredShifts = (): Shift[] => {
   try {
-    const saved = localStorage.getItem(STORAGE_KEYS.SHIFTS);
-    if (saved) {
-      const parsed: Shift[] = JSON.parse(saved);
-      // Verifica che i turni in cache coprano la domenica corrente corretta
-      const currentSundayStr = formatLocalDate(getSundayOfWeek(new Date()));
-      const hasCurrentSunday = parsed.some((s) => s.date === currentSundayStr);
-      if (hasCurrentSunday) {
-        return parsed;
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const saved = localStorage.getItem(STORAGE_KEYS.SHIFTS);
+      if (saved) {
+        return JSON.parse(saved);
       }
     }
   } catch (e) {
     console.error('Errore caricamento turni:', e);
   }
-  const initial = generateInitialShifts();
-  saveStoredShifts(initial);
-  return initial;
+  // Di base restituisce array vuoto per iniziare da zero e visualizzare l'effetto della generazione
+  return [];
+};
+
+export const clearStoredShifts = (locationId?: LocationId, year?: number, month?: number): Shift[] => {
+  const current = loadStoredShifts();
+  let remaining: Shift[];
+  if (locationId && year && month) {
+    const prefix = `${year}-${month.toString().padStart(2, '0')}`;
+    remaining = current.filter((s) => !(s.locationId === locationId && s.date.startsWith(prefix)));
+  } else if (locationId) {
+    remaining = current.filter((s) => s.locationId !== locationId);
+  } else {
+    remaining = [];
+  }
+  saveStoredShifts(remaining);
+  return remaining;
 };
 
 export const saveStoredShifts = (shifts: Shift[]) => {
-  localStorage.setItem(STORAGE_KEYS.SHIFTS, JSON.stringify(shifts));
+  if (typeof window !== 'undefined' && window.localStorage) {
+    localStorage.setItem(STORAGE_KEYS.SHIFTS, JSON.stringify(shifts));
+  }
 };
 
 export const loadStoredRequests = (): ShiftRequest[] => {

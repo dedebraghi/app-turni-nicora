@@ -29,6 +29,7 @@ import {
   ShieldCheck,
   Smartphone,
   Sparkles,
+  Trash2,
   UserSearch,
   Zap,
 } from 'lucide-react';
@@ -44,6 +45,7 @@ interface PlannerGridProps {
   onEditShift: (shift: Shift) => void;
   onOpenGenerateModal: () => void;
   onOpenSkillsModal: () => void;
+  onClearShifts?: (locationId: LocationId, year?: number, month?: number) => void;
   onOpenEmergencyModal: (shift?: Shift) => void;
   onOpenExportModal: () => void;
   onApplyShift?: (shift: Shift) => void;
@@ -65,6 +67,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
   onEditShift,
   onOpenGenerateModal,
   onOpenSkillsModal,
+  onClearShifts,
   onOpenEmergencyModal,
   onOpenExportModal,
   onApplyShift,
@@ -216,6 +219,23 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
               >
                 <Zap size={15} />
                 <span>Genera Bozza Turni</span>
+              </button>
+            )}
+
+            {/* Svuota Turni Sede */}
+            {isManagerMode && onClearShifts && storeShifts.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm(`Sei sicuro di voler azzerare tutti i turni per ${location.name}? I dati verranno rimossi per permetterti di generare o compilare da zero.`)) {
+                    onClearShifts(location.id);
+                  }
+                }}
+                className="bg-white hover:bg-rose-50 text-neutral-600 hover:text-rose-700 font-semibold text-xs px-3.5 py-2 rounded-xl border border-neutral-200 hover:border-rose-300 flex items-center gap-1.5 active:scale-95 transition-all shadow-xs"
+                title="Azzera e svuota tutti i turni della sede"
+              >
+                <Trash2 size={14} className="text-neutral-400 group-hover:text-rose-600" />
+                <span>Svuota Turni</span>
               </button>
             )}
           </div>
@@ -371,6 +391,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
             isManagerMode={isManagerMode}
             onEditShift={onEditShift}
             onOpenGenerateModal={onOpenGenerateModal}
+            onClearShifts={onClearShifts}
             onOpenExportModal={onOpenExportModal}
             onOpenEmergencyModal={onOpenEmergencyModal}
             onApplyShift={onApplyShift}

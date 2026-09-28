@@ -4,6 +4,8 @@ import { generateMonthlySchedule } from '../../engine/schedulerEngine';
 import {
   AlertTriangle,
   Calendar,
+  RefreshCw,
+  Trash2,
   CheckCircle2,
   Clock,
   ShieldCheck,
@@ -20,6 +22,7 @@ interface GenerateModalProps {
   requests: ShiftRequest[];
   existingShifts?: Shift[];
   onApplyShifts: (newShifts: Shift[]) => void;
+  onClearShifts?: (locationId: LocationId, year: number, month: number) => void;
 }
 
 const MONTH_NAMES = [
@@ -45,6 +48,7 @@ export const GenerateModal: React.FC<GenerateModalProps> = ({
   requests,
   existingShifts = [],
   onApplyShifts,
+  onClearShifts,
 }) => {
   const now = new Date();
   const currentMonthNum = now.getMonth() + 1; // 1 - 12
@@ -57,9 +61,15 @@ export const GenerateModal: React.FC<GenerateModalProps> = ({
   const [selectedYear, setSelectedYear] = useState<number>(currentYearNum);
   const [mode, setMode] = useState<ScheduleMode>('standard');
   const [isChristmasSeason, setIsChristmasSeason] = useState<boolean>(false);
+  const [overwriteExisting, setOverwriteExisting] = useState<boolean>(true);
   const [resultStats, setResultStats] = useState<any | null>(null);
 
   if (!isOpen) return null;
+
+  const monthPrefix = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}`;
+  const existingMonthShiftsCount = existingShifts.filter(
+    (s) => s.locationId === locationId && s.date.startsWith(monthPrefix)
+  ).length;
 
   const handleGenerate = () => {
     const result = generateMonthlySchedule({
@@ -71,6 +81,7 @@ export const GenerateModal: React.FC<GenerateModalProps> = ({
       existingShifts,
       mode,
       isChristmasSeason,
+      overwriteExisting,
     });
 
     setResultStats(result.stats);
@@ -285,6 +296,60 @@ export const GenerateModal: React.FC<GenerateModalProps> = ({
             </div>
           )}
 
+          {/* Modalità di Sovrascrittura */}
+          <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-3.5 space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-start gap-2.5">
+                <RefreshCw size={17} className="text-nicora-teal flex-shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-bold text-xs text-neutral-900 flex items-center gap-1.5">
+                    <span>Sovrascrivi bozza esistente del mese</span>
+                    {existingMonthShiftsCount > 0 && (
+                      <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-1.5 py-0.2 rounded-md">
+                        {existingMonthShiftsCount} turni presenti
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-neutral-600 mt-0.5 leading-snug">
+                    Ricalcola tutti i turni del mese da zero applicando le modifiche attuali (toggle Natale, orari, competenze). Se disattivato, preserva i turni compilati.
+                  </p>
+                </div>
+              </div>
+
+              <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                <input
+                  type="checkbox"
+                  checked={overwriteExisting}
+                  onChange={(e) => {
+                    setOverwriteExisting(e.target.checked);
+                    setResultStats(null);
+                  }}
+                  className="sr-only peer"
+                />
+                <div className="w-10 h-6 bg-neutral-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-nicora-teal"></div>
+              </label>
+            </div>
+
+            {existingMonthShiftsCount > 0 && onClearShifts && (
+              <div className="pt-2 border-t border-neutral-200 flex items-center justify-between">
+                <span className="text-[10px] text-neutral-500">Vuoi partire da una griglia completamente vuota?</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm(`Sei sicuro di voler azzerare tutti i turni di ${selectedMonthName} ${selectedYear} per ${locationId === 'gazzada' ? 'Gazzada' : 'Varese'}?`)) {
+                      onClearShifts(locationId, selectedYear, selectedMonth);
+                      setResultStats(null);
+                    }
+                  }}
+                  className="text-rose-600 hover:text-rose-800 text-xs font-bold flex items-center gap-1 hover:underline"
+                >
+                  <Trash2 size={12} />
+                  <span>Svuota turni {selectedMonthName}</span>
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* Vincoli e Regole Nicora Applicate */}
           <div className="bg-[#e6f0eb]/70 border border-[#80b4b9]/50 rounded-2xl p-3.5 space-y-1.5 text-neutral-800">
             <span className="font-bold flex items-center gap-1.5 text-xs text-nicora-teal">
@@ -293,7 +358,7 @@ export const GenerateModal: React.FC<GenerateModalProps> = ({
             </span>
             <ul className="text-[11px] space-y-1 pl-1 text-neutral-700 list-disc list-inside">
               <li><strong>Pianifica l'intero mese in una sola botta</strong> (tutte le settimane Domenica ➔ Sabato).</li>
-              <li><strong>Preserva i turni già esistenti</strong>: se la prima settimana era già stata pianificata dal mese precedente o ritoccata a mano, non viene sovrascritta.</li>
+              <li><strong>Gestione turni preesistenti</strong>: {overwriteExisting ? 'Bozza precedente sovrascritta e ricalcolata per recepire tutti i nuovi parametri.' : 'Preserva i turni già fissati a mano.'}</li>
               <li><strong>Recepisce ferie e malattie già approvate</strong>: chi è in permesso non viene assegnato ai reparti.</li>
               <li><strong>Recepisce entrate posticipate e uscite anticipate</strong> approvate con orario personalizzato.</li>
               <li><strong>5 giorni lavorativi su 7</strong> per ciascun collaboratore (2 riposi settimanali garantiti).</li>

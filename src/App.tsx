@@ -36,6 +36,7 @@ import {
   fetchCloudShifts,
   saveCloudEmployee,
   saveCloudRequest,
+  deleteCloudShifts,
   saveCloudShifts,
   subscribeToRealtimeChanges,
   updateCloudRequestStatus,
@@ -203,10 +204,9 @@ export const App: React.FC = () => {
 
   const handleApplyGeneratedShifts = (generatedShifts: Shift[]) => {
     setShifts((prev) => {
-      const map = new Map<string, Shift>();
-      prev.forEach((s) => map.set(`${s.employeeId}_${s.date}`, s));
-      generatedShifts.forEach((s) => map.set(`${s.employeeId}_${s.date}`, s));
-      const next = Array.from(map.values());
+      const genKeys = new Set(generatedShifts.map((s) => `${s.employeeId}_${s.date}`));
+      const remaining = prev.filter((s) => !genKeys.has(`${s.employeeId}_${s.date}`));
+      const next = [...remaining, ...generatedShifts];
       saveCloudShifts(next);
       return next;
     });
@@ -216,6 +216,30 @@ export const App: React.FC = () => {
       title: 'Bozza Mensile Applicata',
       message: `${generatedShifts.length} turni aggiornati e salvati con successo.`,
       type: 'success',
+    });
+  };
+
+  const handleClearShifts = async (targetLocationId: LocationId, year?: number, month?: number) => {
+    let next: Shift[];
+    if (year && month) {
+      const monthPrefix = `${year}-${month.toString().padStart(2, '0')}`;
+      next = shifts.filter((s) => !(s.locationId === targetLocationId && s.date.startsWith(monthPrefix)));
+      const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
+      const lastDay = new Date(year, month, 0).getDate();
+      const endDate = `${year}-${month.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+      await deleteCloudShifts(targetLocationId, startDate, endDate);
+    } else {
+      next = shifts.filter((s) => s.locationId !== targetLocationId);
+      await deleteCloudShifts(targetLocationId);
+    }
+    setShifts(next);
+    saveStoredShifts(next);
+
+    setToast({
+      id: `toast-clear-${Date.now()}`,
+      title: 'Turni Svuotati',
+      message: `I turni per ${targetLocationId === 'gazzada' ? 'Gazzada' : 'Varese'} sono stati azzerati.`,
+      type: 'info',
     });
   };
 
@@ -555,6 +579,7 @@ export const App: React.FC = () => {
             onSaveEmployee={handleSaveEmployee}
             onEditShift={(shift) => setEditingShift(shift)}
             onOpenGenerateModal={() => setIsGenerateModalOpen(true)}
+            onClearShifts={handleClearShifts}
             onOpenSkillsModal={() => setIsSkillsModalOpen(true)}
             onOpenEmergencyModal={(shift) => {
               setEmergencyTargetShift(shift || null);
@@ -626,6 +651,7 @@ export const App: React.FC = () => {
         requests={requests}
         existingShifts={shifts}
         onApplyShifts={handleApplyGeneratedShifts}
+        onClearShifts={handleClearShifts}
       />
 
       {/* Modale Competenze 1-10 (Overlay rapido) */}
