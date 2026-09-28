@@ -227,7 +227,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  if (window.confirm(`Sei sicuro di voler azzerare tutti i turni per ${location.name}? I dati verranno rimossi per permetterti di generare o compilare da zero.`)) {
+                  if (window.confirm(`Sei sicuro di voler azzerare i turni da oggi in poi per ${location.name}? Lo storico dei giorni passati rimarrà protetto e intatto.`)) {
                     onClearShifts(location.id);
                   }
                 }}

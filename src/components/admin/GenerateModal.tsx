@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Employee, LocationId, ScheduleMode, Shift, ShiftRequest } from '../../domain/types';
-import { generateMonthlySchedule } from '../../engine/schedulerEngine';
+import { formatLocalDate, generateMonthlySchedule } from '../../engine/schedulerEngine';
 import {
   AlertTriangle,
   Calendar,
@@ -66,10 +66,14 @@ export const GenerateModal: React.FC<GenerateModalProps> = ({
 
   if (!isOpen) return null;
 
+  const todayStr = formatLocalDate(new Date());
   const monthPrefix = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}`;
-  const existingMonthShiftsCount = existingShifts.filter(
+  const existingMonthShifts = (existingShifts || []).filter(
     (s) => s.locationId === locationId && s.date.startsWith(monthPrefix)
-  ).length;
+  );
+  const existingMonthShiftsCount = existingMonthShifts.length;
+  const isCurrentMonthSelected = selectedYear === currentYearNum && selectedMonth === currentMonthNum;
+  const pastProtectedCount = existingMonthShifts.filter((s) => s.date < todayStr).length;
 
   const handleGenerate = () => {
     const result = generateMonthlySchedule({
@@ -302,16 +306,24 @@ export const GenerateModal: React.FC<GenerateModalProps> = ({
               <div className="flex items-start gap-2.5">
                 <RefreshCw size={17} className="text-nicora-teal flex-shrink-0 mt-0.5" />
                 <div>
-                  <div className="font-bold text-xs text-neutral-900 flex items-center gap-1.5">
+                  <div className="font-bold text-xs text-neutral-900 flex items-center gap-1.5 flex-wrap">
                     <span>Sovrascrivi bozza esistente del mese</span>
                     {existingMonthShiftsCount > 0 && (
                       <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-1.5 py-0.2 rounded-md">
                         {existingMonthShiftsCount} turni presenti
                       </span>
                     )}
+                    {isCurrentMonthSelected && pastProtectedCount > 0 && (
+                      <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-1.5 py-0.2 rounded-md flex items-center gap-1">
+                        <ShieldCheck size={11} className="text-emerald-700" />
+                        {pastProtectedCount} passati congelati
+                      </span>
+                    )}
                   </div>
                   <p className="text-[11px] text-neutral-600 mt-0.5 leading-snug">
-                    Ricalcola tutti i turni del mese da zero applicando le modifiche attuali (toggle Natale, orari, competenze). Se disattivato, preserva i turni compilati.
+                    {isCurrentMonthSelected
+                      ? `Ricalcola i turni da oggi in avanti applicando le impostazioni correnti. I ${pastProtectedCount} turni passati sono protetti e congelati al 100% per non perdere lo storico.`
+                      : 'Ricalcola tutti i turni del mese da zero applicando le modifiche attuali (toggle Natale, orari, competenze). Se disattivato, preserva i turni compilati.'}
                   </p>
                 </div>
               </div>
@@ -332,11 +344,18 @@ export const GenerateModal: React.FC<GenerateModalProps> = ({
 
             {existingMonthShiftsCount > 0 && onClearShifts && (
               <div className="pt-2 border-t border-neutral-200 flex items-center justify-between">
-                <span className="text-[10px] text-neutral-500">Vuoi partire da una griglia completamente vuota?</span>
+                <span className="text-[10px] text-neutral-500">
+                  {isCurrentMonthSelected && pastProtectedCount > 0
+                    ? `Svuota da oggi in poi (${pastProtectedCount} passati protetti):`
+                    : 'Vuoi partire da una griglia vuota?'}
+                </span>
                 <button
                   type="button"
                   onClick={() => {
-                    if (window.confirm(`Sei sicuro di voler azzerare tutti i turni di ${selectedMonthName} ${selectedYear} per ${locationId === 'gazzada' ? 'Gazzada' : 'Varese'}?`)) {
+                    const confirmMsg = isCurrentMonthSelected && pastProtectedCount > 0
+                      ? `Sei sicuro di voler azzerare i turni futuri di ${selectedMonthName} ${selectedYear} per ${locationId === 'gazzada' ? 'Gazzada' : 'Varese'}? I ${pastProtectedCount} turni dei giorni passati rimarranno protetti e intatti.`
+                      : `Sei sicuro di voler azzerare tutti i turni di ${selectedMonthName} ${selectedYear} per ${locationId === 'gazzada' ? 'Gazzada' : 'Varese'}?`;
+                    if (window.confirm(confirmMsg)) {
                       onClearShifts(locationId, selectedYear, selectedMonth);
                       setResultStats(null);
                     }
@@ -358,7 +377,8 @@ export const GenerateModal: React.FC<GenerateModalProps> = ({
             </span>
             <ul className="text-[11px] space-y-1 pl-1 text-neutral-700 list-disc list-inside">
               <li><strong>Pianifica l'intero mese in una sola botta</strong> (tutte le settimane Domenica ➔ Sabato).</li>
-              <li><strong>Gestione turni preesistenti</strong>: {overwriteExisting ? 'Bozza precedente sovrascritta e ricalcolata per recepire tutti i nuovi parametri.' : 'Preserva i turni già fissati a mano.'}</li>
+              <li><strong>Protezione Storico Turni Passati</strong>: nei mesi correnti tutti i turni con data precedente a oggi sono congelati e protetti al 100%.</li>
+              <li><strong>Gestione turni futuri</strong>: {overwriteExisting ? 'Bozza da oggi in poi sovrascritta e ricalcolata per recepire tutti i nuovi parametri.' : 'Preserva i turni già fissati a mano.'}</li>
               <li><strong>Recepisce ferie e malattie già approvate</strong>: chi è in permesso non viene assegnato ai reparti.</li>
               <li><strong>Recepisce entrate posticipate e uscite anticipate</strong> approvate con orario personalizzato.</li>
               <li><strong>5 giorni lavorativi su 7</strong> per ciascun collaboratore (2 riposi settimanali garantiti).</li>
@@ -381,8 +401,19 @@ export const GenerateModal: React.FC<GenerateModalProps> = ({
 
               <div className="text-[11px] space-y-1 text-emerald-900">
                 <p>
-                  • Turni totali pianificati per il mese: <strong>{resultStats.totalShifts}</strong>.
+                  • Turni totali per il mese: <strong>{resultStats.totalShifts}</strong>.
                 </p>
+                {resultStats.preservedPastShiftsCount !== undefined && resultStats.preservedPastShiftsCount > 0 && (
+                  <p className="flex items-center gap-1 text-emerald-800 font-medium">
+                    <ShieldCheck size={13} className="text-emerald-700 flex-shrink-0" />
+                    <span><strong>{resultStats.preservedPastShiftsCount}</strong> turni passati congelati e preservati al 100%.</span>
+                  </p>
+                )}
+                {resultStats.newlyGeneratedShiftsCount !== undefined && (
+                  <p>
+                    • Turni generati da oggi in poi: <strong>{resultStats.newlyGeneratedShiftsCount}</strong>.
+                  </p>
+                )}
                 <p>
                   • Presidio Cassa medio: <strong>{resultStats.cassaCoverageScore}%</strong>.
                 </p>

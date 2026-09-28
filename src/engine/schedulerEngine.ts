@@ -20,6 +20,7 @@ export interface SchedulerOptions {
   existingShifts?: Shift[];
   mode?: ScheduleMode;   // 'standard' o 'continuato'
   isChristmasSeason?: boolean; // Se true (a Varese), attiva il reparto stagionale Natale (2 addetti)
+  todayDate?: string;    // Data di riferimento (YYYY-MM-DD) per congelare i giorni passati
 }
 
 export interface SuboptimalCoverageInfo {
@@ -45,6 +46,8 @@ export interface ScheduleGenerationResult {
     uncoveredDays: { dateStr: string; departments: Department[] }[];
     warnings: string[];
     mode: ScheduleMode;
+    preservedPastShiftsCount?: number;
+    newlyGeneratedShiftsCount?: number;
   };
 }
 
@@ -947,9 +950,11 @@ export const generateWeeklySchedule = ({
   existingShifts = [],
   mode = 'standard',
   isChristmasSeason = false,
+  todayDate,
 }: SchedulerOptions): ScheduleGenerationResult => {
   const storeStaff = employees.filter((e) => e.locationId === locationId && e.isActive !== false);
   const weekDays = getWeekDays(weekStartDate);
+  const todayStr = todayDate || formatLocalDate(new Date());
   const warnings: string[] = [];
   const suboptimalCoverageDays: SuboptimalCoverageInfo[] = [];
 
@@ -1011,13 +1016,18 @@ export const generateWeeklySchedule = ({
   storeStaff.forEach((emp) => {
     const offDays = new Set<number>();
     const leaveDayIndices = new Set<number>();
+    const pastWorkDayIndices = new Set<number>();
 
     weekDays.forEach((wDay) => {
       const key = `${emp.id}_${wDay.dateStr}`;
       const existing = existingShiftsMap.get(key);
       const isLeave = approvedLeavesMap.has(key);
+      const isPast = wDay.dateStr < todayStr;
+
       if (isLeave || (existing && (existing.type === 'riposo' || existing.type === 'ferie' || existing.type === 'malattia'))) {
         leaveDayIndices.add(wDay.dayIndex);
+      } else if (isPast && existing) {
+        pastWorkDayIndices.add(wDay.dayIndex);
       }
     });
 
@@ -1035,7 +1045,10 @@ export const generateWeeklySchedule = ({
       let minScore = Infinity;
 
       for (let d = 0; d < 7; d++) {
-        if (!offDays.has(d)) {
+        const dMeta = weekDays.find((wd) => wd.dayIndex === d);
+        const isPastDay = dMeta ? dMeta.dateStr < todayStr : false;
+        // Non assegnare un riposo se è già nei riposi, se ha lavorato o se è un giorno passato (si pianificano da oggi in avanti)
+        if (!offDays.has(d) && !pastWorkDayIndices.has(d) && !isPastDay) {
           const weekendPenalty = (d === 0 || d === 6) ? 0.4 : 0;
           const score = offCountsPerDay[d] + weekendPenalty;
           if (score < minScore) {
@@ -1068,10 +1081,45 @@ export const generateWeeklySchedule = ({
   // 3. Assegnazione turni e reparti per ciascuna delle 7 giornate
   weekDays.forEach((dayMeta) => {
     const { dateStr, dayIndex, isWeekend, isMerchandiseArrival } = dayMeta;
+    const isPast = dateStr < todayStr;
 
     const availableStaff: Employee[] = [];
     const coveredDeptsToday = new Set<Department>();
     const dayAssignedEmpIds = new Set<string>();
+
+    if (isPast) {
+      // Per i giorni passati preserviamo al 100% i turni storici esistenti senza generare nuovi turni fittizi nel passato
+      storeStaff.forEach((emp) => {
+        const key = `${emp.id}_${dateStr}`;
+        const existingShift = existingShiftsMap.get(key);
+        const leaveReq = approvedLeavesMap.get(key);
+
+        if (existingShift) {
+          shifts.push(existingShift);
+          dayAssignedEmpIds.add(emp.id);
+          if (existingShift.type !== 'riposo' && existingShift.type !== 'ferie' && existingShift.type !== 'malattia') {
+            workerDayCounter[emp.id]++;
+            if (existingShift.department) {
+              coveredDeptsToday.add(existingShift.department);
+              if (existingShift.department === 'Cassa') cassaCoveredDays++;
+            }
+          }
+        } else if (leaveReq) {
+          const isMalattia = leaveReq.reason.toLowerCase().includes('malatt');
+          shifts.push({
+            id: `shift-${emp.id}-${dateStr}`,
+            employeeId: emp.id,
+            locationId,
+            date: dateStr,
+            type: isMalattia ? 'malattia' : 'ferie',
+            areaNote: isMalattia ? 'Malattia certificata' : (leaveReq.reason || 'Ferie concordate'),
+          });
+          workerDayCounter[emp.id]++;
+          dayAssignedEmpIds.add(emp.id);
+        }
+      });
+      return;
+    }
 
     storeStaff.forEach((emp) => {
       const key = `${emp.id}_${dateStr}`;
@@ -1406,6 +1454,7 @@ export interface MonthlySchedulerOptions {
   mode?: ScheduleMode;
   isChristmasSeason?: boolean;
   overwriteExisting?: boolean; // Se true (default), sovrascrive e ricalcola da zero la bozza del mese per questa sede
+  todayDate?: string;          // Data di riferimento (YYYY-MM-DD) per congelare i giorni passati
 }
 
 /**
@@ -1413,6 +1462,7 @@ export interface MonthlySchedulerOptions {
  * Calcola tutte le settimane comprese nel mese ed esegue l'algoritmo completo.
  * Con overwriteExisting = true (default), sovrascrive e ricalcola i turni del mese corrente per la sede,
  * applicando i nuovi parametri (es. toggle Natale, orari, competenze) senza essere bloccato da vecchi turni.
+ * I turni con data precedente a oggi (< todayStr) sono congelati e preservati al 100%.
  */
 export const generateMonthlySchedule = ({
   locationId,
@@ -1424,7 +1474,10 @@ export const generateMonthlySchedule = ({
   mode = 'standard',
   isChristmasSeason = false,
   overwriteExisting = true,
+  todayDate,
 }: MonthlySchedulerOptions): ScheduleGenerationResult => {
+  const todayStr = todayDate || formatLocalDate(new Date());
+
   // Calcola il primo e l'ultimo giorno del mese
   const firstDayOfMonth = new Date(year, month - 1, 1);
   const lastDayOfMonth = new Date(year, month, 0);
@@ -1443,15 +1496,18 @@ export const generateMonthlySchedule = ({
   let currSunday = new Date(firstSunday);
 
   // Se overwriteExisting è true, filtriamo via i turni esistenti per la sede corrente
-  // nel periodo del mese, permettendo la rigenerazione completa con i parametri aggiornati.
+  // nel periodo del mese MA PRESERVIAMO SEMPRE i giorni passati (s.date < todayStr).
+  // In questo modo, solo i turni da oggi in avanti vengono rigenerati.
   const baseExisting = overwriteExisting
-    ? (existingShifts || []).filter(
-        (s) =>
-          !(
-            s.locationId === locationId &&
-            (s.date.startsWith(monthPrefix) || (s.date >= firstSundayStr && s.date <= lastDayStr))
-          )
-      )
+    ? (existingShifts || []).filter((s) => {
+        if (s.locationId !== locationId) return true;
+        const isInMonthRange =
+          s.date.startsWith(monthPrefix) ||
+          (s.date >= firstSundayStr && s.date <= lastDayStr);
+        if (!isInMonthRange) return true;
+        // Turno nel range del mese: preservalo se appartiene al passato
+        return s.date < todayStr;
+      })
     : (existingShifts || []);
 
   const accumulatedShifts = [...baseExisting];
@@ -1466,6 +1522,7 @@ export const generateMonthlySchedule = ({
       existingShifts: accumulatedShifts,
       mode,
       isChristmasSeason,
+      todayDate: todayStr,
     });
 
     allShifts.push(...weekRes.shifts);
@@ -1483,6 +1540,13 @@ export const generateMonthlySchedule = ({
   const uniqueShiftsMap = new Map<string, Shift>();
   allShifts.forEach((s) => uniqueShiftsMap.set(`${s.employeeId}_${s.date}`, s));
   const uniqueShifts = Array.from(uniqueShiftsMap.values());
+
+  const preservedPastShiftsCount = uniqueShifts.filter(
+    (s) => s.locationId === locationId && s.date.startsWith(monthPrefix) && s.date < todayStr
+  ).length;
+  const newlyGeneratedShiftsCount = uniqueShifts.filter(
+    (s) => s.locationId === locationId && s.date.startsWith(monthPrefix) && s.date >= todayStr
+  ).length;
 
   const storeStaff = employees.filter((e) => e.locationId === locationId && e.isActive !== false);
   const employeesWorkingDays: Record<string, number> = {};
@@ -1514,6 +1578,8 @@ export const generateMonthlySchedule = ({
     shifts: uniqueShifts,
     stats: {
       totalShifts: uniqueShifts.length,
+      preservedPastShiftsCount,
+      newlyGeneratedShiftsCount,
       cassaCoverageScore: Math.round(totalCassaScoreSum / Math.max(1, totalWeeks)),
       overallSkillScore: 92,
       departmentSkillScores: { Cassa: 9.5, Fioreria: 9.2, Decor: 8.8, 'Serra Calda': 9.0, 'Serra Fredda': 9.1 },

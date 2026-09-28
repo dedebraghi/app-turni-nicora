@@ -203,42 +203,81 @@ export const App: React.FC = () => {
   };
 
   const handleApplyGeneratedShifts = (generatedShifts: Shift[]) => {
+    const todayStr = formatLocalDate(new Date());
+    const pastPreserved = generatedShifts.filter((s) => s.date < todayStr).length;
+    const futureGenerated = generatedShifts.filter((s) => s.date >= todayStr).length;
+
     setShifts((prev) => {
       const genKeys = new Set(generatedShifts.map((s) => `${s.employeeId}_${s.date}`));
       const remaining = prev.filter((s) => !genKeys.has(`${s.employeeId}_${s.date}`));
       const next = [...remaining, ...generatedShifts];
       saveCloudShifts(next);
+      saveStoredShifts(next);
       return next;
     });
+
+    const msg = pastPreserved > 0
+      ? `${futureGenerated} turni generati da oggi in avanti (${pastPreserved} turni passati preservati).`
+      : `${generatedShifts.length} turni aggiornati e salvati con successo.`;
 
     setToast({
       id: `toast-gen-${Date.now()}`,
       title: 'Bozza Mensile Applicata',
-      message: `${generatedShifts.length} turni aggiornati e salvati con successo.`,
+      message: msg,
       type: 'success',
     });
   };
 
   const handleClearShifts = async (targetLocationId: LocationId, year?: number, month?: number) => {
+    const todayStr = formatLocalDate(new Date());
     let next: Shift[];
+    let clearedCount = 0;
+    let preservedCount = 0;
+
     if (year && month) {
       const monthPrefix = `${year}-${month.toString().padStart(2, '0')}`;
-      next = shifts.filter((s) => !(s.locationId === targetLocationId && s.date.startsWith(monthPrefix)));
-      const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
+      next = shifts.filter((s) => {
+        if (s.locationId !== targetLocationId) return true;
+        if (!s.date.startsWith(monthPrefix)) return true;
+        if (s.date < todayStr) {
+          preservedCount++;
+          return true; // Preserva i giorni passati!
+        }
+        clearedCount++;
+        return false; // Cancella solo da oggi in avanti
+      });
+
+      const monthStartDate = `${year}-${month.toString().padStart(2, '0')}-01`;
       const lastDay = new Date(year, month, 0).getDate();
-      const endDate = `${year}-${month.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
-      await deleteCloudShifts(targetLocationId, startDate, endDate);
+      const monthEndDate = `${year}-${month.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+      
+      const effectiveStartDate = todayStr > monthStartDate ? todayStr : monthStartDate;
+      if (effectiveStartDate <= monthEndDate) {
+        await deleteCloudShifts(targetLocationId, effectiveStartDate, monthEndDate);
+      }
     } else {
-      next = shifts.filter((s) => s.locationId !== targetLocationId);
-      await deleteCloudShifts(targetLocationId);
+      next = shifts.filter((s) => {
+        if (s.locationId !== targetLocationId) return true;
+        if (s.date < todayStr) {
+          preservedCount++;
+          return true; // Preserva lo storico passato!
+        }
+        clearedCount++;
+        return false;
+      });
+      await deleteCloudShifts(targetLocationId, todayStr);
     }
     setShifts(next);
     saveStoredShifts(next);
 
+    const message = preservedCount > 0
+      ? `${clearedCount} turni futuri azzerati. ${preservedCount} turni passati preservati intatti.`
+      : `I turni per ${targetLocationId === 'gazzada' ? 'Gazzada' : 'Varese'} sono stati azzerati.`;
+
     setToast({
       id: `toast-clear-${Date.now()}`,
       title: 'Turni Svuotati',
-      message: `I turni per ${targetLocationId === 'gazzada' ? 'Gazzada' : 'Varese'} sono stati azzerati.`,
+      message,
       type: 'info',
     });
   };
