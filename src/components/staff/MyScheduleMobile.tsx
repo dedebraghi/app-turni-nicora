@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Employee, LocationId, Shift } from '../../domain/types';
 import { formatLocalDate, getSundayOfWeek, getWeekDays } from '../../engine/schedulerEngine';
 import { MobileHeader } from '../layout/MobileHeader';
-import { ChevronLeft, ChevronRight, Clock, Coffee, KeyRound, Check, AlertCircle, X, Calendar } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, Coffee, Calendar } from 'lucide-react';
 
 interface MyScheduleMobileProps {
   currentEmployee: Employee;
@@ -24,59 +24,9 @@ export const MyScheduleMobile: React.FC<MyScheduleMobileProps> = ({
   onSaveEmployee,
 }) => {
   const [weekOffset, setWeekOffset] = useState<number>(0);
-  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
-  const [currentPinInput, setCurrentPinInput] = useState('');
-  const [newPinInput, setNewPinInput] = useState('');
-  const [confirmPinInput, setConfirmPinInput] = useState('');
-  const [pinError, setPinError] = useState('');
-  const [pinSuccess, setPinSuccess] = useState('');
 
   const gazzadaStaffCount = employees?.filter((e) => e.locationId === 'gazzada' && e.isActive !== false).length || 10;
   const vareseStaffCount = employees?.filter((e) => e.locationId === 'varese' && e.isActive !== false).length || 16;
-
-  const handleOpenPinModal = () => {
-    setCurrentPinInput('');
-    setNewPinInput('');
-    setConfirmPinInput('');
-    setPinError('');
-    setPinSuccess('');
-    setIsPinModalOpen(true);
-  };
-
-  const handleSavePin = (e: React.FormEvent) => {
-    e.preventDefault();
-    setPinError('');
-    setPinSuccess('');
-
-    const actualPin = currentEmployee.password || '1234';
-    if (currentPinInput !== actualPin && currentPinInput !== '1234') {
-      setPinError('Il PIN attuale inserito non è corretto');
-      return;
-    }
-
-    if (newPinInput.length < 3) {
-      setPinError('Il nuovo PIN deve contenere almeno 3 cifre');
-      return;
-    }
-
-    if (newPinInput !== confirmPinInput) {
-      setPinError('I due PIN inseriti non coincidono');
-      return;
-    }
-
-    if (onSaveEmployee) {
-      onSaveEmployee({
-        ...currentEmployee,
-        password: newPinInput,
-      });
-    }
-
-    setPinSuccess('PIN modificato con successo!');
-    setTimeout(() => {
-      setIsPinModalOpen(false);
-      setPinSuccess('');
-    }, 1500);
-  };
 
   const baseSunday = getSundayOfWeek(new Date());
   baseSunday.setDate(baseSunday.getDate() + weekOffset * 7);
@@ -120,7 +70,7 @@ export const MyScheduleMobile: React.FC<MyScheduleMobileProps> = ({
     <div className="min-h-screen bg-[#f2fcf7] text-[#151d1b] flex flex-col font-sans">
       
       {/* ========================================================
-          1. HEADER NATIVO STITCH MOBILE CONDIVISO
+          1. HEADER NATIVO STITCH MOBILE CONDIVISO (con PIN e Logout)
           ======================================================== */}
       <MobileHeader
         title="I Miei Turni"
@@ -130,6 +80,7 @@ export const MyScheduleMobile: React.FC<MyScheduleMobileProps> = ({
         gazzadaStaffCount={gazzadaStaffCount}
         vareseStaffCount={vareseStaffCount}
         onLogout={onLogout}
+        onSaveEmployee={onSaveEmployee}
       />
 
       {/* ========================================================
@@ -159,22 +110,10 @@ export const MyScheduleMobile: React.FC<MyScheduleMobileProps> = ({
                   </p>
                 </div>
               </div>
-
-              <button
-                onClick={handleOpenPinModal}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/30 hover:bg-black/40 text-emerald-200 text-[11px] font-medium border border-white/10 transition-colors"
-              >
-                <KeyRound size={11} className="text-amber-300" />
-                <span>PIN</span>
-              </button>
             </div>
 
-            {/* Metric Pods Grid 4 items on mobile */}
-            <div className="grid grid-cols-4 gap-1.5 pt-2 border-t border-white/15 text-center">
-              <div className="p-2 rounded-xl bg-black/25 backdrop-blur-xs flex flex-col justify-between">
-                <span className="text-[9px] uppercase tracking-wider font-semibold text-emerald-200">CONTRATTO</span>
-                <span className="font-serif text-base font-bold text-white leading-none mt-1">5/7</span>
-              </div>
+            {/* Metric Pods Grid 3 items on mobile (Turni, Riposi, Assenze) */}
+            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-white/15 text-center">
               <div className="p-2 rounded-xl bg-black/25 backdrop-blur-xs flex flex-col justify-between">
                 <span className="text-[9px] uppercase tracking-wider font-semibold text-emerald-200">TURNI</span>
                 <span className="font-serif text-base font-bold text-white leading-none mt-1">{workedShifts.length}</span>
@@ -310,93 +249,6 @@ export const MyScheduleMobile: React.FC<MyScheduleMobileProps> = ({
             );
           })}
         </div>
-
-        {/* Modal Cambio PIN */}
-        {isPinModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in">
-            <div className="bg-white rounded-2xl shadow-2xl border border-[#e2e8e4] w-full max-w-sm overflow-hidden">
-              <div className="bg-[#002f32] text-white p-3.5 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <KeyRound size={18} className="text-amber-300" />
-                  <h3 className="font-serif text-sm font-semibold">Modifica PIN</h3>
-                </div>
-                <button onClick={() => setIsPinModalOpen(false)} className="text-white hover:opacity-80">
-                  <X size={16} />
-                </button>
-              </div>
-
-              <form onSubmit={handleSavePin} className="p-4 space-y-3 text-xs">
-                {pinError && (
-                  <div className="bg-rose-50 border border-rose-200 text-rose-800 p-2.5 rounded-xl flex items-center gap-2 text-xs">
-                    <AlertCircle size={14} className="text-rose-600 shrink-0" />
-                    <span>{pinError}</span>
-                  </div>
-                )}
-                {pinSuccess && (
-                  <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-2.5 rounded-xl flex items-center gap-2 text-xs">
-                    <Check size={14} className="text-emerald-600 shrink-0" />
-                    <span>{pinSuccess}</span>
-                  </div>
-                )}
-
-                <div>
-                  <label className="block font-semibold text-neutral-700 mb-0.5">PIN Attuale:</label>
-                  <input
-                    type="password"
-                    value={currentPinInput}
-                    onChange={(e) => setCurrentPinInput(e.target.value)}
-                    placeholder="PIN attuale"
-                    maxLength={6}
-                    className="w-full bg-neutral-50 border border-[#e2e8e4] rounded-xl px-3 py-2 text-sm font-bold"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-neutral-700 mb-0.5">Nuovo PIN (min. 3 cifre):</label>
-                  <input
-                    type="password"
-                    value={newPinInput}
-                    onChange={(e) => setNewPinInput(e.target.value)}
-                    placeholder="Nuovo PIN"
-                    maxLength={6}
-                    className="w-full bg-neutral-50 border border-[#e2e8e4] rounded-xl px-3 py-2 text-sm font-bold"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-neutral-700 mb-0.5">Conferma Nuovo PIN:</label>
-                  <input
-                    type="password"
-                    value={confirmPinInput}
-                    onChange={(e) => setConfirmPinInput(e.target.value)}
-                    placeholder="Ripeti nuovo PIN"
-                    maxLength={6}
-                    className="w-full bg-neutral-50 border border-[#e2e8e4] rounded-xl px-3 py-2 text-sm font-bold"
-                    required
-                  />
-                </div>
-
-                <div className="pt-2 flex items-center justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsPinModalOpen(false)}
-                    className="px-3 py-1.5 text-neutral-600 font-semibold"
-                  >
-                    Annulla
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-[#002f32] text-white font-bold rounded-xl shadow-xs"
-                  >
-                    Salva PIN
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
 
       </div>
     </div>

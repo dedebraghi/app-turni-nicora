@@ -13,6 +13,7 @@ interface TodayPresenceProps {
   onChangeLocation?: (loc: LocationId) => void;
   onEditShift: (shift: Shift) => void;
   onLogout?: () => void;
+  onSaveEmployee?: (emp: Employee) => void;
 }
 
 export const TodayPresence: React.FC<TodayPresenceProps> = (props) => {

@@ -497,6 +497,7 @@ export const App: React.FC = () => {
             onChangeLocation={setActiveLocation}
             onEditShift={(shift) => setEditingShift(shift)}
             onLogout={handleLogout}
+            onSaveEmployee={handleSaveEmployee}
           />
         )}
 
