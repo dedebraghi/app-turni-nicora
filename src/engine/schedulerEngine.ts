@@ -17,6 +17,7 @@ export interface SchedulerOptions {
   employees: Employee[];
   weekStartDate: string; // Deve essere una Domenica (YYYY-MM-DD)
   requests?: ShiftRequest[];
+  existingShifts?: Shift[];
   mode?: ScheduleMode;   // 'standard' o 'continuato'
 }
 
@@ -530,6 +531,7 @@ export const generateWeeklySchedule = ({
   employees,
   weekStartDate,
   requests = [],
+  existingShifts = [],
   mode = 'standard',
 }: SchedulerOptions): ScheduleGenerationResult => {
   const storeStaff = employees.filter((e) => e.locationId === locationId && e.isActive !== false);
@@ -565,17 +567,28 @@ export const generateWeeklySchedule = ({
     };
   }
 
-  // 1. Mappa delle ferie approvate
-  const approvedLeaves: Record<string, Set<string>> = {};
-  storeStaff.forEach((e) => {
-    approvedLeaves[e.id] = new Set();
-  });
+  // 1. Mappa dei turni già esistenti (es. pianificati nel mese precedente o fissati a mano)
+  const existingShiftsMap = new Map<string, Shift>();
+  if (existingShifts && existingShifts.length > 0) {
+    existingShifts
+      .filter((s) => s.locationId === locationId)
+      .forEach((s) => {
+        existingShiftsMap.set(`${s.employeeId}_${s.date}`, s);
+      });
+  }
+
+  // 2. Mappe delle richieste approvate (ferie, malattia, cambi orario)
+  const approvedLeavesMap = new Map<string, ShiftRequest>();
+  const approvedScheduleChangesMap = new Map<string, ShiftRequest>();
 
   requests
-    .filter((r) => r.status === 'approved' && r.type === 'leave')
+    .filter((r) => r.status === 'approved')
     .forEach((r) => {
-      if (approvedLeaves[r.requesterId]) {
-        approvedLeaves[r.requesterId].add(r.shiftDate);
+      const key = `${r.requesterId}_${r.shiftDate}`;
+      if (r.type === 'leave') {
+        approvedLeavesMap.set(key, r);
+      } else if (r.type === 'schedule_change') {
+        approvedScheduleChangesMap.set(key, r);
       }
     });
 
@@ -585,15 +598,18 @@ export const generateWeeklySchedule = ({
 
   storeStaff.forEach((emp) => {
     const offDays = new Set<number>();
-
     const leaveDayIndices = new Set<number>();
+
     weekDays.forEach((wDay) => {
-      if (approvedLeaves[emp.id]?.has(wDay.dateStr)) {
+      const key = `${emp.id}_${wDay.dateStr}`;
+      const existing = existingShiftsMap.get(key);
+      const isLeave = approvedLeavesMap.has(key);
+      if (isLeave || (existing && (existing.type === 'riposo' || existing.type === 'ferie' || existing.type === 'malattia'))) {
         leaveDayIndices.add(wDay.dayIndex);
       }
     });
 
-    // Se ci sono ferie approvate, contano ai fini dei giorni non di servizio
+    // Se ci sono ferie o riposi già fissati, contano ai fini dei 2 giorni di non-servizio
     leaveDayIndices.forEach((dIdx) => {
       if (offDays.size < 2) {
         offDays.add(dIdx);
@@ -603,8 +619,6 @@ export const generateWeeklySchedule = ({
 
     // Se servono ancora giorni di riposo per arrivare a 2:
     while (offDays.size < 2) {
-      // Seleziona il giorno con il minor numero di riposi già assegnati.
-      // Diamo un lieve svantaggio (+0.4) al weekend (Dom=0, Sab=6) per garantire presenze leggermente superiori nei giorni di punta.
       let bestDay = -1;
       let minScore = Infinity;
 
@@ -644,22 +658,47 @@ export const generateWeeklySchedule = ({
     const { dateStr, dayIndex, isWeekend, isMerchandiseArrival } = dayMeta;
 
     const availableStaff: Employee[] = [];
+    const coveredDeptsToday = new Set<Department>();
+    const dayAssignedEmpIds = new Set<string>();
 
     storeStaff.forEach((emp) => {
-      const isOff = offDaysSchedule[emp.id]?.has(dayIndex);
-      const isFerie = approvedLeaves[emp.id]?.has(dateStr);
+      const key = `${emp.id}_${dateStr}`;
+      const existingShift = existingShiftsMap.get(key);
+      const leaveReq = approvedLeavesMap.get(key);
 
-      if (isFerie) {
+      // A) Turno già esistente: PRESERVA!
+      if (existingShift) {
+        shifts.push(existingShift);
+        dayAssignedEmpIds.add(emp.id);
+        if (existingShift.type !== 'riposo' && existingShift.type !== 'ferie' && existingShift.type !== 'malattia') {
+          workerDayCounter[emp.id]++;
+          if (existingShift.department) {
+            coveredDeptsToday.add(existingShift.department);
+            if (existingShift.department === 'Cassa') cassaCoveredDays++;
+          }
+        }
+        return;
+      }
+
+      // B) Richiesta approvata di ferie o malattia
+      if (leaveReq) {
+        const isMalattia = leaveReq.reason.toLowerCase().includes('malatt');
         shifts.push({
           id: `shift-${emp.id}-${dateStr}`,
           employeeId: emp.id,
           locationId,
           date: dateStr,
-          type: 'ferie',
-          areaNote: 'Ferie approvate dalla direzione',
+          type: isMalattia ? 'malattia' : 'ferie',
+          areaNote: isMalattia ? 'Malattia certificata' : (leaveReq.reason || 'Ferie concordate'),
         });
         workerDayCounter[emp.id]++;
-      } else if (isOff) {
+        dayAssignedEmpIds.add(emp.id);
+        return;
+      }
+
+      // C) Giorno di riposo calcolato
+      const isOff = offDaysSchedule[emp.id]?.has(dayIndex);
+      if (isOff) {
         shifts.push({
           id: `shift-${emp.id}-${dateStr}`,
           employeeId: emp.id,
@@ -667,9 +706,12 @@ export const generateWeeklySchedule = ({
           date: dateStr,
           type: 'riposo',
         });
-      } else {
-        availableStaff.push(emp);
+        dayAssignedEmpIds.add(emp.id);
+        return;
       }
+
+      // D) Dipendente disponibile per il servizio in reparto
+      availableStaff.push(emp);
     });
 
     if (availableStaff.length === 0) {
@@ -690,7 +732,7 @@ export const generateWeeklySchedule = ({
     primaryAssignments.forEach((item) => {
       assignedEmpIds.add(item.emp.id);
       dayAssignments.push(item);
-      if (item.dept === 'Cassa') {
+      if (item.dept === 'Cassa' || coveredDeptsToday.has('Cassa')) {
         cassaCoveredDays++;
       }
 
@@ -708,17 +750,20 @@ export const generateWeeklySchedule = ({
       }
     });
 
-    if (missingDepartments.length > 0) {
+    // Filtra i reparti mancanti escludendo quelli già coperti da turni esistenti
+    const actuallyMissingDepartments = missingDepartments.filter((d) => !coveredDeptsToday.has(d));
+
+    if (actuallyMissingDepartments.length > 0) {
       // Tenta la copertura di rinforzo tramite dipendenti mobili dell'altra sede
       const mobileCandidates = employees.filter(
         (e) => e.locationId !== locationId && e.isMobile && e.isActive !== false
       );
 
-      missingDepartments.forEach((dept) => {
+      actuallyMissingDepartments.forEach((dept) => {
         const candidate = mobileCandidates.find((m) => {
-          const isAssignedToday = assignedEmpIds.has(m.id);
+          const isAssignedToday = assignedEmpIds.has(m.id) || dayAssignedEmpIds.has(m.id);
           const isOff = offDaysSchedule[m.id]?.has(dayIndex);
-          const isLeave = approvedLeaves[m.id]?.has(dateStr);
+          const isLeave = approvedLeavesMap.has(`${m.id}_${dateStr}`);
           return !isAssignedToday && !isOff && !isLeave;
         });
 
@@ -792,11 +837,17 @@ export const generateWeeklySchedule = ({
       assignedEmpIds.add(emp.id);
     });
 
-    // --- ASSEGNAZIONE DEGLI ORARI SPECIFICI ---
+    // --- ASSEGNAZIONE DEGLI ORARI SPECIFICI (con supporto variazioni orario approvate) ---
     dayAssignments.forEach(({ emp, dept, note, assignedSkillScore }) => {
       const contractHours = emp.contractHours || 40;
       const dayIdx = workerDayCounter[emp.id] % 5;
       const shiftSchedule = getDailyShiftSchedule(contractHours, dayIdx, mode);
+
+      const scheduleChangeReq = approvedScheduleChangesMap.get(`${emp.id}_${dateStr}`);
+      const isCustomHours = Boolean(scheduleChangeReq) || Boolean(shiftSchedule.isCustomHours);
+      const startTime = scheduleChangeReq?.requestedStartTime || shiftSchedule.startTime;
+      const endTime = scheduleChangeReq?.requestedEndTime || shiftSchedule.endTime;
+      const finalNote = scheduleChangeReq ? `${note} (Orario concordato)` : note;
 
       shifts.push({
         id: `shift-${emp.id}-${dateStr}`,
@@ -805,10 +856,10 @@ export const generateWeeklySchedule = ({
         date: dateStr,
         type: shiftSchedule.type,
         department: dept,
-        startTime: shiftSchedule.startTime,
-        endTime: shiftSchedule.endTime,
-        areaNote: note,
-        isCustomHours: shiftSchedule.isCustomHours,
+        startTime,
+        endTime,
+        areaNote: finalNote,
+        isCustomHours,
         assignedSkillScore,
       });
 
@@ -880,12 +931,14 @@ export interface MonthlySchedulerOptions {
   year: number;
   month: number; // 1 - 12
   requests?: ShiftRequest[];
+  existingShifts?: Shift[];
   mode?: ScheduleMode;
 }
 
 /**
  * Genera la bozza automatica dell'INTERO MESE selezionato (es. dal 1 al 30/31 del mese).
- * Calcola tutte le settimane comprese nel mese ed esegue l'algoritmo completo.
+ * Calcola tutte le settimane comprese nel mese ed esegue l'algoritmo completo preservando
+ * i turni già pianificati o fissati in precedenza.
  */
 export const generateMonthlySchedule = ({
   locationId,
@@ -893,6 +946,7 @@ export const generateMonthlySchedule = ({
   year,
   month,
   requests = [],
+  existingShifts = [],
   mode = 'standard',
 }: MonthlySchedulerOptions): ScheduleGenerationResult => {
   // Calcola il primo e l'ultimo giorno del mese
@@ -911,6 +965,9 @@ export const generateMonthlySchedule = ({
 
   let currSunday = new Date(firstSunday);
 
+  // Manteniamo una lista cumulativa dei turni per preservare i turni preesistenti
+  const accumulatedShifts = [...(existingShifts || [])];
+
   while (currSunday <= lastDayOfMonth) {
     const weekStartStr = formatLocalDate(currSunday);
     const weekRes = generateWeeklySchedule({
@@ -918,10 +975,12 @@ export const generateMonthlySchedule = ({
       employees,
       weekStartDate: weekStartStr,
       requests,
+      existingShifts: accumulatedShifts,
       mode,
     });
 
     allShifts.push(...weekRes.shifts);
+    accumulatedShifts.push(...weekRes.shifts);
     totalCassaScoreSum += weekRes.stats.cassaCoverageScore;
     totalWeeks++;
 
@@ -938,9 +997,9 @@ export const generateMonthlySchedule = ({
     currSunday.setDate(currSunday.getDate() + 7);
   }
 
-  // Deduplica i turni creati
+  // Deduplica i turni creati per employeeId + data
   const uniqueShiftsMap = new Map<string, Shift>();
-  allShifts.forEach((s) => uniqueShiftsMap.set(`${s.employeeId}-${s.date}`, s));
+  allShifts.forEach((s) => uniqueShiftsMap.set(`${s.employeeId}_${s.date}`, s));
   const uniqueShifts = Array.from(uniqueShiftsMap.values());
 
   const storeStaff = employees.filter((e) => e.locationId === locationId && e.isActive !== false);

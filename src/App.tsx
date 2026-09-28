@@ -203,11 +203,19 @@ export const App: React.FC = () => {
 
   const handleApplyGeneratedShifts = (generatedShifts: Shift[]) => {
     setShifts((prev) => {
-      const newShiftsMap = new Map(generatedShifts.map((s) => [s.id, s]));
-      const untouchedShifts = prev.filter((s) => !newShiftsMap.has(s.id));
-      const next = [...untouchedShifts, ...generatedShifts];
+      const map = new Map<string, Shift>();
+      prev.forEach((s) => map.set(`${s.employeeId}_${s.date}`, s));
+      generatedShifts.forEach((s) => map.set(`${s.employeeId}_${s.date}`, s));
+      const next = Array.from(map.values());
       saveCloudShifts(next);
       return next;
+    });
+
+    setToast({
+      id: `toast-gen-${Date.now()}`,
+      title: 'Bozza Mensile Applicata',
+      message: `${generatedShifts.length} turni aggiornati e salvati con successo.`,
+      type: 'success',
     });
   };
 
@@ -597,6 +605,7 @@ export const App: React.FC = () => {
         locationId={activeLocation}
         employees={employees}
         requests={requests}
+        existingShifts={shifts}
         onApplyShifts={handleApplyGeneratedShifts}
       />
 
