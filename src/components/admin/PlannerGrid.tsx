@@ -5,9 +5,12 @@ import {
   calculateDayCoverage,
   calculateEmployeeWeeklyHours,
   calculateWeekHourlyCoverage,
+  clearLegacyIgnoredAlerts,
   formatLocalDate,
+  getIgnoredGapIds,
   getSundayOfWeek,
   getWeekDays,
+  ignoreGapId,
   WeekCoverageAnalysis,
 } from '../../engine/schedulerEngine';
 import { StaffSubstitutionWizard } from './StaffSubstitutionWizard';
@@ -83,20 +86,15 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
 
   const weekDays = getWeekDays(baseSundayStr);
 
-  // Gestione stato "Ignora" per la settimana selezionata
-  const weekStartDate = weekDays[0]?.dateStr || '';
-  const ignoredStorageKey = `nicora_ignored_alert_${activeLocation || location.id}_${weekStartDate}`;
-  const [isAlertIgnored, setIsAlertIgnored] = useState<boolean>(() => {
-    return localStorage.getItem(ignoredStorageKey) === 'true';
+  // Gestione stato "Ignora" puntuale per singola scopertura (sede + giorno + reparto + orario)
+  const [ignoredGapIds, setIgnoredGapIds] = useState<string[]>(() => {
+    clearLegacyIgnoredAlerts();
+    return getIgnoredGapIds();
   });
 
-  useEffect(() => {
-    setIsAlertIgnored(localStorage.getItem(ignoredStorageKey) === 'true');
-  }, [ignoredStorageKey]);
-
-  const handleIgnoreAlert = () => {
-    localStorage.setItem(ignoredStorageKey, 'true');
-    setIsAlertIgnored(true);
+  const handleIgnoreGap = (gapId: string) => {
+    ignoreGapId(gapId);
+    setIgnoredGapIds(getIgnoredGapIds());
   };
 
   const [selectedMobileDateStr, setSelectedMobileDateStr] = useState<string>(() => {
@@ -232,12 +230,16 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
             activeLocation || location.id,
             employees
           );
-          if (isAlertIgnored || (!weekAnalysis.hasCritical && !weekAnalysis.hasPartial)) return null;
+          const activeGaps = weekAnalysis.weekGaps.filter((g) => !ignoredGapIds.includes(g.id));
+          if (activeGaps.length === 0) return null;
+
+          const currentGap = activeGaps[0];
+          const hasCritical = activeGaps.some((g) => g.severity === 'critical');
 
           return (
             <div
               className={`border rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in shadow-sm ${
-                weekAnalysis.hasCritical
+                currentGap.severity === 'critical'
                   ? 'bg-[#ffdad6]/40 border-[#f5c2bc]/70 text-neutral-900'
                   : 'bg-amber-50/70 border-amber-200 text-amber-950'
               }`}
@@ -245,7 +247,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
               <div className="flex items-center gap-2.5">
                 <div
                   className={`w-8 h-8 rounded-full text-white flex items-center justify-center flex-shrink-0 shadow-xs ${
-                    weekAnalysis.hasCritical ? 'bg-[#ba1a1a]' : 'bg-amber-500'
+                    currentGap.severity === 'critical' ? 'bg-[#ba1a1a]' : 'bg-amber-500'
                   }`}
                 >
                   <AlertTriangle size={17} />
@@ -253,28 +255,27 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                 <div>
                   <h4
                     className={`font-bold text-xs sm:text-sm ${
-                      weekAnalysis.hasCritical ? 'text-[#ba1a1a]' : 'text-amber-800'
+                      currentGap.severity === 'critical' ? 'text-[#ba1a1a]' : 'text-amber-800'
                     }`}
                   >
-                    {weekAnalysis.hasCritical
-                      ? 'Criticità Turno Rilevata: Rilevati Reparti Privi di Presidio nella Settimana!'
+                    {currentGap.severity === 'critical'
+                      ? 'Criticità Turno Rilevata: Reparto Privo di Presidio nella Settimana'
                       : 'Presidio Orario Incompleto: Rilevate Ore Scoperte nella Settimana'}
                   </h4>
                   <p
                     className={`text-[11px] mt-0.5 font-medium ${
-                      weekAnalysis.hasCritical ? 'text-neutral-600' : 'text-amber-900'
+                      currentGap.severity === 'critical' ? 'text-neutral-600' : 'text-amber-900'
                     }`}
                   >
-                    {weekAnalysis.weekGaps.length === 1
-                      ? `${weekAnalysis.weekGaps[0].dayMeta.dayName} ${weekAnalysis.weekGaps[0].dayMeta.dayNum}: ${weekAnalysis.weekGaps[0].department} ${weekAnalysis.weekGaps[0].hoursDescription.toLowerCase()}`
-                      : weekAnalysis.weekGaps.length <= 2
-                      ? weekAnalysis.weekGaps
-                          .map(
-                            (g) =>
-                              `${g.dayMeta.dayShort} ${g.dayMeta.dayNum}: ${g.department} (${g.hoursDescription.toLowerCase()})`
-                          )
-                          .join(' • ')
-                      : `Rilevate ${weekAnalysis.weekGaps.length} scoperture orarie o di reparto nella settimana selezionata.`}
+                    <span className="font-bold underline">
+                      {currentGap.dayMeta.dayName} {currentGap.dayMeta.dayNum}
+                    </span>
+                    {`: ${currentGap.department} ${currentGap.hoursDescription.toLowerCase()}`}
+                    {activeGaps.length > 1 && (
+                      <span className="text-neutral-500 font-normal ml-1">
+                        (+ altre {activeGaps.length - 1} criticità nei giorni successivi)
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>
@@ -282,23 +283,24 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
               <div className="flex items-center gap-2 self-start sm:self-auto">
                 <button
                   type="button"
-                  onClick={handleIgnoreAlert}
+                  onClick={() => handleIgnoreGap(currentGap.id)}
+                  title={`Ignora solo ${currentGap.department} del ${currentGap.dayMeta.dayShort} (${currentGap.startMissing}–${currentGap.endMissing})`}
                   className="px-3.5 py-2 rounded-xl border border-neutral-300 bg-white/90 hover:bg-white text-neutral-700 text-xs font-semibold active:scale-95 transition-all shadow-xs"
                 >
-                  Ignora
+                  Ignora questo presidio
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setIsWizardOpen(true)}
                   className={`font-semibold text-xs px-3.5 py-2 rounded-xl shadow-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all whitespace-nowrap text-white ${
-                    weekAnalysis.hasCritical
+                    hasCritical
                       ? 'bg-nicora-orange hover:bg-nicora-orange-hover'
                       : 'bg-amber-600 hover:bg-amber-700'
                   }`}
                 >
                   <UserSearch size={15} />
-                  <span>Trova Sostituto</span>
+                  <span>Trova Sostituto ({activeGaps.length})</span>
                 </button>
               </div>
             </div>
@@ -764,7 +766,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
             'standard',
             activeLocation || location.id,
             employees
-          ).weekGaps
+          ).weekGaps.filter((g) => !ignoredGapIds.includes(g.id))
         }
         employees={employees}
         shifts={storeShifts}
@@ -774,6 +776,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
             onApplyShift(newShift);
           }
         }}
+        onIgnoreGap={handleIgnoreGap}
       />
 
     </div>

@@ -48,6 +48,7 @@ export interface ScheduleGenerationResult {
 }
 
 export interface DepartmentGap {
+  id: string;                       // Identificativo univoco del gap (es. gazzada_2026-09-28_Cassa_14:30_19:30)
   dateStr: string;
   dayMeta: WeekDayMeta;
   department: Department;
@@ -364,14 +365,17 @@ export const detectDepartmentHourlyGap = (
 
   // 1. Scopertura Totale Giornaliera (Critica - Rosso): 0 persone per l'intera giornata
   if (deptShifts.length === 0) {
+    const startMissing = '08:30';
+    const endMissing = '19:30';
     return {
+      id: `${locationId || 'any'}_${dateStr}_${department}_${startMissing}_${endMissing}`,
       dateStr,
       dayMeta,
       department,
       severity: 'critical',
       hoursDescription: 'Scoperto tutto il giorno (08:30 — 19:30)',
-      startMissing: '08:30',
-      endMissing: '19:30',
+      startMissing,
+      endMissing,
     };
   }
 
@@ -423,27 +427,33 @@ export const detectDepartmentHourlyGap = (
 
   // Se mancano sia mattina che pomeriggio, è di fatto critica
   if (morningMissing && afternoonMissing) {
+    const startMissing = '08:30';
+    const endMissing = '19:30';
     return {
+      id: `${locationId || 'any'}_${dateStr}_${department}_${startMissing}_${endMissing}`,
       dateStr,
       dayMeta,
       department,
       severity: 'critical',
       hoursDescription: 'Scoperto tutto il giorno (08:30 — 19:30)',
-      startMissing: '08:30',
-      endMissing: '19:30',
+      startMissing,
+      endMissing,
     };
   }
 
   // Scopertura solo al mattino
   if (morningMissing) {
+    const startMissing = '08:30';
+    const endMissing = '12:30';
     return {
+      id: `${locationId || 'any'}_${dateStr}_${department}_${startMissing}_${endMissing}`,
       dateStr,
       dayMeta,
       department,
       severity: 'partial',
       hoursDescription: 'Scoperto al mattino (08:30 — 12:30)',
-      startMissing: '08:30',
-      endMissing: '12:30',
+      startMissing,
+      endMissing,
     };
   }
 
@@ -461,15 +471,18 @@ export const detectDepartmentHourlyGap = (
     const startMin = Math.max(870, latestEndMin);
     const startH = Math.floor(startMin / 60).toString().padStart(2, '0');
     const startM = (startMin % 60).toString().padStart(2, '0');
+    const startMissing = `${startH}:${startM}`;
+    const endMissing = '19:30';
 
     return {
+      id: `${locationId || 'any'}_${dateStr}_${department}_${startMissing}_${endMissing}`,
       dateStr,
       dayMeta,
       department,
       severity: 'partial',
       hoursDescription: `Scoperto dalle ${startH}:${startM} alle 19:30`,
-      startMissing: `${startH}:${startM}`,
-      endMissing: '19:30',
+      startMissing,
+      endMissing,
     };
   }
 
@@ -479,17 +492,25 @@ export const detectDepartmentHourlyGap = (
 /**
  * Analizza l'intera settimana (da Domenica a Sabato) identificando tutte le scoperture
  * in ordine cronologico per la sede specificata.
+ * Ignora i giorni passati rispetto alla data odierna se includePastDays è false.
  */
 export const calculateWeekHourlyCoverage = (
   weekDays: WeekDayMeta[],
   shifts: Shift[],
   mode: ScheduleMode = 'standard',
   locationId?: LocationId,
-  employees?: Employee[]
+  employees?: Employee[],
+  includePastDays: boolean = false
 ): WeekCoverageAnalysis => {
   const weekGaps: DepartmentGap[] = [];
+  const todayStr = formatLocalDate(new Date());
 
   weekDays.forEach((dayMeta) => {
+    // Escludi i giorni già trascorsi: non ha senso proporre sostituzioni o allarmi per ieri
+    if (!includePastDays && dayMeta.dateStr < todayStr) {
+      return;
+    }
+
     (DEPARTMENTS as Department[]).forEach((dept) => {
       const gap = detectDepartmentHourlyGap(dayMeta.dateStr, dayMeta, dept, shifts, mode, locationId, employees);
       if (gap) {
@@ -508,6 +529,47 @@ export const calculateWeekHourlyCoverage = (
     hasCritical: criticalGapsCount > 0,
     hasPartial: partialGapsCount > 0,
   };
+};
+
+// ==========================================
+// PERSISTENZA PUNTUALE DEGLI AVVISI IGNORATI
+// ==========================================
+const IGNORED_GAPS_STORAGE_KEY = 'nicora_ignored_gaps_v1';
+
+export const getIgnoredGapIds = (): string[] => {
+  try {
+    const raw = localStorage.getItem(IGNORED_GAPS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+};
+
+export const ignoreGapId = (gapId: string): void => {
+  const current = getIgnoredGapIds();
+  if (!current.includes(gapId)) {
+    const updated = [...current, gapId];
+    localStorage.setItem(IGNORED_GAPS_STORAGE_KEY, JSON.stringify(updated));
+  }
+};
+
+export const unignoreGapId = (gapId: string): void => {
+  const current = getIgnoredGapIds();
+  const updated = current.filter((id) => id !== gapId);
+  localStorage.setItem(IGNORED_GAPS_STORAGE_KEY, JSON.stringify(updated));
+};
+
+export const clearLegacyIgnoredAlerts = (): void => {
+  try {
+    // Rimuove vecchi flag generici che disattivavano erroneamente l'intera settimana
+    Object.keys(localStorage).forEach((k) => {
+      if (k.startsWith('nicora_ignored_alert_')) {
+        localStorage.removeItem(k);
+      }
+    });
+  } catch {
+    // ignore
+  }
 };
 
 /**

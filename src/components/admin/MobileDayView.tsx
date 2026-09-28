@@ -5,6 +5,9 @@ import {
   calculateDayCoverage,
   calculateEmployeeWeeklyHours,
   calculateWeekHourlyCoverage,
+  clearLegacyIgnoredAlerts,
+  getIgnoredGapIds,
+  ignoreGapId,
   WeekCoverageAnalysis,
 } from '../../engine/schedulerEngine';
 import { StaffSubstitutionWizard } from './StaffSubstitutionWizard';
@@ -124,20 +127,15 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
 
   const selectedDayMeta = weekDays.find((d) => d.dateStr === selectedDateStr) || weekDays[0];
 
-  // Gestione stato "Ignora" per la settimana selezionata
-  const weekStartDate = weekDays[0]?.dateStr || '';
-  const ignoredStorageKey = `nicora_ignored_alert_${activeLocation}_${weekStartDate}`;
-  const [isAlertIgnored, setIsAlertIgnored] = useState<boolean>(() => {
-    return localStorage.getItem(ignoredStorageKey) === 'true';
+  // Gestione stato "Ignora" puntuale per singola scopertura (sede + giorno + reparto + orario)
+  const [ignoredGapIds, setIgnoredGapIds] = useState<string[]>(() => {
+    clearLegacyIgnoredAlerts();
+    return getIgnoredGapIds();
   });
 
-  useEffect(() => {
-    setIsAlertIgnored(localStorage.getItem(ignoredStorageKey) === 'true');
-  }, [ignoredStorageKey]);
-
-  const handleIgnoreAlert = () => {
-    localStorage.setItem(ignoredStorageKey, 'true');
-    setIsAlertIgnored(true);
+  const handleIgnoreGap = (gapId: string) => {
+    ignoreGapId(gapId);
+    setIgnoredGapIds(getIgnoredGapIds());
   };
 
   // Analisi completa delle scoperture della settimana (sia critiche che orarie parziali) per la sede attiva
@@ -148,6 +146,12 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
     activeLocation,
     allStoreEmployees || employees
   );
+
+  // Filtra i gap rimuovendo solo quelli specificamente ignorati
+  const activeGaps = weekAnalysis.weekGaps.filter((g) => !ignoredGapIds.includes(g.id));
+  const hasActiveCritical = activeGaps.some((g) => g.severity === 'critical');
+  const hasActivePartial = activeGaps.some((g) => g.severity === 'partial');
+  const currentGap = activeGaps[0];
 
   // Turni del giorno selezionato
   const dayShifts = shifts.filter((s) => s.date === selectedDayMeta.dateStr);
@@ -316,10 +320,10 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
         </div>
 
         {/* --- BANNER ALLERTA CRITICITÀ SETTIMANALE (Stile Fedele a Stitch: Rosso per assenza totale, Giallo per ore scoperte) --- */}
-        {!isAlertIgnored && (weekAnalysis.hasCritical || weekAnalysis.hasPartial) && (
+        {activeGaps.length > 0 && currentGap && (
           <div
             className={`border rounded-2xl p-3.5 shadow-sm space-y-2.5 relative overflow-hidden animate-in fade-in ${
-              weekAnalysis.hasCritical
+              currentGap.severity === 'critical'
                 ? 'bg-[#ffdad6]/40 border-[#f5c2bc]/70'
                 : 'bg-amber-50/70 border-amber-200'
             }`}
@@ -327,7 +331,7 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
             <div className="flex items-start gap-2.5">
               <div
                 className={`w-7 h-7 rounded-full text-white flex items-center justify-center flex-shrink-0 shadow-xs mt-0.5 ${
-                  weekAnalysis.hasCritical ? 'bg-[#ba1a1a]' : 'bg-amber-500'
+                  currentGap.severity === 'critical' ? 'bg-[#ba1a1a]' : 'bg-amber-500'
                 }`}
               >
                 <AlertTriangle size={15} />
@@ -336,60 +340,63 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
                 <div className="flex items-center justify-between">
                   <span
                     className={`text-[10px] font-bold uppercase tracking-wider ${
-                      weekAnalysis.hasCritical ? 'text-[#ba1a1a]' : 'text-amber-800'
+                      currentGap.severity === 'critical' ? 'text-[#ba1a1a]' : 'text-amber-800'
                     }`}
                   >
-                    {weekAnalysis.hasCritical ? 'Criticità Turno Rilevata' : 'Presidio Orario Incompleto'}
+                    {currentGap.severity === 'critical' ? 'Criticità Turno Rilevata' : 'Presidio Orario Incompleto'}
                   </span>
                   <span className="text-[11px] font-semibold text-neutral-500">
-                    {weekAnalysis.weekGaps.length === 1
-                      ? `${weekAnalysis.weekGaps[0].dayMeta.dayShort} ${weekAnalysis.weekGaps[0].dayMeta.dayNum}`
-                      : `${weekAnalysis.weekGaps.length} scoperture`}
+                    {activeGaps.length === 1
+                      ? `${currentGap.dayMeta.dayShort} ${currentGap.dayMeta.dayNum}`
+                      : `${activeGaps.length} scoperture`}
                   </span>
                 </div>
                 <p
                   className={`text-xs font-semibold mt-0.5 leading-snug ${
-                    weekAnalysis.hasCritical ? 'text-[#151d1b]' : 'text-amber-950'
+                    currentGap.severity === 'critical' ? 'text-[#151d1b]' : 'text-amber-950'
                   }`}
                 >
-                  {weekAnalysis.weekGaps.length === 1 ? (
-                    `${weekAnalysis.weekGaps[0].dayMeta.dayName} ${weekAnalysis.weekGaps[0].dayMeta.dayNum}: ${weekAnalysis.weekGaps[0].department} ${weekAnalysis.weekGaps[0].hoursDescription.toLowerCase()}`
-                  ) : weekAnalysis.weekGaps.length <= 2 ? (
-                    weekAnalysis.weekGaps
-                      .map(
-                        (g) =>
-                          `${g.dayMeta.dayShort} ${g.dayMeta.dayNum}: ${g.department} (${g.hoursDescription.toLowerCase()})`
-                      )
-                      .join(' • ')
-                  ) : (
-                    `Rilevate ${weekAnalysis.weekGaps.length} scoperture orarie o di reparto nella settimana selezionata.`
+                  <span className="font-bold underline decoration-amber-400/50">
+                    {currentGap.dayMeta.dayName} {currentGap.dayMeta.dayNum}
+                  </span>
+                  {`: ${currentGap.department} ${currentGap.hoursDescription.toLowerCase()}`}
+                  {activeGaps.length > 1 && (
+                    <span className="block text-[11px] font-normal text-neutral-500 mt-0.5">
+                      (+ altre {activeGaps.length - 1} criticità nei giorni successivi)
+                    </span>
                   )}
                 </p>
               </div>
             </div>
 
-            {/* Pulsanti: Ignora e Trova Sostituto Guidato */}
-            <div className="flex items-center justify-end gap-2 pt-1">
-              <button
-                type="button"
-                onClick={handleIgnoreAlert}
-                className="px-3 py-1.5 rounded-xl border border-neutral-300 bg-white/90 hover:bg-white text-neutral-700 text-xs font-semibold active:scale-95 transition-all shadow-xs"
-              >
-                Ignora
-              </button>
+            {/* Pulsanti: Ignora solo questo presidio e Trova Sostituto Guidato */}
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[10px] text-neutral-400 italic">
+                {activeGaps.length > 1 ? `1 di ${activeGaps.length}` : ''}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleIgnoreGap(currentGap.id)}
+                  title={`Ignora solo ${currentGap.department} del ${currentGap.dayMeta.dayShort} (${currentGap.startMissing}–${currentGap.endMissing})`}
+                  className="px-3 py-1.5 rounded-xl border border-neutral-300 bg-white/90 hover:bg-white text-neutral-700 text-xs font-semibold active:scale-95 transition-all shadow-xs"
+                >
+                  Ignora questo presidio
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setIsWizardOpen(true)}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-white shadow-xs text-xs font-semibold active:scale-95 transition-all ${
-                  weekAnalysis.hasCritical
-                    ? 'bg-nicora-orange hover:bg-nicora-orange-hover'
-                    : 'bg-amber-600 hover:bg-amber-700'
-                }`}
-              >
-                <UserSearch size={15} />
-                <span>Trova Sostituto</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setIsWizardOpen(true)}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-white shadow-xs text-xs font-semibold active:scale-95 transition-all ${
+                    hasActiveCritical
+                      ? 'bg-nicora-orange hover:bg-nicora-orange-hover'
+                      : 'bg-amber-600 hover:bg-amber-700'
+                  }`}
+                >
+                  <UserSearch size={15} />
+                  <span>Trova Sostituto</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -679,7 +686,7 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
       <StaffSubstitutionWizard
         isOpen={isWizardOpen}
         onClose={() => setIsWizardOpen(false)}
-        gaps={weekAnalysis.weekGaps}
+        gaps={activeGaps}
         employees={allStoreEmployees || employees}
         shifts={shifts}
         locationId={activeLocation}
@@ -688,6 +695,7 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
             onApplyShift(newShift);
           }
         }}
+        onIgnoreGap={handleIgnoreGap}
       />
     </div>
   );

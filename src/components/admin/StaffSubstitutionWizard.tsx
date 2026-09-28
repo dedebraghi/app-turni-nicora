@@ -23,6 +23,7 @@ interface StaffSubstitutionWizardProps {
   shifts: Shift[];
   locationId: LocationId;
   onApplyShift: (newShift: Shift) => void;
+  onIgnoreGap?: (gapId: string) => void;
   onComplete?: () => void;
 }
 
@@ -42,6 +43,7 @@ export const StaffSubstitutionWizard: React.FC<StaffSubstitutionWizardProps> = (
   shifts,
   locationId,
   onApplyShift,
+  onIgnoreGap,
   onComplete,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -104,6 +106,9 @@ export const StaffSubstitutionWizard: React.FC<StaffSubstitutionWizardProps> = (
   };
 
   const handleSkip = () => {
+    if (currentGap && onIgnoreGap) {
+      onIgnoreGap(currentGap.id);
+    }
     const nextIdx = currentIndex + 1;
     setCurrentIndex(nextIdx);
     if (nextIdx >= gaps.length && onComplete) {
@@ -331,9 +336,9 @@ export const StaffSubstitutionWizard: React.FC<StaffSubstitutionWizardProps> = (
             <button
               type="button"
               onClick={handleSkip}
-              className="px-3 py-2 text-xs font-semibold text-neutral-600 hover:text-neutral-800 flex items-center gap-1"
+              className="px-3 py-2 text-xs font-semibold text-neutral-600 hover:text-neutral-800 flex items-center gap-1.5"
             >
-              <span>Salta questo turno</span>
+              <span>Ignora questo presidio</span>
               <ArrowRight size={14} />
             </button>
 
