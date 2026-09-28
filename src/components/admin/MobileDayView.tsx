@@ -4,6 +4,7 @@ import { DEPARTMENT_COLORS, SHIFT_COLORS } from '../../domain/rules';
 import { calculateDayCoverage, calculateEmployeeWeeklyHours } from '../../engine/schedulerEngine';
 import { MobileHeader } from '../layout/MobileHeader';
 import {
+  AlertTriangle,
   Calendar,
   ChevronLeft,
   ChevronRight,
@@ -14,10 +15,10 @@ import {
   Receipt,
   Search,
   Share2,
-  ShieldAlert,
   Sparkles,
   Sun,
   TreePine,
+  UserSearch,
   Users,
   Zap,
 } from 'lucide-react';
@@ -284,39 +285,54 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
           )}
         </div>
 
-        {/* --- BANNER ALLERTA CRITICITÀ SETTIMANALE --- */}
+        {/* --- BANNER ALLERTA CRITICITÀ SETTIMANALE (Stile Fedele a Stitch) --- */}
         {daysWithUncovered.length > 0 && (
-          <div className="bg-rose-50 border border-rose-200 rounded-2xl p-3.5 shadow-clean space-y-2">
+          <div className="bg-[#ffdad6]/40 border border-[#f5c2bc]/70 rounded-2xl p-3.5 shadow-sm space-y-2.5 relative overflow-hidden">
             <div className="flex items-start gap-2.5">
-              <div className="w-7 h-7 rounded-xl bg-rose-600 text-white flex items-center justify-center flex-shrink-0 shadow-xs mt-0.5">
-                <ShieldAlert size={16} />
+              <div className="w-7 h-7 rounded-full bg-[#ba1a1a] text-white flex items-center justify-center flex-shrink-0 shadow-xs mt-0.5">
+                <AlertTriangle size={15} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-extrabold uppercase text-rose-700 tracking-wider">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#ba1a1a]">
                     Criticità Turno Rilevata
                   </span>
-                  <span className="text-[10px] font-bold text-neutral-500">
-                    {daysWithUncovered.length} {daysWithUncovered.length === 1 ? 'giorno' : 'giorni'}
+                  <span className="text-[11px] font-semibold text-neutral-500">
+                    {daysWithUncovered.length === 1
+                      ? (() => {
+                          const dm = weekDays.find((w) => w.dateStr === daysWithUncovered[0].dateStr);
+                          return `${dm?.dayShort || ''} ${daysWithUncovered[0].dateStr.slice(8)}`;
+                        })()
+                      : `${daysWithUncovered.length} giorni`}
                   </span>
                 </div>
-                <p className="text-xs text-rose-950 font-bold mt-0.5 leading-snug">
-                  {daysWithUncovered
-                    .map((d) => {
+                <p className="text-xs font-semibold text-[#151d1b] mt-0.5 leading-snug">
+                  {daysWithUncovered.length === 1 ? (
+                    (() => {
+                      const d = daysWithUncovered[0];
                       const dayMeta = weekDays.find((w) => w.dateStr === d.dateStr);
-                      return `${dayMeta?.dayShort || ''} ${d.dateStr.slice(8)}: ${d.uncoveredDepartments.join(', ')}`;
-                    })
-                    .join(' • ')}
+                      return `${dayMeta?.dayName || ''} ${d.dateStr.slice(8)}: scoperti reparti ${d.uncoveredDepartments.join(', ')} per l'afflusso del negozio!`;
+                    })()
+                  ) : daysWithUncovered.length <= 2 ? (
+                    daysWithUncovered
+                      .map((d) => {
+                        const dayMeta = weekDays.find((w) => w.dateStr === d.dateStr);
+                        return `${dayMeta?.dayName || ''} ${d.dateStr.slice(8)}: scoperti ${d.uncoveredDepartments.join(', ')}`;
+                      })
+                      .join(' • ')
+                  ) : (
+                    `Rilevati ${daysWithUncovered.length} giorni con presidi incompleti nella settimana (es. Cassa, Fioreria e Serre).`
+                  )}
                 </p>
               </div>
             </div>
             {onOpenEmergencyModal && (
-              <div className="flex justify-end pt-1">
+              <div className="flex items-center justify-end pt-1">
                 <button
                   onClick={() => onOpenEmergencyModal()}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 text-white text-xs font-bold active:scale-95 transition-transform shadow-xs"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-nicora-orange hover:bg-nicora-orange-hover text-white shadow-xs text-xs font-semibold active:scale-95 transition-all"
                 >
-                  <ShieldAlert size={14} />
+                  <UserSearch size={15} />
                   <span>Trova Sostituto Rapido</span>
                 </button>
               </div>

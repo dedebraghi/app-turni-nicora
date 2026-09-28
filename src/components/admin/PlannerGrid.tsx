@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   Smartphone,
   Sparkles,
+  UserSearch,
   Zap,
 } from 'lucide-react';
 import { MobileDayView } from './MobileDayView';
@@ -200,7 +201,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
 
         </div>
 
-        {/* Banner Allarme Scopertura Reparti Desktop (se ci sono reparti a 0) */}
+        {/* Banner Allarme Scopertura Reparti Desktop (Stile Stitch) */}
         {(() => {
           const weekCoverage = weekDays.map((d) => calculateDayCoverage(d.dateStr, storeShifts));
           const daysWithUncovered = weekCoverage.filter((c) => c.uncoveredDepartments.length > 0);
@@ -208,29 +209,33 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
           if (daysWithUncovered.length === 0) return null;
 
           return (
-            <div className="bg-rose-50 border-2 border-rose-300 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-rose-950 animate-in fade-in">
+            <div className="bg-[#ffdad6]/40 border border-[#f5c2bc]/70 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-neutral-900 animate-in fade-in shadow-sm">
               <div className="flex items-center gap-2.5">
-                <ShieldAlert size={24} className="text-rose-600 flex-shrink-0 animate-pulse" />
+                <div className="w-8 h-8 rounded-full bg-[#ba1a1a] text-white flex items-center justify-center flex-shrink-0 shadow-xs">
+                  <AlertTriangle size={17} />
+                </div>
                 <div>
-                  <h4 className="font-black text-xs sm:text-sm text-rose-900">
-                    ⚠️ Attenzione Direzione: Rilevati Reparti Privi di Presidio nella Settimana!
+                  <h4 className="font-bold text-xs sm:text-sm text-[#ba1a1a]">
+                    Criticità Turno Rilevata: Rilevati Reparti Privi di Presidio nella Settimana!
                   </h4>
-                  <p className="text-[11px] text-rose-700 mt-0.5">
-                    {daysWithUncovered
-                      .map((d) => {
-                        const dayMeta = weekDays.find((w) => w.dateStr === d.dateStr);
-                        return `${dayMeta?.dayShort || ''} ${d.dateStr.slice(8)}: ${d.uncoveredDepartments.join(', ')} scoperto`;
-                      })
-                      .join(' • ')}
+                  <p className="text-[11px] text-neutral-600 mt-0.5 font-medium">
+                    {daysWithUncovered.length <= 2
+                      ? daysWithUncovered
+                          .map((d) => {
+                            const dayMeta = weekDays.find((w) => w.dateStr === d.dateStr);
+                            return `${dayMeta?.dayShort || ''} ${d.dateStr.slice(8)}: ${d.uncoveredDepartments.join(', ')} scoperto`;
+                          })
+                          .join(' • ')
+                      : `Rilevati ${daysWithUncovered.length} giorni con presidi incompleti (es. Cassa, Fioreria e Serre).`}
                   </p>
                 </div>
               </div>
 
               <button
                 onClick={() => onOpenEmergencyModal()}
-                className="bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs px-3.5 py-2 rounded-xl shadow-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all whitespace-nowrap self-start sm:self-auto"
+                className="bg-nicora-orange hover:bg-nicora-orange-hover text-white font-semibold text-xs px-3.5 py-2 rounded-xl shadow-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all whitespace-nowrap self-start sm:self-auto"
               >
-                <ShieldAlert size={14} />
+                <UserSearch size={15} />
                 <span>Trova Sostituto Rapido</span>
               </button>
             </div>
