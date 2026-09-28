@@ -343,14 +343,22 @@ export const detectDepartmentHourlyGap = (
   dayMeta: WeekDayMeta,
   department: Department,
   shifts: Shift[],
-  mode: ScheduleMode = 'standard'
+  mode: ScheduleMode = 'standard',
+  locationId?: LocationId,
+  employees?: Employee[]
 ): DepartmentGap | null => {
-  const isWorking = (s: Shift) =>
-    s.date === dateStr &&
-    s.department === department &&
-    s.type !== 'riposo' &&
-    s.type !== 'ferie' &&
-    s.type !== 'malattia';
+  const isWorking = (s: Shift) => {
+    if (s.date !== dateStr) return false;
+    if (locationId && s.locationId !== locationId) return false;
+    if (s.type === 'riposo' || s.type === 'ferie' || s.type === 'malattia') return false;
+
+    const emp = employees?.find((e) => e.id === s.employeeId);
+    const effectiveDept = s.department || emp?.role;
+    const isDept =
+      effectiveDept === department ||
+      (department === 'Cassa' && (s.department === 'Cassa' || s.areaNote?.toLowerCase().includes('cassa')));
+    return isDept;
+  };
 
   const deptShifts = shifts.filter(isWorking);
 
@@ -369,14 +377,22 @@ export const detectDepartmentHourlyGap = (
 
   // Verifica della copertura oraria nei singoli slot di 30 minuti
   const coversSlot = (s: Shift, min: number): boolean => {
-    if (s.type === 'giornata' && !s.isCustomHours && mode === 'standard') {
+    // Se ha orari espliciti personalizzati o terminazione diversa da orario standard
+    if (s.startTime && s.endTime && (s.isCustomHours || s.startTime !== '08:30' || s.endTime !== '19:30')) {
+      const [sh, sm] = s.startTime.split(':').map(Number);
+      const [eh, em] = s.endTime.split(':').map(Number);
+      const startMin = sh * 60 + sm;
+      const endMin = eh * 60 + em;
+      return min >= startMin && min < endMin;
+    }
+    if (s.type === 'giornata' && mode === 'standard') {
       // Spezzato standard: 08:30-12:30 (510..750) e 14:30-19:30 (870..1170)
       return (min >= 510 && min < 750) || (min >= 870 && min < 1170);
     }
-    if (s.type === 'mattina' && !s.isCustomHours) {
+    if (s.type === 'mattina') {
       return min >= 510 && min < 750;
     }
-    if (s.type === 'pomeriggio' && !s.isCustomHours) {
+    if (s.type === 'pomeriggio') {
       return min >= 870 && min < 1170;
     }
     if (s.startTime && s.endTime) {
@@ -462,18 +478,20 @@ export const detectDepartmentHourlyGap = (
 
 /**
  * Analizza l'intera settimana (da Domenica a Sabato) identificando tutte le scoperture
- * in ordine cronologico.
+ * in ordine cronologico per la sede specificata.
  */
 export const calculateWeekHourlyCoverage = (
   weekDays: WeekDayMeta[],
   shifts: Shift[],
-  mode: ScheduleMode = 'standard'
+  mode: ScheduleMode = 'standard',
+  locationId?: LocationId,
+  employees?: Employee[]
 ): WeekCoverageAnalysis => {
   const weekGaps: DepartmentGap[] = [];
 
   weekDays.forEach((dayMeta) => {
     (DEPARTMENTS as Department[]).forEach((dept) => {
-      const gap = detectDepartmentHourlyGap(dayMeta.dateStr, dayMeta, dept, shifts, mode);
+      const gap = detectDepartmentHourlyGap(dayMeta.dateStr, dayMeta, dept, shifts, mode, locationId, employees);
       if (gap) {
         weekGaps.push(gap);
       }

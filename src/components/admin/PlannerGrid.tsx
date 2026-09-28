@@ -225,7 +225,13 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
 
         {/* Banner Allarme Scopertura Reparti Desktop (Stile Stitch: Rosso per assenza totale, Giallo per ore scoperte) */}
         {(() => {
-          const weekAnalysis: WeekCoverageAnalysis = calculateWeekHourlyCoverage(weekDays, storeShifts);
+          const weekAnalysis: WeekCoverageAnalysis = calculateWeekHourlyCoverage(
+            weekDays,
+            storeShifts,
+            'standard',
+            activeLocation || location.id,
+            employees
+          );
           if (isAlertIgnored || (!weekAnalysis.hasCritical && !weekAnalysis.hasPartial)) return null;
 
           return (
@@ -751,7 +757,15 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
       <StaffSubstitutionWizard
         isOpen={isWizardOpen}
         onClose={() => setIsWizardOpen(false)}
-        gaps={calculateWeekHourlyCoverage(weekDays, storeShifts).weekGaps}
+        gaps={
+          calculateWeekHourlyCoverage(
+            weekDays,
+            storeShifts,
+            'standard',
+            activeLocation || location.id,
+            employees
+          ).weekGaps
+        }
         employees={employees}
         shifts={storeShifts}
         locationId={activeLocation || location.id}

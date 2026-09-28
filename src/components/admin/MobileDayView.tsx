@@ -140,8 +140,14 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
     setIsAlertIgnored(true);
   };
 
-  // Analisi completa delle scoperture della settimana (sia critiche che orarie parziali)
-  const weekAnalysis: WeekCoverageAnalysis = calculateWeekHourlyCoverage(weekDays, shifts);
+  // Analisi completa delle scoperture della settimana (sia critiche che orarie parziali) per la sede attiva
+  const weekAnalysis: WeekCoverageAnalysis = calculateWeekHourlyCoverage(
+    weekDays,
+    shifts,
+    'standard',
+    activeLocation,
+    allStoreEmployees || employees
+  );
 
   // Turni del giorno selezionato
   const dayShifts = shifts.filter((s) => s.date === selectedDayMeta.dateStr);
