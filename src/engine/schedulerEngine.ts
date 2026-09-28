@@ -47,6 +47,32 @@ export interface ScheduleGenerationResult {
   };
 }
 
+export interface DepartmentGap {
+  dateStr: string;
+  dayMeta: WeekDayMeta;
+  department: Department;
+  severity: 'critical' | 'partial'; // 'critical' = 0 persone tutto il giorno (Rosso), 'partial' = ore scoperte tra 08:30 e 19:30 (Giallo)
+  hoursDescription: string;         // es. "Scoperto tutto il giorno (08:30 — 19:30)" o "Scoperto dalle 14:30 alle 19:30"
+  startMissing: string;             // es. "08:30" o "14:30"
+  endMissing: string;               // es. "19:30" o "12:30"
+}
+
+export interface WeekCoverageAnalysis {
+  weekGaps: DepartmentGap[];
+  criticalGapsCount: number;
+  partialGapsCount: number;
+  hasCritical: boolean;
+  hasPartial: boolean;
+}
+
+export interface ReplacementCandidate {
+  employee: Employee;
+  skillScore: number;
+  isAvailable: boolean;
+  statusLabel: string;
+  isMobile: boolean;
+}
+
 /**
  * Formatta un oggetto Date nel formato locale YYYY-MM-DD senza alterazioni di fuso orario UTC.
  */
@@ -309,6 +335,230 @@ export const calculateDayCoverage = (
 };
 
 /**
+ * Rileva eventuali scoperture orarie o giornaliere per un reparto in una data specifica
+ * tra le ore di apertura del negozio (08:30 — 19:30).
+ */
+export const detectDepartmentHourlyGap = (
+  dateStr: string,
+  dayMeta: WeekDayMeta,
+  department: Department,
+  shifts: Shift[],
+  mode: ScheduleMode = 'standard'
+): DepartmentGap | null => {
+  const isWorking = (s: Shift) =>
+    s.date === dateStr &&
+    s.department === department &&
+    s.type !== 'riposo' &&
+    s.type !== 'ferie' &&
+    s.type !== 'malattia';
+
+  const deptShifts = shifts.filter(isWorking);
+
+  // 1. Scopertura Totale Giornaliera (Critica - Rosso): 0 persone per l'intera giornata
+  if (deptShifts.length === 0) {
+    return {
+      dateStr,
+      dayMeta,
+      department,
+      severity: 'critical',
+      hoursDescription: 'Scoperto tutto il giorno (08:30 — 19:30)',
+      startMissing: '08:30',
+      endMissing: '19:30',
+    };
+  }
+
+  // Verifica della copertura oraria nei singoli slot di 30 minuti
+  const coversSlot = (s: Shift, min: number): boolean => {
+    if (s.type === 'giornata' && !s.isCustomHours && mode === 'standard') {
+      // Spezzato standard: 08:30-12:30 (510..750) e 14:30-19:30 (870..1170)
+      return (min >= 510 && min < 750) || (min >= 870 && min < 1170);
+    }
+    if (s.type === 'mattina' && !s.isCustomHours) {
+      return min >= 510 && min < 750;
+    }
+    if (s.type === 'pomeriggio' && !s.isCustomHours) {
+      return min >= 870 && min < 1170;
+    }
+    if (s.startTime && s.endTime) {
+      const [sh, sm] = s.startTime.split(':').map(Number);
+      const [eh, em] = s.endTime.split(':').map(Number);
+      const startMin = sh * 60 + sm;
+      const endMin = eh * 60 + em;
+      return min >= startMin && min < endMin;
+    }
+    return true;
+  };
+
+  const checkSlots: number[] = [];
+  if (mode === 'standard') {
+    for (let m = 510; m < 750; m += 30) checkSlots.push(m);
+    for (let m = 870; m < 1170; m += 30) checkSlots.push(m);
+  } else {
+    for (let m = 540; m < 1170; m += 30) checkSlots.push(m);
+  }
+
+  const uncoveredSlots = checkSlots.filter((min) => !deptShifts.some((s) => coversSlot(s, min)));
+  if (uncoveredSlots.length === 0) {
+    return null; // Reparto coperto al 100% per tutto l'orario di apertura
+  }
+
+  const morningMissing = uncoveredSlots.some((m) => m < 750);
+  const afternoonMissing = uncoveredSlots.some((m) => m >= 870);
+
+  // Se mancano sia mattina che pomeriggio, è di fatto critica
+  if (morningMissing && afternoonMissing) {
+    return {
+      dateStr,
+      dayMeta,
+      department,
+      severity: 'critical',
+      hoursDescription: 'Scoperto tutto il giorno (08:30 — 19:30)',
+      startMissing: '08:30',
+      endMissing: '19:30',
+    };
+  }
+
+  // Scopertura solo al mattino
+  if (morningMissing) {
+    return {
+      dateStr,
+      dayMeta,
+      department,
+      severity: 'partial',
+      hoursDescription: 'Scoperto al mattino (08:30 — 12:30)',
+      startMissing: '08:30',
+      endMissing: '12:30',
+    };
+  }
+
+  // Scopertura al pomeriggio (es. chiude o finisce alle 14:30 o 12:30)
+  if (afternoonMissing) {
+    const latestEndMin = Math.max(
+      ...deptShifts.map((s) => {
+        if (s.endTime) {
+          const [h, m] = s.endTime.split(':').map(Number);
+          return h * 60 + m;
+        }
+        return 750;
+      })
+    );
+    const startMin = Math.max(870, latestEndMin);
+    const startH = Math.floor(startMin / 60).toString().padStart(2, '0');
+    const startM = (startMin % 60).toString().padStart(2, '0');
+
+    return {
+      dateStr,
+      dayMeta,
+      department,
+      severity: 'partial',
+      hoursDescription: `Scoperto dalle ${startH}:${startM} alle 19:30`,
+      startMissing: `${startH}:${startM}`,
+      endMissing: '19:30',
+    };
+  }
+
+  return null;
+};
+
+/**
+ * Analizza l'intera settimana (da Domenica a Sabato) identificando tutte le scoperture
+ * in ordine cronologico.
+ */
+export const calculateWeekHourlyCoverage = (
+  weekDays: WeekDayMeta[],
+  shifts: Shift[],
+  mode: ScheduleMode = 'standard'
+): WeekCoverageAnalysis => {
+  const weekGaps: DepartmentGap[] = [];
+
+  weekDays.forEach((dayMeta) => {
+    (DEPARTMENTS as Department[]).forEach((dept) => {
+      const gap = detectDepartmentHourlyGap(dayMeta.dateStr, dayMeta, dept, shifts, mode);
+      if (gap) {
+        weekGaps.push(gap);
+      }
+    });
+  });
+
+  const criticalGapsCount = weekGaps.filter((g) => g.severity === 'critical').length;
+  const partialGapsCount = weekGaps.filter((g) => g.severity === 'partial').length;
+
+  return {
+    weekGaps,
+    criticalGapsCount,
+    partialGapsCount,
+    hasCritical: criticalGapsCount > 0,
+    hasPartial: partialGapsCount > 0,
+  };
+};
+
+/**
+ * Trova e ordina i migliori candidati per sostituire/coprire una scopertura (giornaliera o oraria).
+ * Esclude chi è già impegnato in quell'orario, dando massima priorità a chi ha il punteggio di
+ * competenza più alto nel reparto.
+ */
+export const findCandidatesForGap = ({
+  gap,
+  employees,
+  shifts,
+  locationId,
+}: {
+  gap: DepartmentGap;
+  employees: Employee[];
+  shifts: Shift[];
+  locationId: LocationId;
+}): ReplacementCandidate[] => {
+  const storeStaff = employees.filter((e) => e.locationId === locationId && e.isActive !== false);
+  const mobileStaff = employees.filter((e) => e.locationId !== locationId && e.isMobile && e.isActive !== false);
+  const allCandidates = [...storeStaff, ...mobileStaff];
+
+  return allCandidates
+    .map((emp) => {
+      const shiftToday = shifts.find((s) => s.employeeId === emp.id && s.date === gap.dateStr);
+      const isAtRest = !shiftToday || shiftToday.type === 'riposo';
+      const isLeave = shiftToday && (shiftToday.type === 'ferie' || shiftToday.type === 'malattia');
+
+      let isAvailable = false;
+      let statusLabel = 'Non disponibile';
+
+      if (isLeave) {
+        isAvailable = false;
+        statusLabel = shiftToday.type === 'ferie' ? 'In ferie' : 'In malattia';
+      } else if (isAtRest) {
+        isAvailable = true;
+        statusLabel = 'A riposo (Disponibile)';
+      } else if (shiftToday.endTime && gap.startMissing && shiftToday.endTime <= gap.startMissing) {
+        isAvailable = true;
+        statusLabel = `Disponibile dopo le ${shiftToday.endTime}`;
+      } else if (shiftToday.startTime && gap.endMissing && shiftToday.startTime >= gap.endMissing) {
+        isAvailable = true;
+        statusLabel = `Disponibile fino alle ${shiftToday.startTime}`;
+      } else {
+        isAvailable = false;
+        statusLabel = `In servizio (${shiftToday.startTime || '08:30'}–${shiftToday.endTime || '19:30'})`;
+      }
+
+      const skillScore = emp.skills?.[gap.department] ?? 1;
+      const isMobile = emp.locationId !== locationId;
+
+      return {
+        employee: emp,
+        skillScore,
+        isAvailable,
+        statusLabel,
+        isMobile,
+      };
+    })
+    .filter((c) => c.isAvailable)
+    .sort((a, b) => {
+      if (b.skillScore !== a.skillScore) return b.skillScore - a.skillScore;
+      if (!a.isMobile && b.isMobile) return -1;
+      if (a.isMobile && !b.isMobile) return 1;
+      return a.employee.name.localeCompare(b.employee.name);
+    });
+};
+
+/**
  * Calibra l'orario e la durata giornaliera su 5 giorni per raggiungere le ore contrattuali.
  */
 function getDailyShiftSchedule(
@@ -428,13 +678,19 @@ function getDailyShiftSchedule(
  */
 function assignDepartmentsOptimal(
   availableStaff: Employee[],
-  isMerchandiseArrival: boolean
+  isMerchandiseArrival: boolean,
+  alreadyCoveredDepts: Set<Department> = new Set()
 ): {
   primaryAssignments: { emp: Employee; dept: Department; note: string; assignedSkillScore: number }[];
   missingDepartments: Department[];
 } {
-  const depts: Department[] = ['Cassa', 'Fioreria', 'Decor', 'Serra Calda', 'Serra Fredda'];
+  const allDepts: Department[] = ['Cassa', 'Fioreria', 'Decor', 'Serra Calda', 'Serra Fredda'];
+  const depts = allDepts.filter((d) => !alreadyCoveredDepts.has(d));
   const primaryAssignments: { emp: Employee; dept: Department; note: string; assignedSkillScore: number }[] = [];
+
+  if (depts.length === 0) {
+    return { primaryAssignments: [], missingDepartments: [] };
+  }
 
   if (availableStaff.length === 0) {
     return { primaryAssignments: [], missingDepartments: [...depts] };
@@ -723,7 +979,8 @@ export const generateWeeklySchedule = ({
     // Assegnazione ottimizzata globale dei 5 reparti
     const { primaryAssignments, missingDepartments } = assignDepartmentsOptimal(
       availableStaff,
-      isMerchandiseArrival
+      isMerchandiseArrival,
+      coveredDeptsToday
     );
 
     const assignedEmpIds = new Set<string>();
@@ -960,8 +1217,6 @@ export const generateMonthlySchedule = ({
   const warnings: string[] = [];
   let totalCassaScoreSum = 0;
   let totalWeeks = 0;
-  let allDepartmentsCovered = true;
-  const uncoveredDaysMap = new Map<string, Department[]>();
 
   let currSunday = new Date(firstSunday);
 
@@ -984,13 +1239,6 @@ export const generateMonthlySchedule = ({
     totalCassaScoreSum += weekRes.stats.cassaCoverageScore;
     totalWeeks++;
 
-    if (!weekRes.stats.allDepartmentsCovered) {
-      allDepartmentsCovered = false;
-      weekRes.stats.uncoveredDays.forEach((ud) => {
-        uncoveredDaysMap.set(ud.dateStr, ud.departments);
-      });
-    }
-
     warnings.push(...weekRes.stats.warnings);
 
     // Salta alla settimana successiva (+7 giorni)
@@ -1012,10 +1260,21 @@ export const generateMonthlySchedule = ({
     employeesWorkingHours[emp.id] = weeklySummary;
   });
 
-  const uncoveredDaysList = Array.from(uncoveredDaysMap.entries()).map(([dateStr, departments]) => ({
-    dateStr,
-    departments,
-  }));
+  const uncoveredDaysList: { dateStr: string; departments: Department[] }[] = [];
+  const daysInMonth = lastDayOfMonth.getDate();
+  for (let d = 1; d <= daysInMonth; d++) {
+    const curDate = new Date(year, month - 1, d);
+    const dateStr = formatLocalDate(curDate);
+    const dayCov = calculateDayCoverage(dateStr, uniqueShifts, storeStaff);
+    if (dayCov.uncoveredDepartments.length > 0) {
+      uncoveredDaysList.push({
+        dateStr,
+        departments: dayCov.uncoveredDepartments,
+      });
+    }
+  }
+
+  const allDepartmentsCovered = uncoveredDaysList.length === 0;
 
   return {
     shifts: uniqueShifts,

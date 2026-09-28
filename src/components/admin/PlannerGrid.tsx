@@ -4,10 +4,13 @@ import { calculateFairnessMetrics } from '../../engine/fairnessTracker';
 import {
   calculateDayCoverage,
   calculateEmployeeWeeklyHours,
+  calculateWeekHourlyCoverage,
   formatLocalDate,
   getSundayOfWeek,
   getWeekDays,
+  WeekCoverageAnalysis,
 } from '../../engine/schedulerEngine';
+import { StaffSubstitutionWizard } from './StaffSubstitutionWizard';
 import {
   AlertTriangle,
   Award,
@@ -39,6 +42,7 @@ interface PlannerGridProps {
   onOpenSkillsModal: () => void;
   onOpenEmergencyModal: (shift?: Shift) => void;
   onOpenExportModal: () => void;
+  onApplyShift?: (shift: Shift) => void;
   onApproveRequest?: (requestId: string) => void;
   onRejectRequest?: (requestId: string) => void;
   currentEmployee?: Employee;
@@ -59,6 +63,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
   onOpenSkillsModal,
   onOpenEmergencyModal,
   onOpenExportModal,
+  onApplyShift,
   onApproveRequest,
   onRejectRequest,
   currentEmployee,
@@ -70,12 +75,29 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
   const [weekOffset, setWeekOffset] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>('all');
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
 
   const baseSunday = getSundayOfWeek(new Date());
   baseSunday.setDate(baseSunday.getDate() + weekOffset * 7);
   const baseSundayStr = formatLocalDate(baseSunday);
 
   const weekDays = getWeekDays(baseSundayStr);
+
+  // Gestione stato "Ignora" per la settimana selezionata
+  const weekStartDate = weekDays[0]?.dateStr || '';
+  const ignoredStorageKey = `nicora_ignored_alert_${activeLocation || location.id}_${weekStartDate}`;
+  const [isAlertIgnored, setIsAlertIgnored] = useState<boolean>(() => {
+    return localStorage.getItem(ignoredStorageKey) === 'true';
+  });
+
+  useEffect(() => {
+    setIsAlertIgnored(localStorage.getItem(ignoredStorageKey) === 'true');
+  }, [ignoredStorageKey]);
+
+  const handleIgnoreAlert = () => {
+    localStorage.setItem(ignoredStorageKey, 'true');
+    setIsAlertIgnored(true);
+  };
 
   const [selectedMobileDateStr, setSelectedMobileDateStr] = useState<string>(() => {
     return formatLocalDate(new Date());
@@ -201,43 +223,78 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
 
         </div>
 
-        {/* Banner Allarme Scopertura Reparti Desktop (Stile Stitch) */}
+        {/* Banner Allarme Scopertura Reparti Desktop (Stile Stitch: Rosso per assenza totale, Giallo per ore scoperte) */}
         {(() => {
-          const weekCoverage = weekDays.map((d) => calculateDayCoverage(d.dateStr, storeShifts));
-          const daysWithUncovered = weekCoverage.filter((c) => c.uncoveredDepartments.length > 0);
-
-          if (daysWithUncovered.length === 0) return null;
+          const weekAnalysis: WeekCoverageAnalysis = calculateWeekHourlyCoverage(weekDays, storeShifts);
+          if (isAlertIgnored || (!weekAnalysis.hasCritical && !weekAnalysis.hasPartial)) return null;
 
           return (
-            <div className="bg-[#ffdad6]/40 border border-[#f5c2bc]/70 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-neutral-900 animate-in fade-in shadow-sm">
+            <div
+              className={`border rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in shadow-sm ${
+                weekAnalysis.hasCritical
+                  ? 'bg-[#ffdad6]/40 border-[#f5c2bc]/70 text-neutral-900'
+                  : 'bg-amber-50/70 border-amber-200 text-amber-950'
+              }`}
+            >
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-[#ba1a1a] text-white flex items-center justify-center flex-shrink-0 shadow-xs">
+                <div
+                  className={`w-8 h-8 rounded-full text-white flex items-center justify-center flex-shrink-0 shadow-xs ${
+                    weekAnalysis.hasCritical ? 'bg-[#ba1a1a]' : 'bg-amber-500'
+                  }`}
+                >
                   <AlertTriangle size={17} />
                 </div>
                 <div>
-                  <h4 className="font-bold text-xs sm:text-sm text-[#ba1a1a]">
-                    Criticità Turno Rilevata: Rilevati Reparti Privi di Presidio nella Settimana!
+                  <h4
+                    className={`font-bold text-xs sm:text-sm ${
+                      weekAnalysis.hasCritical ? 'text-[#ba1a1a]' : 'text-amber-800'
+                    }`}
+                  >
+                    {weekAnalysis.hasCritical
+                      ? 'Criticità Turno Rilevata: Rilevati Reparti Privi di Presidio nella Settimana!'
+                      : 'Presidio Orario Incompleto: Rilevate Ore Scoperte nella Settimana'}
                   </h4>
-                  <p className="text-[11px] text-neutral-600 mt-0.5 font-medium">
-                    {daysWithUncovered.length <= 2
-                      ? daysWithUncovered
-                          .map((d) => {
-                            const dayMeta = weekDays.find((w) => w.dateStr === d.dateStr);
-                            return `${dayMeta?.dayShort || ''} ${d.dateStr.slice(8)}: ${d.uncoveredDepartments.join(', ')} scoperto`;
-                          })
+                  <p
+                    className={`text-[11px] mt-0.5 font-medium ${
+                      weekAnalysis.hasCritical ? 'text-neutral-600' : 'text-amber-900'
+                    }`}
+                  >
+                    {weekAnalysis.weekGaps.length === 1
+                      ? `${weekAnalysis.weekGaps[0].dayMeta.dayName} ${weekAnalysis.weekGaps[0].dayMeta.dayNum}: ${weekAnalysis.weekGaps[0].department} ${weekAnalysis.weekGaps[0].hoursDescription.toLowerCase()}`
+                      : weekAnalysis.weekGaps.length <= 2
+                      ? weekAnalysis.weekGaps
+                          .map(
+                            (g) =>
+                              `${g.dayMeta.dayShort} ${g.dayMeta.dayNum}: ${g.department} (${g.hoursDescription.toLowerCase()})`
+                          )
                           .join(' • ')
-                      : `Rilevati ${daysWithUncovered.length} giorni con presidi incompleti (es. Cassa, Fioreria e Serre).`}
+                      : `Rilevate ${weekAnalysis.weekGaps.length} scoperture orarie o di reparto nella settimana selezionata.`}
                   </p>
                 </div>
               </div>
 
-              <button
-                onClick={() => onOpenEmergencyModal()}
-                className="bg-nicora-orange hover:bg-nicora-orange-hover text-white font-semibold text-xs px-3.5 py-2 rounded-xl shadow-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all whitespace-nowrap self-start sm:self-auto"
-              >
-                <UserSearch size={15} />
-                <span>Trova Sostituto Rapido</span>
-              </button>
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={handleIgnoreAlert}
+                  className="px-3.5 py-2 rounded-xl border border-neutral-300 bg-white/90 hover:bg-white text-neutral-700 text-xs font-semibold active:scale-95 transition-all shadow-xs"
+                >
+                  Ignora
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsWizardOpen(true)}
+                  className={`font-semibold text-xs px-3.5 py-2 rounded-xl shadow-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all whitespace-nowrap text-white ${
+                    weekAnalysis.hasCritical
+                      ? 'bg-nicora-orange hover:bg-nicora-orange-hover'
+                      : 'bg-amber-600 hover:bg-amber-700'
+                  }`}
+                >
+                  <UserSearch size={15} />
+                  <span>Trova Sostituto</span>
+                </button>
+              </div>
             </div>
           );
         })()}
@@ -307,6 +364,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
             onOpenGenerateModal={onOpenGenerateModal}
             onOpenExportModal={onOpenExportModal}
             onOpenEmergencyModal={onOpenEmergencyModal}
+            onApplyShift={onApplyShift}
             currentEmployee={currentEmployee}
             activeLocation={activeLocation}
             onChangeLocation={onChangeLocation}
@@ -688,6 +746,21 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
           Presidio Cassa contrassegnato in <strong className="text-rose-600">rosso</strong> (priorità assoluta).
         </span>
       </div>
+
+      {/* Modale Assistente Sostituzione Presidi Passo-Passo (Desktop) */}
+      <StaffSubstitutionWizard
+        isOpen={isWizardOpen}
+        onClose={() => setIsWizardOpen(false)}
+        gaps={calculateWeekHourlyCoverage(weekDays, storeShifts).weekGaps}
+        employees={employees}
+        shifts={storeShifts}
+        locationId={activeLocation || location.id}
+        onApplyShift={(newShift) => {
+          if (onApplyShift) {
+            onApplyShift(newShift);
+          }
+        }}
+      />
 
     </div>
   );

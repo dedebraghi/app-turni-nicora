@@ -1,7 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Department, Employee, LocationId, LocationInfo, Shift, WeekDayMeta } from '../../domain/types';
 import { DEPARTMENT_COLORS, SHIFT_COLORS } from '../../domain/rules';
-import { calculateDayCoverage, calculateEmployeeWeeklyHours } from '../../engine/schedulerEngine';
+import {
+  calculateDayCoverage,
+  calculateEmployeeWeeklyHours,
+  calculateWeekHourlyCoverage,
+  WeekCoverageAnalysis,
+} from '../../engine/schedulerEngine';
+import { StaffSubstitutionWizard } from './StaffSubstitutionWizard';
 import { MobileHeader } from '../layout/MobileHeader';
 import {
   AlertTriangle,
@@ -38,6 +44,7 @@ interface MobileDayViewProps {
   onOpenGenerateModal?: () => void;
   onOpenExportModal?: () => void;
   onOpenEmergencyModal?: (shift?: Shift) => void;
+  onApplyShift?: (newShift: Shift) => void;
   currentEmployee?: Employee;
   activeLocation?: LocationId;
   onChangeLocation?: (loc: LocationId) => void;
@@ -103,6 +110,7 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
   onOpenGenerateModal,
   onOpenExportModal,
   onOpenEmergencyModal,
+  onApplyShift,
   currentEmployee,
   activeLocation = location.id,
   onChangeLocation,
@@ -112,8 +120,28 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
 }) => {
   const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
 
   const selectedDayMeta = weekDays.find((d) => d.dateStr === selectedDateStr) || weekDays[0];
+
+  // Gestione stato "Ignora" per la settimana selezionata
+  const weekStartDate = weekDays[0]?.dateStr || '';
+  const ignoredStorageKey = `nicora_ignored_alert_${activeLocation}_${weekStartDate}`;
+  const [isAlertIgnored, setIsAlertIgnored] = useState<boolean>(() => {
+    return localStorage.getItem(ignoredStorageKey) === 'true';
+  });
+
+  useEffect(() => {
+    setIsAlertIgnored(localStorage.getItem(ignoredStorageKey) === 'true');
+  }, [ignoredStorageKey]);
+
+  const handleIgnoreAlert = () => {
+    localStorage.setItem(ignoredStorageKey, 'true');
+    setIsAlertIgnored(true);
+  };
+
+  // Analisi completa delle scoperture della settimana (sia critiche che orarie parziali)
+  const weekAnalysis: WeekCoverageAnalysis = calculateWeekHourlyCoverage(weekDays, shifts);
 
   // Turni del giorno selezionato
   const dayShifts = shifts.filter((s) => s.date === selectedDayMeta.dateStr);
@@ -137,10 +165,6 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
       );
     }).length;
   };
-
-  // Calcolo criticità di scopertura nella settimana
-  const weekCoverage = weekDays.map((d) => calculateDayCoverage(d.dateStr, shifts));
-  const daysWithUncovered = weekCoverage.filter((c) => c.uncoveredDepartments.length > 0);
 
   // Filtraggio collaboratori
   const filteredEmployees = employees.filter((emp) => {
@@ -285,58 +309,82 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
           )}
         </div>
 
-        {/* --- BANNER ALLERTA CRITICITÀ SETTIMANALE (Stile Fedele a Stitch) --- */}
-        {daysWithUncovered.length > 0 && (
-          <div className="bg-[#ffdad6]/40 border border-[#f5c2bc]/70 rounded-2xl p-3.5 shadow-sm space-y-2.5 relative overflow-hidden">
+        {/* --- BANNER ALLERTA CRITICITÀ SETTIMANALE (Stile Fedele a Stitch: Rosso per assenza totale, Giallo per ore scoperte) --- */}
+        {!isAlertIgnored && (weekAnalysis.hasCritical || weekAnalysis.hasPartial) && (
+          <div
+            className={`border rounded-2xl p-3.5 shadow-sm space-y-2.5 relative overflow-hidden animate-in fade-in ${
+              weekAnalysis.hasCritical
+                ? 'bg-[#ffdad6]/40 border-[#f5c2bc]/70'
+                : 'bg-amber-50/70 border-amber-200'
+            }`}
+          >
             <div className="flex items-start gap-2.5">
-              <div className="w-7 h-7 rounded-full bg-[#ba1a1a] text-white flex items-center justify-center flex-shrink-0 shadow-xs mt-0.5">
+              <div
+                className={`w-7 h-7 rounded-full text-white flex items-center justify-center flex-shrink-0 shadow-xs mt-0.5 ${
+                  weekAnalysis.hasCritical ? 'bg-[#ba1a1a]' : 'bg-amber-500'
+                }`}
+              >
                 <AlertTriangle size={15} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#ba1a1a]">
-                    Criticità Turno Rilevata
+                  <span
+                    className={`text-[10px] font-bold uppercase tracking-wider ${
+                      weekAnalysis.hasCritical ? 'text-[#ba1a1a]' : 'text-amber-800'
+                    }`}
+                  >
+                    {weekAnalysis.hasCritical ? 'Criticità Turno Rilevata' : 'Presidio Orario Incompleto'}
                   </span>
                   <span className="text-[11px] font-semibold text-neutral-500">
-                    {daysWithUncovered.length === 1
-                      ? (() => {
-                          const dm = weekDays.find((w) => w.dateStr === daysWithUncovered[0].dateStr);
-                          return `${dm?.dayShort || ''} ${daysWithUncovered[0].dateStr.slice(8)}`;
-                        })()
-                      : `${daysWithUncovered.length} giorni`}
+                    {weekAnalysis.weekGaps.length === 1
+                      ? `${weekAnalysis.weekGaps[0].dayMeta.dayShort} ${weekAnalysis.weekGaps[0].dayMeta.dayNum}`
+                      : `${weekAnalysis.weekGaps.length} scoperture`}
                   </span>
                 </div>
-                <p className="text-xs font-semibold text-[#151d1b] mt-0.5 leading-snug">
-                  {daysWithUncovered.length === 1 ? (
-                    (() => {
-                      const d = daysWithUncovered[0];
-                      const dayMeta = weekDays.find((w) => w.dateStr === d.dateStr);
-                      return `${dayMeta?.dayName || ''} ${d.dateStr.slice(8)}: scoperti reparti ${d.uncoveredDepartments.join(', ')} per l'afflusso del negozio!`;
-                    })()
-                  ) : daysWithUncovered.length <= 2 ? (
-                    daysWithUncovered
-                      .map((d) => {
-                        const dayMeta = weekDays.find((w) => w.dateStr === d.dateStr);
-                        return `${dayMeta?.dayName || ''} ${d.dateStr.slice(8)}: scoperti ${d.uncoveredDepartments.join(', ')}`;
-                      })
+                <p
+                  className={`text-xs font-semibold mt-0.5 leading-snug ${
+                    weekAnalysis.hasCritical ? 'text-[#151d1b]' : 'text-amber-950'
+                  }`}
+                >
+                  {weekAnalysis.weekGaps.length === 1 ? (
+                    `${weekAnalysis.weekGaps[0].dayMeta.dayName} ${weekAnalysis.weekGaps[0].dayMeta.dayNum}: ${weekAnalysis.weekGaps[0].department} ${weekAnalysis.weekGaps[0].hoursDescription.toLowerCase()}`
+                  ) : weekAnalysis.weekGaps.length <= 2 ? (
+                    weekAnalysis.weekGaps
+                      .map(
+                        (g) =>
+                          `${g.dayMeta.dayShort} ${g.dayMeta.dayNum}: ${g.department} (${g.hoursDescription.toLowerCase()})`
+                      )
                       .join(' • ')
                   ) : (
-                    `Rilevati ${daysWithUncovered.length} giorni con presidi incompleti nella settimana (es. Cassa, Fioreria e Serre).`
+                    `Rilevate ${weekAnalysis.weekGaps.length} scoperture orarie o di reparto nella settimana selezionata.`
                   )}
                 </p>
               </div>
             </div>
-            {onOpenEmergencyModal && (
-              <div className="flex items-center justify-end pt-1">
-                <button
-                  onClick={() => onOpenEmergencyModal()}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-nicora-orange hover:bg-nicora-orange-hover text-white shadow-xs text-xs font-semibold active:scale-95 transition-all"
-                >
-                  <UserSearch size={15} />
-                  <span>Trova Sostituto Rapido</span>
-                </button>
-              </div>
-            )}
+
+            {/* Pulsanti: Ignora e Trova Sostituto Guidato */}
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={handleIgnoreAlert}
+                className="px-3 py-1.5 rounded-xl border border-neutral-300 bg-white/90 hover:bg-white text-neutral-700 text-xs font-semibold active:scale-95 transition-all shadow-xs"
+              >
+                Ignora
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsWizardOpen(true)}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-white shadow-xs text-xs font-semibold active:scale-95 transition-all ${
+                  weekAnalysis.hasCritical
+                    ? 'bg-nicora-orange hover:bg-nicora-orange-hover'
+                    : 'bg-amber-600 hover:bg-amber-700'
+                }`}
+              >
+                <UserSearch size={15} />
+                <span>Trova Sostituto</span>
+              </button>
+            </div>
           </div>
         )}
 
@@ -620,6 +668,21 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
         </div>
 
       </div>
+
+      {/* Modale Assistente Sostituzione Presidi Passo-Passo */}
+      <StaffSubstitutionWizard
+        isOpen={isWizardOpen}
+        onClose={() => setIsWizardOpen(false)}
+        gaps={weekAnalysis.weekGaps}
+        employees={allStoreEmployees || employees}
+        shifts={shifts}
+        locationId={activeLocation}
+        onApplyShift={(newShift) => {
+          if (onApplyShift) {
+            onApplyShift(newShift);
+          }
+        }}
+      />
     </div>
   );
 };

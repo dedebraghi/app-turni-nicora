@@ -219,6 +219,24 @@ export const App: React.FC = () => {
     });
   };
 
+  const handleApplySingleShift = (shiftToApply: Shift) => {
+    setShifts((prev) => {
+      const filtered = prev.filter(
+        (s) => !(s.employeeId === shiftToApply.employeeId && s.date === shiftToApply.date)
+      );
+      const next = [...filtered, shiftToApply];
+      saveCloudShifts(next);
+      return next;
+    });
+
+    setToast({
+      id: `toast-shift-${Date.now()}`,
+      title: 'Presidio Assegnato',
+      message: `Turno aggiornato con successo per il presidio di ${shiftToApply.department || 'reparto'}.`,
+      type: 'success',
+    });
+  };
+
   const handleUpdateEmployeeSkills = (employeeId: string, newSkills: Record<Department, number>) => {
     setEmployees((prev) =>
       prev.map((emp) => (emp.id === employeeId ? { ...emp, skills: newSkills } : emp))
@@ -543,6 +561,7 @@ export const App: React.FC = () => {
               setIsEmergencyModalOpen(true);
             }}
             onOpenExportModal={() => setIsExportModalOpen(true)}
+            onApplyShift={handleApplySingleShift}
             onApproveRequest={(id) => handleUpdateRequestStatus(id, 'approved', 'Approvata 1-click dal responsabile')}
             onRejectRequest={(id) => handleUpdateRequestStatus(id, 'rejected', 'Non conciliabile con la copertura minima')}
           />
