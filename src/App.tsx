@@ -14,7 +14,7 @@ import { EditShiftModal } from './components/common/EditShiftModal';
 import { LoginScreen } from './components/auth/LoginScreen';
 import { NotificationToast, ToastMessage } from './components/common/NotificationToast';
 
-import { ActiveTab, Department, Employee, LocationId, Shift, ShiftRequest, UserSession } from './domain/types';
+import { ActiveTab, Department, Employee, LocationId, Shift, ShiftRequest, SkillScores, UserSession } from './domain/types';
 import { LOCATIONS } from './domain/mockData';
 import { formatLocalDate, getSundayOfWeek, getWeekDays } from './engine/schedulerEngine';
 import {
@@ -237,7 +237,7 @@ export const App: React.FC = () => {
     });
   };
 
-  const handleUpdateEmployeeSkills = (employeeId: string, newSkills: Record<Department, number>) => {
+  const handleUpdateEmployeeSkills = (employeeId: string, newSkills: SkillScores) => {
     setEmployees((prev) =>
       prev.map((emp) => (emp.id === employeeId ? { ...emp, skills: newSkills } : emp))
     );

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { DEPARTMENTS } from '../../domain/rules';
-import { Department, Employee, LocationId } from '../../domain/types';
+import { getLocationDepartments } from '../../domain/rules';
+import { Department, Employee, LocationId, SkillScores } from '../../domain/types';
 import { Award, Check, Info, Search, X } from 'lucide-react';
 
 interface SkillsMatrixProps {
@@ -8,7 +8,7 @@ interface SkillsMatrixProps {
   onClose?: () => void;
   employees: Employee[];
   locationId: LocationId;
-  onUpdateSkills: (employeeId: string, skills: Record<Department, number>) => void;
+  onUpdateSkills: (employeeId: string, skills: SkillScores) => void;
   isStandaloneTab?: boolean;
 }
 
@@ -20,11 +20,12 @@ export const SkillsMatrix: React.FC<SkillsMatrixProps> = ({
   onUpdateSkills,
   isStandaloneTab = false,
 }) => {
-  const storeEmployees = employees.filter((e) => e.locationId === locationId);
+  const activeDepts = getLocationDepartments(locationId, true);
+  const storeEmployees = employees.filter((e) => e.locationId === locationId || e.isMobile);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [editableSkills, setEditableSkills] = useState<Record<string, Record<Department, number>>>(() => {
-    const initial: Record<string, Record<Department, number>> = {};
+  const [editableSkills, setEditableSkills] = useState<Record<string, SkillScores>>(() => {
+    const initial: Record<string, SkillScores> = {};
     employees.forEach((emp) => {
       initial[emp.id] = { ...emp.skills };
     });
@@ -99,7 +100,7 @@ export const SkillsMatrix: React.FC<SkillsMatrixProps> = ({
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2 text-xs text-amber-900">
           <Info size={16} className="text-nicora-orange flex-shrink-0 mt-0.5" />
           <p className="leading-snug">
-            <strong>Principio di Assegnazione Nicora:</strong> L'algoritmo sceglie prioritariamente le risorse a punteggio più alto per la <strong>Cassa (priorità assoluta)</strong>, poi <strong>Fioreria</strong> e <strong>Decor</strong>. In caso di emergenze/malattie, il sistema suggerirà chi ha la competenza migliore.
+            <strong>Principio di Assegnazione Nicora:</strong> L'algoritmo sceglie prioritariamente le risorse a punteggio più alto per la <strong>Cassa (priorità assoluta)</strong>, poi i presidi cardine del punto vendita (<strong>Fioreria</strong> e <strong>Area Tecnica</strong> a Gazzada; <strong>Fioreria</strong>, <strong>Decor</strong>, <strong>Emporio</strong> e <strong>Natale</strong> a Varese). In caso di emergenze o picchi, il sistema suggerirà chi ha la competenza migliore.
           </p>
         </div>
 
@@ -141,16 +142,23 @@ export const SkillsMatrix: React.FC<SkillsMatrixProps> = ({
                   </div>
                 </div>
 
-                {emp.isManager && (
-                  <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">
-                    Responsabile
-                  </span>
-                )}
+                <div className="flex items-center gap-1.5">
+                  {emp.isManager && (
+                    <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">
+                      Responsabile
+                    </span>
+                  )}
+                  {emp.isMobile && (
+                    <span className="text-[10px] bg-purple-100 text-purple-800 font-bold px-2 py-0.5 rounded-full border border-purple-200">
+                      {emp.locationId === locationId ? 'Mobile' : `Trasferta (${emp.locationId === 'gazzada' ? 'Gazzada' : 'Varese'})`}
+                    </span>
+                  )}
+                </div>
               </div>
 
-              {/* 5 Reparti Controls */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center">
-                {DEPARTMENTS.map((dept) => {
+              {/* Reparti Controls specifici per Sede */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-2 text-center">
+                {activeDepts.map((dept) => {
                   const score = currentScores[dept] ?? 5;
 
                   return (
@@ -159,7 +167,7 @@ export const SkillsMatrix: React.FC<SkillsMatrixProps> = ({
                       className="bg-neutral-50 rounded-xl p-2 border border-nicora-border flex flex-col items-center justify-between"
                     >
                       <span className="text-[10px] font-extrabold text-neutral-700 truncate w-full" title={dept}>
-                        {dept === 'Serra Calda' ? 'S. Calda' : dept === 'Serra Fredda' ? 'S. Fredda' : dept}
+                        {dept === 'Serra Calda' ? 'S. Calda' : dept === 'Serra Fredda' ? 'S. Fredda' : dept === 'Area Tecnica' ? 'Area Tec.' : dept}
                       </span>
 
                       <div className="my-1.5 flex items-center justify-center gap-1.5">

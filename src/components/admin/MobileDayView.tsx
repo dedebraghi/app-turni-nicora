@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Department, Employee, LocationId, LocationInfo, Shift, WeekDayMeta } from '../../domain/types';
-import { DEPARTMENT_COLORS, SHIFT_COLORS } from '../../domain/rules';
+import { DEPARTMENT_COLORS, getLocationDepartments, SHIFT_COLORS } from '../../domain/rules';
 import {
   calculateDayCoverage,
   calculateEmployeeWeeklyHours,
@@ -20,13 +20,16 @@ import {
   Coffee,
   Edit3,
   Flower2,
+  Gift,
   MapPin,
   Receipt,
   Search,
   Share2,
   Sparkles,
+  ShoppingBag,
   Sun,
   TreePine,
+  Wrench,
   UserSearch,
   Users,
   Zap,
@@ -86,6 +89,27 @@ const getDeptTheme = (dept: string) => {
         textAvatar: 'text-[#002f32]',
         icon: Sun,
         badgeBg: 'bg-[#b7ecf0]/70 text-[#002f32] border-[#9bd0d4]',
+      };
+    case 'Area Tecnica':
+      return {
+        bgAvatar: 'bg-[#fef3c7]',
+        textAvatar: 'text-[#92400e]',
+        icon: Wrench,
+        badgeBg: 'bg-[#fef3c7]/80 text-[#92400e] border-[#fde68a]',
+      };
+    case 'Emporio':
+      return {
+        bgAvatar: 'bg-[#ffedd5]',
+        textAvatar: 'text-[#9a3412]',
+        icon: ShoppingBag,
+        badgeBg: 'bg-[#ffedd5]/80 text-[#9a3412] border-[#fed7aa]',
+      };
+    case 'Natale':
+      return {
+        bgAvatar: 'bg-[#ffe4e6]',
+        textAvatar: 'text-[#9f1239]',
+        icon: Gift,
+        badgeBg: 'bg-[#ffe4e6]/80 text-[#9f1239] border-[#fecdd3]',
       };
     case 'Serra Fredda':
     default:
@@ -505,7 +529,7 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
               </span>
             </button>
 
-            {(['Cassa', 'Fioreria', 'Decor', 'Serra Calda', 'Serra Fredda'] as Department[]).map((dept) => {
+            {getLocationDepartments(location.id, true).map((dept) => {
               const isSelected = selectedDeptFilter === dept;
               const count = getDeptWorkingCount(dept);
               const theme = getDeptTheme(dept);

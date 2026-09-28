@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Department, Employee, LocationId, LocationInfo, Shift, ShiftRequest } from '../../domain/types';
+import { getLocationDepartments } from '../../domain/rules';
 import { calculateFairnessMetrics } from '../../engine/fairnessTracker';
 import {
   calculateDayCoverage,
@@ -463,14 +464,15 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                     <span className="text-[9px] text-neutral-500 font-normal">Chi presidia ciascun reparto</span>
                   </th>
                   {weekDays.map((day) => {
-                    const coverage = calculateDayCoverage(day.dateStr, storeShifts, employees);
+                    const coverage = calculateDayCoverage(day.dateStr, storeShifts, employees, location.id);
+                    const activeLocationDepts = getLocationDepartments(location.id, true);
                     return (
                       <th key={`cov-${day.dateStr}`} className="py-2 px-2 border-r border-nicora-sage-border align-top font-normal bg-neutral-50/80">
                         <div className="space-y-1.5">
-                          {(['Cassa', 'Fioreria', 'Decor', 'Serra Calda', 'Serra Fredda'] as Department[]).map((dept) => {
+                          {activeLocationDepts.map((dept) => {
                             const staffList = coverage.departmentStaff?.[dept] || [];
                             const isCovered = staffList.length > 0;
-                            const deptShort = dept === 'Serra Calda' ? 'S. Calda' : dept === 'Serra Fredda' ? 'S. Fredda' : dept;
+                            const deptShort = dept === 'Serra Calda' ? 'S. Calda' : dept === 'Serra Fredda' ? 'S. Fredda' : dept === 'Area Tecnica' ? 'Area Tec.' : dept;
                             return (
                               <div
                                 key={dept}
@@ -682,18 +684,21 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
             </tbody>
             )}
 
-            {/* Table Footer: Riga Copertura Presidio 5 Reparti */}
+            {/* Table Footer: Riga Copertura Presidio Reparti */}
             <tfoot className="bg-neutral-50/95 border-t-2 border-neutral-300 font-extrabold text-[11px]">
               <tr>
                 <td className="py-2.5 px-3.5 sticky left-0 bg-neutral-100/95 z-10 border-r border-nicora-border text-neutral-800">
                   <div className="flex items-center gap-1.5">
                     <ShieldCheck size={14} className="text-nicora-teal" />
-                    <span className="font-black text-xs text-nicora-title">Presidio 5 Reparti</span>
+                    <span className="font-black text-xs text-nicora-title">
+                      {location.id === 'gazzada' ? 'Presidio Gazzada (5 Rep.)' : 'Presidio Varese'}
+                    </span>
                   </div>
                   <span className="text-[10px] text-neutral-500 font-medium">Copertura e Competenze</span>
                 </td>
                 {weekDays.map((day) => {
-                  const cov = calculateDayCoverage(day.dateStr, storeShifts);
+                  const cov = calculateDayCoverage(day.dateStr, storeShifts, employees, location.id);
+                  const activeLocationDepts = getLocationDepartments(location.id, true);
                   const isOk = cov.uncoveredDepartments.length === 0;
 
                   return (
@@ -706,14 +711,22 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                       {isOk ? (
                         <div className="space-y-0.5">
                           <span className="text-[10px] font-black text-emerald-800 bg-emerald-100 px-1.5 py-0.2 rounded-md block">
-                            ✓ 5/5 Coperti
+                            ✓ {activeLocationDepts.length}/{activeLocationDepts.length} Coperti
                           </span>
-                          <div className="text-[9px] text-neutral-600 font-bold leading-tight">
-                            C:{cov.cassaCount} • F:{cov.fioreriaCount} • D:{cov.decorCount}
-                          </div>
-                          <div className="text-[9px] text-neutral-500 font-medium leading-none">
-                            SC:{cov.serraCaldaCount} • SF:{cov.serraFreddaCount}
-                          </div>
+                          {location.id === 'gazzada' ? (
+                            <div className="text-[9px] text-neutral-600 font-bold leading-tight">
+                              C:{cov.cassaCount} • F:{cov.fioreriaCount} • AT:{cov.areaTecnicaCount} • SC:{cov.serraCaldaCount} • SF:{cov.serraFreddaCount}
+                            </div>
+                          ) : (
+                            <>
+                              <div className="text-[9px] text-neutral-600 font-bold leading-tight">
+                                C:{cov.cassaCount} • F:{cov.fioreriaCount} • D:{cov.decorCount} • E:{cov.emporioCount}
+                              </div>
+                              <div className="text-[9px] text-neutral-500 font-medium leading-none">
+                                SC:{cov.serraCaldaCount} • SF:{cov.serraFreddaCount}{cov.nataleCount ? ` • N:${cov.nataleCount}` : ''}
+                              </div>
+                            </>
+                          )}
                           {cov.averageSkillScore !== undefined && cov.averageSkillScore > 0 && (
                             <div className="text-[8px] font-extrabold text-emerald-900 bg-emerald-50 rounded px-1 py-0.2 mt-0.5 inline-block">
                               Comp: {cov.averageSkillScore}/10

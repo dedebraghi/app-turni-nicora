@@ -83,6 +83,9 @@ export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
     'Decor': 0,
     'Serra Calda': 0,
     'Serra Fredda': 0,
+    'Area Tecnica': 0,
+    'Emporio': 0,
+    'Natale': 0,
   };
 
   workingShifts.forEach((s) => {
@@ -99,6 +102,9 @@ export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
     { id: 'Decor', label: 'Decor', count: deptCounts['Decor'] },
     { id: 'Serra Calda', label: 'Serra Calda', count: deptCounts['Serra Calda'] },
     { id: 'Serra Fredda', label: 'Serra Fredda', count: deptCounts['Serra Fredda'] },
+    { id: 'Area Tecnica', label: 'Area Tecnica', count: deptCounts['Area Tecnica'] },
+    { id: 'Emporio', label: 'Emporio', count: deptCounts['Emporio'] },
+    { id: 'Natale', label: 'Natale', count: deptCounts['Natale'] },
   ].filter((d) => d.id === 'all' || d.count > 0);
 
   const formatDisplayDate = (dStr: string) => {

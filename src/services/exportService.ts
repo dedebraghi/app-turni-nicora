@@ -341,6 +341,9 @@ export const calculateMonthlyStoreReport = (
     Decor: 0,
     'Serra Calda': 0,
     'Serra Fredda': 0,
+    'Area Tecnica': 0,
+    Emporio: 0,
+    Natale: 0,
   };
 
   let totalWorkedHours = 0;
@@ -361,6 +364,9 @@ export const calculateMonthlyStoreReport = (
       Decor: 0,
       'Serra Calda': 0,
       'Serra Fredda': 0,
+      'Area Tecnica': 0,
+      Emporio: 0,
+      Natale: 0,
     };
 
     let empWorked = 0;
@@ -478,7 +484,7 @@ export const exportMonthlyReportCSV = (
     'Saldo Ore (+/-)',
   ];
 
-  const escapeCell = (val: string | number) => {
+  const escapeCell = (val: string | number | undefined) => {
     if (typeof val === 'number') {
       // Localizzazione decimale con virgola per Excel italiano
       return `"${val.toString().replace('.', ',')}"`;
@@ -735,7 +741,7 @@ export const printMonthlyReport = (
         </div>
         <div class="stat-card">
           <div class="stat-label">Ore Serre (C+F)</div>
-          <div class="stat-value">${Math.round((summary.departmentTotals['Serra Calda'] + summary.departmentTotals['Serra Fredda']) * 10) / 10}h</div>
+          <div class="stat-value">${Math.round(((summary.departmentTotals['Serra Calda'] ?? 0) + (summary.departmentTotals['Serra Fredda'] ?? 0)) * 10) / 10}h</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Ferie & Malattie</div>
@@ -774,11 +780,11 @@ export const printMonthlyReport = (
               <td>${s.daysCount.rest}</td>
               <td>${s.daysCount.leave}</td>
               <td>${s.daysCount.sick}</td>
-              <td>${s.departmentHours.Cassa > 0 ? `${s.departmentHours.Cassa}h` : '-'}</td>
-              <td>${s.departmentHours.Fioreria > 0 ? `${s.departmentHours.Fioreria}h` : '-'}</td>
-              <td>${s.departmentHours.Decor > 0 ? `${s.departmentHours.Decor}h` : '-'}</td>
-              <td>${s.departmentHours['Serra Calda'] > 0 ? `${s.departmentHours['Serra Calda']}h` : '-'}</td>
-              <td>${s.departmentHours['Serra Fredda'] > 0 ? `${s.departmentHours['Serra Fredda']}h` : '-'}</td>
+              <td>${(s.departmentHours.Cassa ?? 0) > 0 ? `${s.departmentHours.Cassa}h` : '-'}</td>
+              <td>${(s.departmentHours.Fioreria ?? 0) > 0 ? `${s.departmentHours.Fioreria}h` : '-'}</td>
+              <td>${(s.departmentHours.Decor ?? 0) > 0 ? `${s.departmentHours.Decor}h` : '-'}</td>
+              <td>${(s.departmentHours['Serra Calda'] ?? 0) > 0 ? `${s.departmentHours['Serra Calda']}h` : '-'}</td>
+              <td>${(s.departmentHours['Serra Fredda'] ?? 0) > 0 ? `${s.departmentHours['Serra Fredda']}h` : '-'}</td>
               <td class="total-worked">${s.workedHours}h</td>
               <td>${s.leaveHours > 0 ? `${s.leaveHours}h` : '-'}</td>
               <td class="highlight">${s.totalAccountedHours}h</td>

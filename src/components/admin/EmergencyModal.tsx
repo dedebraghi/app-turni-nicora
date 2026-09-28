@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Department, Employee, LocationId, Shift } from '../../domain/types';
-import { DEPARTMENTS } from '../../domain/rules';
+import { getLocationDepartments } from '../../domain/rules';
 import { findBestReplacements } from '../../engine/replacementAdvisor';
 import { formatLocalDate } from '../../engine/schedulerEngine';
 import { X, ShieldAlert, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
@@ -146,8 +146,8 @@ export const EmergencyModal: React.FC<EmergencyModalProps> = ({
             <label className="block font-bold text-neutral-700 mb-1.5">
               Reparto da presidiare con urgenza:
             </label>
-            <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
-              {DEPARTMENTS.map((dept) => (
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-1.5">
+              {getLocationDepartments(locationId, true).map((dept) => (
                 <button
                   key={dept}
                   type="button"
@@ -160,7 +160,7 @@ export const EmergencyModal: React.FC<EmergencyModalProps> = ({
                       : 'bg-neutral-50 text-neutral-700 border-nicora-border hover:bg-neutral-100'
                   }`}
                 >
-                  {dept === 'Serra Calda' ? 'S. Calda' : dept === 'Serra Fredda' ? 'S. Fredda' : dept}
+                  {dept === 'Serra Calda' ? 'S. Calda' : dept === 'Serra Fredda' ? 'S. Fredda' : dept === 'Area Tecnica' ? 'Area Tec.' : dept}
                 </button>
               ))}
             </div>

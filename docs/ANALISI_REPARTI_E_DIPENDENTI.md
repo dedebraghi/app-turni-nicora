@@ -1,133 +1,114 @@
 # Analisi Reparti Effettivi e Mappatura Dipendenti Nicora Garden
 
-## 1. Mappatura Dipendenti Reali per Sede
-
-### Sede Gazzada (GZ) - 10 Dipendenti Storici
-1. **SABRINA**
-2. **ELEONORA**
-3. **TEO**
-4. **MARCO**
-5. **DANIELA**
-6. **GINEVRA**
-7. **DENIS**
-8. **LAURA**
-9. **IVANO**
-10. **ELINA** (presente nei mesi estivi/autunnali)
-11. **MATTIA** (rilevato nei mesi invernali in sostituzione/rotazione)
-12. **DAVIDE** (rilevato in presenza saltuaria/supporto)
-
-### Sede Varese (VA) - 16 Dipendenti Storici
-1. **STEFANIA**
-2. **KATJA**
-3. **LUISA**
-4. **GIANCARLA**
-5. **GIOVANNA**
-6. **MATTEO**
-7. **STEFANO**
-8. **ANDREA**
-9. **FRANCESCA**
-10. **CINZIA**
-11. **ELINA**
-12. **GIONATA**
-13. **GIULIO**
-14. **CARLO**
-15. **SARA** (rilevata in primavera/estate)
-16. **ARIANNA** (rilevata nei mesi estivi)
-17. **GAIA** (rilevata nei mesi primaverili/estivi)
-18. **CLAUDIO** (rilevato nei mesi primaverili/invernali)
-19. **DEBORA** (rilevata a gennaio)
-20. **NANCY** (rilevata nei mesi estivi)
+> **Nota di revisione storica**: Documento aggiornato a seguito dell'estrazione integrale e dell'analisi comparativa dei documenti ufficiali dei turni 2025–2026 (`Turni_GZ_26.pdf` e `Turni_VA_2026.pdf`), con risoluzione delle asimmetrie tra i punti vendita di Gazzada e Varese.
 
 ---
 
-## 2. Reparti Effettivi del Negozio e Funzionamento Storico delle Assegnazioni
+## 1. Asimmetria Strutturale dei Reparti tra le due Sedi
 
-Dall'analisi delle legende colore e dei turni storici sui file PDF:
+I due punti vendita **non condividono gli stessi identici reparti**. Configurare l'algoritmo con una lista unica o generica di reparti porta a errori gravi di assegnazione.
 
-### Reparti Effettivi (Codificati per Colore):
-1. 🌸 **CASSA** (Rosa)
-   - Presidio fondamentale per l'operatività quotidiana e le transazioni.
-2. 🌺 **FIORERIA** (Arancione chiaro / Pesca)
-   - Reparto confezionamento, fiori freschi e composizioni.
-3. 🌿 **SERRA FREDDA** (Verde chiaro)
-   - Piante da esterno, stagionali, vivaio freddo.
-4. 🌻 **SERRA CALDA** (Giallo / Giallo paglia)
-   - Piante da appartamento, piante tropicali, serre riscaldate.
-5. 🛠️ **AREA TECNICA** (Azzurro / Blu chiaro)
-   - Concimi, vasi, attrezzatura, terricci, prodotti per la cura delle piante.
-6. 🎀 **DECOR / STAGIONALE** (Marrone / Bordeaux) *(Evidenziato specialmente nella sede di Varese)*
-   - Oggettistica, candele, articoli regalo.
-7. 🎄 **NATALE / GARDEN FESTIVAL** (Rosso / Marrone Scuro) *(Operativo in autunno/inverno)*
-   - Allestimento e vendita eventi stagionali (es. Garden Festival d'Autunno dal 19/9, Villaggio di Natale).
-8. 🏪 **EMPORIO / BALCONATA / CORNICE / BIMBI NONNI** *(Reparti specifici/specializzati rilevati nella mappa di Varese)*
+### Tabella Comparativa Reparti Ufficiali
 
-### Come ha funzionato l'assegnazione finora:
-- **Codifica visuale**: Ogni dipendente ha un colore prevalente nei fogli turno che identifica il suo reparto primario di appartenenza/specializzazione.
-- **Assegnazione Giornaliera ("P" / "0" / "F")**:
-  - `P` = Presente in turno
-  - `0` = Giorno di Riposo
-  - `F` = Ferie / Assente
-- **Rotazione e Copertura**:
-  - Ogni giorno tutti i 5 reparti chiave (Cassa, Fioreria, Serra Fredda, Serra Calda, Area Tecnica/Decor) DEVONO avere almeno 1 persona qualificata.
-  - Le risorse eccedenti presenti nel giorno (oltre la copertura minima di 5 persone) vengono distribuite sul raddoppio cassa nei giorni di picco (weekend/festivi) o sul supporto nei reparti con maggior afflusso o arrivo merci.
+| Reparto | Gazzada (GZ) | Varese (VA) | Colore Legenda PDF | Descrizione e Ruolo Operativo |
+| :--- | :---: | :---: | :---: | :--- |
+| 🌸 **CASSA** | **Sì** | **Sì** | Rosa (GZ) / Rosso (VA) | Presidio transazioni, scontrini e accoglienza clienti. 1 persona fissa/giorno, raddoppio nei weekend di picco. |
+| 🌺 **FIORERIA** | **Sì** | **Sì** | Salmone (GZ) / Rosa (VA) | Confezionamento fiori freschi, mazzi e composizioni. 1–2 addetti a GZ, 2–3 addetti a VA. |
+| 🌿 **SERRA FREDDA** | **Sì** | **Sì** | Verde chiaro (GZ) / Lime (VA) | Vivaio esterno, piante da giardino, stagionali e perenni. |
+| 🌻 **SERRA CALDA** | **Sì** | **Sì** | Giallo chiaro (GZ e VA) | Piante da interno d'appartamento, orchidee e tropicali. |
+| 🛠️ **AREA TECNICA** | **Sì (ESCLUSIVA GZ)** | **NO** | Azzurro / Celeste | Concimi, terricci, vasi, fitofarmaci, attrezzi e impiantistica. Presidio stabile a Gazzada. |
+| 🎀 **DECOR** | **NO** | **Sì (ESCLUSIVA VA)** | Rosa carico / Vinaccia | Oggettistica casa, candele, vasi d'arredo, complementi regalo. |
+| 🏪 **EMPORIO** | **NO** | **Sì (ESCLUSIVA VA)** | Kaki / Sabbia | Settore specializzato di Varese, presidiato stabilmente da Andrea. |
+| 🎄 **NATALE** | **NO** | **Sì (ESCLUSIVA VA)** | Terracotta / Ruggine | **Reparto stagionale autunnale/invernale** (attivo da Settembre con il *Garden Festival d'Autunno*). Allestimento e vendita villaggio di Natale. |
+| ⚙️ **SUPPORTO / CORSIA** | **NO** | **Sì (VA)** | Azzurro chiaro (`#76D6FF`) | Mansioni di manutenzione, logistica corsia, supporto generico (affidato a Carlo). |
+
+> [!IMPORTANT]
+> - A **Gazzada** NON esistono *Decor*, *Emporio* e *Natale*. Esiste invece l'**Area Tecnica**.
+> - A **Varese** NON esiste l'**Area Tecnica**. Esistono invece *Decor*, *Emporio* e il reparto stagionale *Natale*.
 
 ---
 
-## 3. Presenza Media Giornaliera (Dati Storici 2025-2026)
+## 2. Il Ciclo Stagionale del Reparto Natale a Varese
 
-### Sede Gazzada (GZ)
-- **Settembre 2026**: media 5.5 - 6 presenti/giorno (picchi di 8 nei weekend)
-- **Agosto 2026**: media 4 - 5 presenti/giorno (periodo di ferie estive)
-- **Luglio 2026**: media 5 - 6 presenti/giorno
-- **Giugno 2026**: media 5 - 6 presenti/giorno
-- **Maggio 2025**: media 6 - 7 presenti/giorno (picchi di 9-10 nei weekend di primavera)
-- **Aprile 2026**: media 6 - 7 presenti/giorno
-- **Marzo 2026**: media 6 - 7 presenti/giorno
-- **Febbraio 2026**: media 5 - 6 presenti/giorno
-- **Gennaio 2026**: media 5 - 6 presenti/giorno
-👉 **Presenza Media Complessiva Gazzada**: **~5.8 dipendenti/giorno** (min 4 in ferie estive, max 10 nei picchi primaverili).
-
-### Sede Varese (VA)
-- **Settembre 2026**: media 8 - 9 presenti/giorno (picco 11 per Inizio Garden Festival d'Autunno)
-- **Agosto 2026**: media 6 - 7 presenti/giorno
-- **Luglio 2026**: media 6 - 7 presenti/giorno
-- **Giugno 2026**: media 7 - 8 presenti/giorno
-- **Maggio 2025**: media 9 - 10 presenti/giorno (media mensile 15.4 organico totale, presenze fino a 14 nei weekend)
-- **Aprile 2026**: media 9 - 10 presenti/giorno (media 15.4 organico totale)
-- **Marzo 2026**: media 8 - 9 presenti/giorno (media 13.4 organico)
-- **Febbraio 2026**: media 8 - 9 presenti/giorno
-- **Gennaio 2026**: media 8 - 9 presenti/giorno
-👉 **Presenza Media Complessiva Varese**: **~8.5 dipendenti/giorno** (min 6 in ferie estive, max 14 nei picchi primaverili/autunnali).
+Dall'analisi mese per mese di `Turni_VA_2026.pdf`:
+1. **Gennaio – Agosto**:
+   - **Stefano** è assegnato stabilmente alla **Serra Fredda** (colore verde chiaro).
+   - **Matteo** è assegnato a compiti di supporto e allestimento stagionale/emporio (colore salmone/pesca).
+2. **Da Settembre in poi**:
+   - Viene ufficialmente introdotto nella legenda di Varese il reparto **NATALE** (colore ruggine/terracotta).
+   - **Matteo e Stefano** vengono costituiti in **squadra fissa dedicata a tempo pieno al Natale**. Nei fogli turno di settembre hanno la sequenza di turni identica e speculare (`PPP0P0PPPPP00PPPPP00PPPPP0`), con 5 giorni lavorativi a settimana dedicati all'allestimento del villaggio natalizio e all'avvio del *Garden Festival d'Autunno* (19 settembre).
+   - Il reparto Natale assorbe queste due risorse per l'intero autunno fino alla conclusione delle festività invernali a gennaio.
 
 ---
 
-## 4. Stima delle Abilità e Assegnazione Primaria Dipendenti (Skill Matrix Base)
+## 3. Mappatura Reale del Personale e Competenze (Skill Matrix)
 
-Analizzando i colori associati a ciascun dipendente nei documenti storici:
+### Sede di Gazzada (GZ) – 10 Dipendenti Rilevati
 
-### Mappatura Dipendenti Gazzada:
-- **SABRINA**: Cassa / Fioreria (Specialista Cassa & Accoglienza)
-- **ELEONORA**: Fioreria / Serra Calda
-- **TEO**: Serra Calda / Area Tecnica
-- **MARCO**: Serra Fredda / Vivaio
-- **DANIELA**: Fioreria / Decor
-- **GINEVRA**: Serra Fredda / Serra Calda
-- **DENIS**: Area Tecnica / Logistics & Merci
-- **LAURA**: Serra Calda / Cassa
-- **IVANO**: Area Tecnica / Serra Fredda
+| Dipendente | Reparto Primario Base | Abilitazioni Secondarie / Flessibilità Dimostrata | Note Turni Storici |
+| :--- | :--- | :--- | :--- |
+| **SABRINA** | **Cassa** (Rosa) | Fioreria | Presidio cassa costante. Quando è a riposo subentra Teo o Ivano. |
+| **ELEONORA** | **Fioreria** (Salmone) | Serra Calda | Pilastro fioreria, presente tutto l'anno. |
+| **TEO** | **Fioreria** (Salmone) | **Jolly Multi-Reparto**: Cassa, Serra Calda, Serra Fredda | Svolge coperture con celle colorate specifiche: Cassa quando Sabrina è assente, Serra Calda o Fredda nei picchi. |
+| **MARCO** | **Serra Fredda** (Verde) | **Area Tecnica** | Vivaio esterno; copre l'Area Tecnica quando Ivano è assente o in ferie (es. 5 settembre, turno azzurro). |
+| **DANIELA** | **Serra Fredda** (Verde) | Fioreria | Presidio vivaio piante esterne. |
+| **GINEVRA** | **Serra Fredda** (Verde) | Serra Calda | Presente da Marzo a Settembre. Nei mesi di Gennaio e Febbraio sostituita da Mattia. |
+| **MATTIA** | **Serra Fredda** (Verde) | Serra Calda | Attivo nei mesi invernali (Gennaio–Febbraio) prima dell'arrivo di Ginevra. |
+| **DENIS** | **Serra Calda** (Giallo) | **Area Tecnica**, Serra Fredda | Piante da appartamento; nei mesi invernali effettua turni mirati in Area Tecnica (es. fine gennaio) e Serra Fredda. |
+| **LAURA** | **Serra Calda** (Giallo) | Cassa | Specialista piante interne ed orchidee; supporto saltuario cassa. |
+| **IVANO** | **Area Tecnica** (Azzurro) | **Cassa** | Responsabile dell'Area Tecnica (concimi, terricci, fitofarmaci, vasi). Molto competente, effettua anche coperture cassa (es. 10 settembre). |
+| **DAVIDE** | **Cassa Supporto** (Rosa) | Cassa Extra Weekend | Inserito appositamente nei mesi di picco primaverile (Aprile, Maggio, Giugno) solo nei sabati e domeniche ad altissimo afflusso. |
+| **ELINA (Prestito)** | **Serra Fredda** (Verde) | Supporto Generale | Dipendente di Varese trasferita a Gazzada dal 3 al 9 settembre per coprire l'emergenza contemporanea di ferie di Daniela, Denis e Ivano. |
 
-### Mappatura Dipendenti Varese:
-- **STEFANIA**: Cassa / Responsabile Cassa
-- **KATJA**: Fioreria / Decor
-- **LUISA**: Fioreria / Serra Calda
-- **GIANCARLA**: Decor / Emporio
-- **GIOVANNA**: Decor / Cassa
-- **MATTEO**: Serra Calda / Area Tecnica
-- **STEFANO**: Serra Calda / Serra Fredda
-- **ANDREA**: Area Tecnica / Serra Fredda
-- **FRANCESCA**: Fioreria / Decor
-- **CINZIA**: Cassa / Supporto Generico
-- **ELINA / SARA / GAIA**: Serra Fredda / Serra Calda / Supporto Stagionale
-- **GIONATA**: Serra Fredda / Vivaio
-- **GIULIO**: Area Tecnica / Serra Fredda
-- **CARLO**: Area Tecnica / Manutenzione & Serra
+---
+
+### Sede di Varese (VA) – 18 Dipendenti Rilevati
+
+| Dipendente | Reparto Primario Base | Abilitazioni Secondarie / Flessibilità Dimostrata | Note e Presenza Stagionale |
+| :--- | :--- | :--- | :--- |
+| **STEFANIA** | **Cassa** (Rosso) | Fioreria / Decor | Addetta cassa titolare a Settembre. |
+| **ARIANNA** | **Cassa** (Rosso) | Accoglienza | Addetta cassa titolare nei mesi estivi e primaverili (Aprile, Maggio, Agosto). |
+| **NANCY** | **Cassa** (Rosso) | Accoglienza | Addetta cassa nei mesi centrali estivi (Giugno, Luglio). |
+| **SARA** | **Cassa** (Rosso) | Cassa 2 / Accoglienza | Addetta cassa addizionale nel picco primaverile di Aprile e Maggio. |
+| **DEBORA / CASSA_1** | **Cassa** (Rosso) | Accoglienza | Cassa nei mesi invernali di Gennaio e Febbraio. |
+| **KATJA** | **Fioreria** (Rosa) | Cassa Weekend / Decor | Responsabile/senior fioreria; nei weekend copre spesso turni cassa contrassegnati in rosso. |
+| **LUISA** | **Fioreria** (Rosa) | Serra Calda | Presidio continuativo del banco fiori. |
+| **GIANCARLA** | **Fioreria** (Rosa) | Decor / Cassa Weekend | Presidio fioreria e confezionamento composizioni; supporto cassa nei festivi. |
+| **GIOVANNA** | **Decor** (Rosa Carico) | Cassa Weekend | Responsabile reparto Decorazione/Casa; effettua regolarmente supporto cassa la domenica. |
+| **ANDREA** | **Emporio** (Kaki) | Logistica interna | Titolare e presidio stabile del reparto Emporio (presente da Marzo a Settembre in modo continuo). |
+| **MATTEO** | **Natale** (Terracotta, da Set) / Allestimenti | Supporto Tecnico | Da Settembre in coppia fissa con Stefano per il villaggio natalizio; nei mesi precedenti allestimenti/stagionale. |
+| **STEFANO** | **Natale** (Terracotta, da Set) / Serra Fredda | Vivaio esterno | Da Gennaio ad Agosto in Serra Fredda (verde); da Settembre in coppia fissa con Matteo per il Natale. |
+| **FRANCESCA** | **Serra Calda** (Giallo) | Fioreria | Piante da interno e tropicali. |
+| **CINZIA** | **Serra Calda** (Giallo) | Supporto Corsia | Piante verdi e fiorite da appartamento. |
+| **GIONATA** | **Serra Fredda** (Lime) | Vivaio piante | Vivaista esperto piante da esterno ed alberature. |
+| **GIULIO** | **Serra Fredda** (Lime) | Vivaio piante | Vivaio piante da esterno e perenni. |
+| **ELINA** | **Serra Fredda** (Lime) | **Mobilità Inter-Sede** | Assegnata a Serra Fredda; a inizio settembre trasferita a Gazzada in prestito. |
+| **CARLO** | **Supporto / Corsia** (Azzurro) | Manutenzione generale | Tirocinio/supporto presente in diversi mesi dell'anno con orario ridotto o concentrato nei primi giorni del mese. |
+| **GAIA** | **Serra Fredda / Cassa** | Supporto Vivaio | Rinforzo primaverile ed estivo (Gennaio–Maggio). |
+| **CLAUDIO** | **Serra Fredda / Vivaio** | Vivaio piante esterne | Rinforzo stagionale presente da Gennaio a Maggio. |
+
+---
+
+## 4. Mobilità e Prestiti Inter-Sede (Il caso Elina)
+
+L'analisi incrociata dei due PDF dimostra che **le due sedi non sono silos chiusi**:
+- Sul foglio di **Varese**, nei giorni dal 3 al 9 Settembre 2026, Elina riporta assenza con trattini `-` e riposi `0`.
+- Sul foglio di **Gazzada**, esattamente nelle stesse date, compare aggiunta a mano la riga `ELINA | -- | -- | P | P | P | P | 0 | P | P |`.
+- **Causa operativa**: contemporaneità delle ferie di 3 colonne di Gazzada (Daniela in Serra Fredda, Denis in Serra Calda, Ivano in Area Tecnica). Varese ha prestato Elina per garantire i 5–6 presenti minimi a Gazzada.
+
+---
+
+## 5. Regole per il Futuro Algoritmo e la Skills Matrix
+
+1. **Reparti per Sede Rigidi**:
+   - `sede === 'GAZZADA'` $\rightarrow$ Cassa, Fioreria, Serra Fredda, Serra Calda, **Area Tecnica**.
+   - `sede === 'VARESE'` $\rightarrow$ Cassa, Fioreria, Serra Fredda, Serra Calda, **Decor**, **Emporio**, **Natale** (stagionale).
+2. **Squadra Natale**:
+   - Da Settembre a Gennaio, a Varese l'algoritmo deve prevedere la riserva di **2 addetti fissi** dedicati all'allestimento e vendita Natale (storicamente Matteo e Stefano).
+3. **Presidio Area Tecnica a Gazzada**:
+   - Ivano è il titolare irrinunciabile; in sua assenza il primo sostituto abilitato è Marco (o Denis).
+4. **Presidio Emporio a Varese**:
+   - Andrea è il titolare del reparto; nei suoi riposi il presidio viene coperto a rotazione da personale Serra o Decor.
+5. **Cassa a Varese vs Gazzada**:
+   - A Gazzada Sabrina è la cassiera storica, con Teo e Ivano abili alla sostituzione.
+   - A Varese la cassa è gestita da figure contrattuali dedicate stagionali (Stefania, Arianna, Nancy, Sara, Debora) con Katja e Giovanna come garanti nei weekend/festivi.

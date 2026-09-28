@@ -33,6 +33,9 @@ const DEPT_COLORS: Record<Department, { bg: string; text: string; border: string
   'Decor': { bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-200' },
   'Serra Calda': { bg: 'bg-emerald-50', text: 'text-emerald-800', border: 'border-emerald-200' },
   'Serra Fredda': { bg: 'bg-teal-50', text: 'text-teal-800', border: 'border-teal-200' },
+  'Area Tecnica': { bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-200' },
+  'Emporio': { bg: 'bg-orange-50', text: 'text-orange-800', border: 'border-orange-200' },
+  'Natale': { bg: 'bg-red-50', text: 'text-red-800', border: 'border-red-200' },
 };
 
 export const StaffSubstitutionWizard: React.FC<StaffSubstitutionWizardProps> = ({

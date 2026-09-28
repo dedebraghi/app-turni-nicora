@@ -56,6 +56,7 @@ export const GenerateModal: React.FC<GenerateModalProps> = ({
   const [selectedMonth, setSelectedMonth] = useState<number>(currentMonthNum);
   const [selectedYear, setSelectedYear] = useState<number>(currentYearNum);
   const [mode, setMode] = useState<ScheduleMode>('standard');
+  const [isChristmasSeason, setIsChristmasSeason] = useState<boolean>(false);
   const [resultStats, setResultStats] = useState<any | null>(null);
 
   if (!isOpen) return null;
@@ -69,6 +70,7 @@ export const GenerateModal: React.FC<GenerateModalProps> = ({
       requests,
       existingShifts,
       mode,
+      isChristmasSeason,
     });
 
     setResultStats(result.stats);
@@ -242,6 +244,47 @@ export const GenerateModal: React.FC<GenerateModalProps> = ({
             </div>
           </div>
 
+          {/* Opzione Stagionale Natale (Solo per Varese da Settembre in poi) */}
+          {locationId === 'varese' && (
+            <div className={`p-3.5 rounded-2xl border transition-all ${
+              isChristmasSeason
+                ? 'bg-rose-50/80 border-rose-300 ring-2 ring-rose-200'
+                : 'bg-neutral-50/80 border-neutral-200'
+            }`}>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-start gap-2.5">
+                  <span className="text-xl">🎄</span>
+                  <div>
+                    <div className="font-bold text-xs text-neutral-900 flex items-center gap-1.5">
+                      <span>Stagione Autunno / Allestimento Natale</span>
+                      {isChristmasSeason && (
+                        <span className="bg-rose-600 text-white text-[10px] font-extrabold px-1.5 py-0.2 rounded-md">
+                          Attivo
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-neutral-600 mt-0.5 leading-snug">
+                      Assegna prioritariamente i 2 collaboratori specializzati al reparto <strong>Natale</strong> (Matteo & Stefano).
+                    </p>
+                  </div>
+                </div>
+
+                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={isChristmasSeason}
+                    onChange={(e) => {
+                      setIsChristmasSeason(e.target.checked);
+                      setResultStats(null);
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-10 h-6 bg-neutral-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600"></div>
+                </label>
+              </div>
+            </div>
+          )}
+
           {/* Vincoli e Regole Nicora Applicate */}
           <div className="bg-[#e6f0eb]/70 border border-[#80b4b9]/50 rounded-2xl p-3.5 space-y-1.5 text-neutral-800">
             <span className="font-bold flex items-center gap-1.5 text-xs text-nicora-teal">
@@ -254,7 +297,7 @@ export const GenerateModal: React.FC<GenerateModalProps> = ({
               <li><strong>Recepisce ferie e malattie già approvate</strong>: chi è in permesso non viene assegnato ai reparti.</li>
               <li><strong>Recepisce entrate posticipate e uscite anticipate</strong> approvate con orario personalizzato.</li>
               <li><strong>5 giorni lavorativi su 7</strong> per ciascun collaboratore (2 riposi settimanali garantiti).</li>
-              <li><strong>Priorità di presidio a tutti i 5 reparti</strong> (Cassa, Fioreria, Decor, Serra Calda, Serra Fredda).</li>
+              <li><strong>Presidio reparti specifici di sede</strong>: {locationId === 'gazzada' ? 'Gazzada (Cassa, Fioreria, Serra Calda, Serra Fredda, Area Tecnica).' : `Varese (Cassa, Fioreria, Decor, Emporio, Serra Calda, Serra Fredda${isChristmasSeason ? ', Natale' : ''}).`}</li>
             </ul>
           </div>
 

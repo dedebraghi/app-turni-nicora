@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Department, Employee, LocationId, Shift, SkillScores } from '../../domain/types';
-import { DEPARTMENTS, DEPARTMENT_COLORS } from '../../domain/rules';
+import { ALL_DEPARTMENTS, DEPARTMENTS, DEPARTMENT_COLORS, getLocationDepartments } from '../../domain/rules';
 import {
   calculateMonthlyStoreReport,
   exportMonthlyReportCSV,
@@ -42,7 +42,7 @@ interface StaffPersonnelProps {
   onArchiveEmployee: (employeeId: string, isActive: boolean) => void;
   onUpdateSkillsAndHours?: (
     employeeId: string,
-    skills: Record<Department, number>,
+    skills: SkillScores,
     contractHours: number
   ) => void;
 }
@@ -117,9 +117,9 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
 
   // State locale per modifiche rapide competenze e ore di contratto
   const [editableStaff, setEditableStaff] = useState<
-    Record<string, { skills: Record<Department, number>; contractHours: number }>
+    Record<string, { skills: SkillScores; contractHours: number }>
   >(() => {
-    const initial: Record<string, { skills: Record<Department, number>; contractHours: number }> = {};
+    const initial: Record<string, { skills: SkillScores; contractHours: number }> = {};
     employees.forEach((emp) => {
       initial[emp.id] = {
         skills: { ...emp.skills },
@@ -635,14 +635,16 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                   <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider block mb-1.5">
                     Punteggio Competenze (1 = Base, 10 = Specialista Master):
                   </span>
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center">
-                    {DEPARTMENTS.map((dept) => {
+                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-2 text-center">
+                    {getLocationDepartments(emp.locationId, true).map((dept) => {
                       const score = currentScores[dept] ?? 5;
                       const deptShort =
                         dept === 'Serra Calda'
                           ? 'S. Calda'
                           : dept === 'Serra Fredda'
                           ? 'S. Fredda'
+                          : dept === 'Area Tecnica'
+                          ? 'Area Tec.'
                           : dept;
 
                       return (
@@ -808,7 +810,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                     </div>
 
                     <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
-                      {DEPARTMENTS.map((d) => {
+                      {getLocationDepartments(emp.locationId, true).map((d) => {
                         const score = emp.skills?.[d] ?? 5;
                         return (
                           <span
@@ -914,29 +916,29 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
 
               <div className="bg-rose-50/60 p-3 rounded-2xl border border-rose-100">
                 <span className="text-[10px] uppercase font-bold text-rose-700 block">Presidio Cassa</span>
-                <span className="text-xl font-black text-rose-900">{monthlySummary.departmentTotals.Cassa}h</span>
+                <span className="text-xl font-black text-rose-900">{(monthlySummary.departmentTotals.Cassa ?? 0)}h</span>
                 <span className="text-[10px] text-rose-600 block mt-0.5">
-                  {monthlySummary.totalWorkedHours > 0 ? `${Math.round((monthlySummary.departmentTotals.Cassa / monthlySummary.totalWorkedHours) * 100)}% del totale` : '-'}
+                  {monthlySummary.totalWorkedHours > 0 ? `${Math.round(((monthlySummary.departmentTotals.Cassa ?? 0) / monthlySummary.totalWorkedHours) * 100)}% del totale` : '-'}
                 </span>
               </div>
 
               <div className="bg-pink-50/60 p-3 rounded-2xl border border-pink-100">
                 <span className="text-[10px] uppercase font-bold text-pink-700 block">Fioreria & Decor</span>
                 <span className="text-xl font-black text-pink-900">
-                  {Math.round((monthlySummary.departmentTotals.Fioreria + monthlySummary.departmentTotals.Decor) * 10) / 10}h
+                  {Math.round(((monthlySummary.departmentTotals.Fioreria ?? 0) + (monthlySummary.departmentTotals.Decor ?? 0)) * 10) / 10}h
                 </span>
                 <span className="text-[10px] text-pink-600 block mt-0.5">
-                  Fio: {monthlySummary.departmentTotals.Fioreria}h • Dec: {monthlySummary.departmentTotals.Decor}h
+                  Fio: {(monthlySummary.departmentTotals.Fioreria ?? 0)}h • Dec: {(monthlySummary.departmentTotals.Decor ?? 0)}h
                 </span>
               </div>
 
               <div className="bg-sky-50/60 p-3 rounded-2xl border border-sky-100">
                 <span className="text-[10px] uppercase font-bold text-sky-700 block">Serre (C+F)</span>
                 <span className="text-xl font-black text-sky-900">
-                  {Math.round((monthlySummary.departmentTotals['Serra Calda'] + monthlySummary.departmentTotals['Serra Fredda']) * 10) / 10}h
+                  {Math.round(((monthlySummary.departmentTotals['Serra Calda'] ?? 0) + (monthlySummary.departmentTotals['Serra Fredda'] ?? 0)) * 10) / 10}h
                 </span>
                 <span className="text-[10px] text-sky-600 block mt-0.5">
-                  Calda: {monthlySummary.departmentTotals['Serra Calda']}h • Fredda: {monthlySummary.departmentTotals['Serra Fredda']}h
+                  Calda: {(monthlySummary.departmentTotals['Serra Calda'] ?? 0)}h • Fredda: {(monthlySummary.departmentTotals['Serra Fredda'] ?? 0)}h
                 </span>
               </div>
 
@@ -1038,7 +1040,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                               </td>
 
                               <td className="py-3 px-3 text-center">
-                                {s.departmentHours.Cassa > 0 ? (
+                                {(s.departmentHours.Cassa ?? 0) > 0 ? (
                                   <span className="bg-rose-50 text-rose-700 font-bold px-2 py-0.5 rounded-md border border-rose-200">
                                     {s.departmentHours.Cassa}h
                                   </span>
@@ -1048,7 +1050,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                               </td>
 
                               <td className="py-3 px-3 text-center">
-                                {s.departmentHours.Fioreria > 0 ? (
+                                {(s.departmentHours.Fioreria ?? 0) > 0 ? (
                                   <span className="bg-pink-50 text-pink-700 font-bold px-2 py-0.5 rounded-md border border-pink-200">
                                     {s.departmentHours.Fioreria}h
                                   </span>
@@ -1058,7 +1060,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                               </td>
 
                               <td className="py-3 px-3 text-center">
-                                {s.departmentHours.Decor > 0 ? (
+                                {(s.departmentHours.Decor ?? 0) > 0 ? (
                                   <span className="bg-purple-50 text-purple-700 font-bold px-2 py-0.5 rounded-md border border-purple-200">
                                     {s.departmentHours.Decor}h
                                   </span>
@@ -1068,7 +1070,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                               </td>
 
                               <td className="py-3 px-3 text-center">
-                                {s.departmentHours['Serra Calda'] > 0 ? (
+                                {(s.departmentHours['Serra Calda'] ?? 0) > 0 ? (
                                   <span className="bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-md border border-emerald-200">
                                     {s.departmentHours['Serra Calda']}h
                                   </span>
@@ -1078,7 +1080,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                               </td>
 
                               <td className="py-3 px-3 text-center">
-                                {s.departmentHours['Serra Fredda'] > 0 ? (
+                                {(s.departmentHours['Serra Fredda'] ?? 0) > 0 ? (
                                   <span className="bg-sky-50 text-sky-700 font-bold px-2 py-0.5 rounded-md border border-sky-200">
                                     {s.departmentHours['Serra Fredda']}h
                                   </span>
@@ -1127,11 +1129,11 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                         <td className="py-3 px-4" colSpan={3}>
                           TOTALE PUNTO VENDITA ({monthlySummary.totalPresenceDays} presenze)
                         </td>
-                        <td className="py-3 px-3 text-center text-rose-800">{monthlySummary.departmentTotals.Cassa}h</td>
-                        <td className="py-3 px-3 text-center text-pink-800">{monthlySummary.departmentTotals.Fioreria}h</td>
-                        <td className="py-3 px-3 text-center text-purple-800">{monthlySummary.departmentTotals.Decor}h</td>
-                        <td className="py-3 px-3 text-center text-emerald-800">{monthlySummary.departmentTotals['Serra Calda']}h</td>
-                        <td className="py-3 px-3 text-center text-sky-800">{monthlySummary.departmentTotals['Serra Fredda']}h</td>
+                        <td className="py-3 px-3 text-center text-rose-800">{(monthlySummary.departmentTotals.Cassa ?? 0)}h</td>
+                        <td className="py-3 px-3 text-center text-pink-800">{(monthlySummary.departmentTotals.Fioreria ?? 0)}h</td>
+                        <td className="py-3 px-3 text-center text-purple-800">{(monthlySummary.departmentTotals.Decor ?? 0)}h</td>
+                        <td className="py-3 px-3 text-center text-emerald-800">{(monthlySummary.departmentTotals['Serra Calda'] ?? 0)}h</td>
+                        <td className="py-3 px-3 text-center text-sky-800">{(monthlySummary.departmentTotals['Serra Fredda'] ?? 0)}h</td>
                         <td className="py-3 px-3 text-right text-nicora-teal text-sm">{monthlySummary.totalWorkedHours}h</td>
                         <td className="py-3 px-3 text-right text-purple-800">{monthlySummary.totalLeaveHours}h</td>
                         <td className="py-3 px-3 text-right text-black text-sm">{monthlySummary.totalAccountedHours}h</td>
@@ -1212,7 +1214,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                             Ore per Reparto:
                           </span>
                           <div className="flex flex-wrap gap-1.5">
-                            {DEPARTMENTS.map((dept) => {
+                            {ALL_DEPARTMENTS.map((dept) => {
                               const h = s.departmentHours[dept];
                               if (h === 0) return null;
                               return (
@@ -1323,7 +1325,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                     onChange={(e) => setFormData({ ...formData, role: e.target.value as Department })}
                     className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-nicora-teal min-h-[44px]"
                   >
-                    {DEPARTMENTS.map((d) => (
+                    {getLocationDepartments(formData.locationId, true).map((d) => (
                       <option key={d} value={d}>
                         {d}
                       </option>
@@ -1393,7 +1395,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                 </label>
 
                 <div className="space-y-2">
-                  {DEPARTMENTS.map((dept) => {
+                  {getLocationDepartments(formData.locationId, true).map((dept) => {
                     const score = formData.skills[dept] ?? 5;
                     return (
                       <div key={dept} className="flex items-center justify-between gap-3 text-xs">

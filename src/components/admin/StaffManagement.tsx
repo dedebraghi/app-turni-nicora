@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Department, Employee, LocationId, SkillScores } from '../../domain/types';
-import { DEPARTMENTS, DEPARTMENT_COLORS } from '../../domain/rules';
+import { ALL_DEPARTMENTS, DEPARTMENTS, DEPARTMENT_COLORS, getLocationDepartments } from '../../domain/rules';
 import { Archive, Award, Check, Edit3, KeyRound, Mail, Phone, Plus, RefreshCw, Search, ShieldCheck, UserCheck, UserPlus, Users, UserX, X } from 'lucide-react';
 
 interface StaffManagementProps {
@@ -325,7 +325,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
 
                   {/* Competenze sintetiche */}
                   <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
-                    {DEPARTMENTS.map((d) => {
+                    {getLocationDepartments(emp.locationId, true).map((d) => {
                       const score = emp.skills?.[d] ?? 5;
                       return (
                         <span
@@ -403,7 +403,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
                     onChange={(e) => setFormData({ ...formData, role: e.target.value as Department })}
                     className="w-full bg-neutral-50 border border-nicora-border rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-nicora-teal min-h-[44px]"
                   >
-                    {DEPARTMENTS.map((d) => (
+                    {getLocationDepartments(activeLocation, true).map((d) => (
                       <option key={d} value={d}>
                         {d}
                       </option>
@@ -481,7 +481,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
                 </label>
 
                 <div className="space-y-2">
-                  {DEPARTMENTS.map((dept) => {
+                  {getLocationDepartments(activeLocation, true).map((dept) => {
                     const score = formData.skills[dept] ?? 5;
                     return (
                       <div key={dept} className="flex items-center justify-between gap-3 text-xs">

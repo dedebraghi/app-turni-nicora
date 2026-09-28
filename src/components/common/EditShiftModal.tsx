@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CONTINUATO_SLOTS, DEPARTMENTS, SHIFT_TYPES, STANDARD_HOURS } from '../../domain/rules';
+import { CONTINUATO_SLOTS, getLocationDepartments, SHIFT_TYPES, STANDARD_HOURS } from '../../domain/rules';
 import { Department, Employee, Shift, ShiftType } from '../../domain/types';
 import { X, Check, Clock, MapPin, Tag, ShieldAlert, Sparkles } from 'lucide-react';
 
@@ -189,8 +189,8 @@ export const EditShiftModal: React.FC<EditShiftModalProps> = ({
                 <Tag size={13} className="text-nicora-teal" />
                 <span>Reparto di Servizio:</span>
               </label>
-              <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
-                {DEPARTMENTS.map((dept) => (
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-1.5">
+                {getLocationDepartments(shift.locationId, true).map((dept) => (
                   <button
                     key={dept}
                     type="button"
@@ -203,7 +203,7 @@ export const EditShiftModal: React.FC<EditShiftModalProps> = ({
                         : 'bg-neutral-50 text-neutral-700 border-nicora-border hover:bg-neutral-100'
                     }`}
                   >
-                    {dept === 'Serra Calda' ? 'S. Calda' : dept === 'Serra Fredda' ? 'S. Fredda' : dept}
+                    {dept === 'Serra Calda' ? 'S. Calda' : dept === 'Serra Fredda' ? 'S. Fredda' : dept === 'Area Tecnica' ? 'Area Tec.' : dept}
                   </button>
                 ))}
               </div>

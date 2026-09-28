@@ -1,4 +1,12 @@
-export type Department = 'Cassa' | 'Fioreria' | 'Decor' | 'Serra Calda' | 'Serra Fredda';
+export type Department =
+  | 'Cassa'
+  | 'Fioreria'
+  | 'Serra Fredda'
+  | 'Serra Calda'
+  | 'Area Tecnica'
+  | 'Decor'
+  | 'Emporio'
+  | 'Natale';
 
 export type Role = Department;
 
@@ -14,7 +22,7 @@ export interface LocationInfo {
   phone: string;
 }
 
-export type SkillScores = Record<Department, number>; // 1 - 10 per ciascuno dei 5 reparti
+export type SkillScores = Partial<Record<Department, number>>; // 1 - 10 per ciascun reparto della sede
 
 export type ShiftType = 'mattina' | 'pomeriggio' | 'giornata' | 'riposo' | 'ferie' | 'malattia';
 
@@ -110,17 +118,20 @@ export interface DayCoverageSummary {
   cassaCount: number;
   isCassaOk: boolean;
   fioreriaCount: number;
-  decorCount: number;
-  serraCaldaCount: number;
   serraFreddaCount: number;
+  serraCaldaCount: number;
+  areaTecnicaCount?: number;
+  decorCount?: number;
+  emporioCount?: number;
+  nataleCount?: number;
   riposoCount: number;
   ferieCount: number;
   malattiaCount: number;
   uncoveredDepartments: Department[];
   averageSkillScore?: number;
-  departmentSkillScores?: Record<Department, number>;
+  departmentSkillScores?: Partial<Record<Department, number>>;
   suboptimalDepartments?: Department[];
-  departmentStaff?: Record<Department, DepartmentStaffAssignment[]>;
+  departmentStaff?: Partial<Record<Department, DepartmentStaffAssignment[]>>;
 }
 
 export interface ReplacementSuggestion {
@@ -136,7 +147,7 @@ export interface MonthlyEmployeeSummary {
   workedHours: number;
   leaveHours: number;
   totalAccountedHours: number;
-  departmentHours: Record<Department, number>;
+  departmentHours: Partial<Record<Department, number>>;
   daysCount: {
     presence: number;
     rest: number;
@@ -155,7 +166,7 @@ export interface MonthlyStoreSummary {
   totalWorkedHours: number;
   totalLeaveHours: number;
   totalAccountedHours: number;
-  departmentTotals: Record<Department, number>;
+  departmentTotals: Partial<Record<Department, number>>;
   totalPresenceDays: number;
   totalRestDays: number;
   totalLeaveDays: number;
