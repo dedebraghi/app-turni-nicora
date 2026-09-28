@@ -74,22 +74,64 @@ export const StaffSubstitutionWizard: React.FC<StaffSubstitutionWizardProps> = (
       })
     : [];
 
+  const atRestCandidates = candidates.filter((c) => c.type === 'at_rest');
+  const extensionCandidates = candidates.filter((c) => c.type === 'extension');
+
   const handleSelectCandidate = (candidate: ReplacementCandidate) => {
     if (!currentGap) return;
 
-    const newShift: Shift = {
-      id: `shift-${candidate.employee.id}-${currentGap.dateStr}`,
-      employeeId: candidate.employee.id,
-      locationId,
-      date: currentGap.dateStr,
-      type: currentGap.severity === 'critical' ? 'giornata' : 'pomeriggio',
-      department: currentGap.department,
-      startTime: currentGap.startMissing,
-      endTime: currentGap.endMissing,
-      areaNote: `${currentGap.department} (Sostituzione coperta)`,
-      isCustomHours: currentGap.severity === 'partial',
-      assignedSkillScore: candidate.skillScore,
-    };
+    let newShift: Shift;
+
+    if (candidate.type === 'extension' && candidate.existingShift) {
+      // Non togliamo la persona dal suo reparto originale! Estendiamo il turno coprendo entrambi
+      const existing = candidate.existingShift;
+      const originalDept = existing.department || candidate.employee.role;
+      const newStartTime =
+        existing.startTime && existing.startTime < currentGap.startMissing
+          ? existing.startTime
+          : currentGap.startMissing;
+      const newEndTime =
+        existing.endTime && existing.endTime > currentGap.endMissing
+          ? existing.endTime
+          : currentGap.endMissing;
+
+      // Unione note reparti per garantire che l'algoritmo consideri coperti entrambi
+      const combinedNote = `${originalDept} (${existing.startTime || '08:30'}–${existing.endTime || '14:30'}) + ${currentGap.department} (${currentGap.startMissing}–${currentGap.endMissing})`;
+
+      newShift = {
+        ...existing,
+        id: existing.id || `shift-${candidate.employee.id}-${currentGap.dateStr}`,
+        employeeId: candidate.employee.id,
+        locationId,
+        date: currentGap.dateStr,
+        type: 'giornata',
+        department: existing.department || originalDept,
+        startTime: newStartTime,
+        endTime: newEndTime,
+        areaNote: combinedNote,
+        isCustomHours: true,
+        customHoursReason: `Estensione straordinario per ${currentGap.department} (${currentGap.startMissing}–${currentGap.endMissing}) senza scoprire ${originalDept}`,
+        assignedSkillScore: Math.max(existing.assignedSkillScore || 0, candidate.skillScore),
+      };
+    } else {
+      // Candidato a Riposo: copre il buco direttamente senza intaccare nessun altro reparto
+      newShift = {
+        id: `shift-${candidate.employee.id}-${currentGap.dateStr}`,
+        employeeId: candidate.employee.id,
+        locationId,
+        date: currentGap.dateStr,
+        type: currentGap.severity === 'critical' ? 'giornata' : 'pomeriggio',
+        department: currentGap.department,
+        startTime: currentGap.startMissing,
+        endTime: currentGap.endMissing,
+        areaNote: `${currentGap.department} (Copertura da riposo)`,
+        isCustomHours: currentGap.severity === 'partial',
+        customHoursReason: currentGap.severity === 'partial'
+          ? `Copertura oraria presidio ${currentGap.department} (${currentGap.startMissing}–${currentGap.endMissing})`
+          : undefined,
+        assignedSkillScore: candidate.skillScore,
+      };
+    }
 
     onApplyShift(newShift);
     setLastAssigned({ empName: candidate.employee.name, dept: currentGap.department });
@@ -117,6 +159,70 @@ export const StaffSubstitutionWizard: React.FC<StaffSubstitutionWizardProps> = (
   };
 
   const deptTheme = currentGap ? DEPT_COLORS[currentGap.department] || DEPT_COLORS['Cassa'] : DEPT_COLORS['Cassa'];
+
+  const renderCandidateCard = (cand: ReplacementCandidate, isTop: boolean) => (
+    <div
+      key={cand.employee.id}
+      className={`p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
+        cand.type === 'at_rest' && isTop
+          ? 'bg-emerald-50/60 border-emerald-300 ring-1 ring-emerald-200 shadow-xs'
+          : cand.type === 'extension'
+          ? 'bg-amber-50/50 border-amber-200 hover:border-amber-300 shadow-xs'
+          : 'bg-white border-neutral-200 hover:border-neutral-300 shadow-xs'
+      }`}
+    >
+      <div className="flex items-center gap-2.5 min-w-0">
+        <div
+          className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-xs flex-shrink-0"
+          style={{ backgroundColor: cand.employee.color || '#2d6a4f' }}
+        >
+          {cand.employee.avatar || cand.employee.name.slice(0, 2).toUpperCase()}
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="font-bold text-xs text-neutral-900 truncate">
+              {cand.employee.name}
+            </span>
+            {cand.type === 'at_rest' ? (
+              <span className="px-1.5 py-0.2 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-200 text-[9px] font-black uppercase">
+                A Riposo
+              </span>
+            ) : (
+              <span className="px-1.5 py-0.2 rounded-md bg-amber-100 text-amber-900 border border-amber-300 text-[9px] font-black uppercase flex items-center gap-0.5">
+                <Sparkles size={8} />
+                <span>Estensione (+{cand.extraHours}h)</span>
+              </span>
+            )}
+            {cand.isMobile && (
+              <span className="px-1.5 py-0.2 rounded-md bg-sky-100 text-sky-800 text-[9px] font-bold">
+                Jolly Mobile
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 mt-0.5">
+            <span className="flex items-center gap-0.5 font-semibold text-emerald-800">
+              <Star size={11} className="fill-emerald-600 text-emerald-600" />
+              <span>{cand.skillScore}/10</span>
+            </span>
+            <span>•</span>
+            <span className="truncate">{cand.statusLabel}</span>
+          </div>
+        </div>
+      </div>
+
+      <button
+        onClick={() => handleSelectCandidate(cand)}
+        className={`text-white text-[11px] font-bold px-3 py-1.5 rounded-xl shadow-xs flex items-center gap-1 flex-shrink-0 active:scale-95 transition-all ${
+          cand.type === 'at_rest'
+            ? 'bg-nicora-orange hover:bg-nicora-orange-hover'
+            : 'bg-amber-600 hover:bg-amber-700'
+        }`}
+      >
+        <UserCheck size={14} />
+        <span>{cand.type === 'at_rest' ? 'Assegna' : 'Estendi'}</span>
+      </button>
+    </div>
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 animate-in fade-in duration-150">
@@ -227,15 +333,7 @@ export const StaffSubstitutionWizard: React.FC<StaffSubstitutionWizardProps> = (
               </div>
 
               {/* Lista Proposta Sostituti */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-neutral-800 flex items-center gap-1.5">
-                    <UserPlus size={15} className="text-nicora-orange" />
-                    <span>Migliori Sostituti Consigliati ({candidates.length}):</span>
-                  </span>
-                  <span className="text-[11px] text-neutral-500">Ordinati per competenza</span>
-                </div>
-
+              <div className="space-y-3">
                 {candidates.length === 0 ? (
                   <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-5 text-center space-y-2 text-neutral-500">
                     <AlertTriangle size={24} className="mx-auto text-amber-500" />
@@ -247,57 +345,45 @@ export const StaffSubstitutionWizard: React.FC<StaffSubstitutionWizardProps> = (
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                    {candidates.map((cand, idx) => {
-                      const isTopChoice = idx === 0;
-                      return (
-                        <div
-                          key={cand.employee.id}
-                          className={`p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
-                            isTopChoice
-                              ? 'bg-emerald-50/50 border-emerald-300 ring-1 ring-emerald-200 shadow-xs'
-                              : 'bg-white border-neutral-200 hover:border-neutral-300 shadow-xs'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div
-                              className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-xs flex-shrink-0"
-                              style={{ backgroundColor: cand.employee.color || '#2d6a4f' }}
-                            >
-                              {cand.employee.avatar || cand.employee.name.slice(0, 2).toUpperCase()}
-                            </div>
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <span className="font-bold text-xs text-neutral-900 truncate">
-                                  {cand.employee.name}
-                                </span>
-                                {isTopChoice && (
-                                  <span className="px-1.5 py-0.2 rounded-md bg-emerald-600 text-white text-[9px] font-bold uppercase">
-                                    Consigliato
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2 text-[11px] text-neutral-500 mt-0.5">
-                                <span className="flex items-center gap-0.5 font-semibold text-emerald-800">
-                                  <Star size={11} className="fill-emerald-600 text-emerald-600" />
-                                  <span>{cand.skillScore}/10</span>
-                                </span>
-                                <span>•</span>
-                                <span className="truncate">{cand.statusLabel}</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <button
-                            onClick={() => handleSelectCandidate(cand)}
-                            className="bg-nicora-orange hover:bg-nicora-orange-hover text-white text-[11px] font-bold px-3 py-1.5 rounded-xl shadow-xs flex items-center gap-1 flex-shrink-0 active:scale-95 transition-all"
-                          >
-                            <UserCheck size={14} />
-                            <span>Assegna</span>
-                          </button>
+                  <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                    {/* Sezione 1: A Riposo (Priorità assoluta: non scoprono altri reparti) */}
+                    {atRestCandidates.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-xs text-emerald-900 flex items-center gap-1.5">
+                            <CheckCircle2 size={14} className="text-emerald-600" />
+                            <span>A Riposo (Ideali: non scoprono altri reparti):</span>
+                          </span>
+                          <span className="text-[10px] text-emerald-700 font-semibold">
+                            {atRestCandidates.length} disponibili
+                          </span>
                         </div>
-                      );
-                    })}
+                        <div className="space-y-1.5">
+                          {atRestCandidates.map((cand, idx) => renderCandidateCard(cand, idx === 0))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Sezione 2: Estensione Turno / Straordinario */}
+                    {extensionCandidates.length > 0 && (
+                      <div className="space-y-2 pt-1 border-t border-neutral-200">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-xs text-amber-900 flex items-center gap-1.5">
+                            <Sparkles size={14} className="text-amber-600" />
+                            <span>Disponibili per Estensione Turno (+ Straordinario):</span>
+                          </span>
+                          <span className="text-[10px] text-amber-700 font-semibold">
+                            {extensionCandidates.length} disponibili
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-neutral-500 italic">
+                          Mantiene il presidio del proprio reparto e aggiunge le ore mancanti per {currentGap.department}.
+                        </p>
+                        <div className="space-y-1.5">
+                          {extensionCandidates.map((cand, idx) => renderCandidateCard(cand, atRestCandidates.length === 0 && idx === 0))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

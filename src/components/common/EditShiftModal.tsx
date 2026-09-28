@@ -62,6 +62,8 @@ export const EditShiftModal: React.FC<EditShiftModalProps> = ({
       (type === 'pomeriggio' && startTime === STANDARD_HOURS.pomeriggio.start && endTime === STANDARD_HOURS.pomeriggio.end) ||
       (type === 'giornata' && startTime === STANDARD_HOURS.giornata.start && endTime === STANDARD_HOURS.giornata.end);
 
+    const willBeCustom = !isOff && (isCustomHours || !isStandard);
+
     onSave({
       ...shift,
       type,
@@ -70,10 +72,22 @@ export const EditShiftModal: React.FC<EditShiftModalProps> = ({
       endTime: isOff ? undefined : endTime,
       areaNote: isOff ? undefined : areaNote,
       isManualOverride: true,
-      isCustomHours: !isOff && (isCustomHours || !isStandard),
+      isCustomHours: willBeCustom,
+      customHoursReason: willBeCustom
+        ? shift.customHoursReason || 'Orario speciale modificato manualmente dal responsabile'
+        : undefined,
     });
     onClose();
   };
+
+  // Motivo esplicito per la dicitura "Speciale"
+  const specialReason =
+    shift.customHoursReason ||
+    (employee?.contractHours && employee.contractHours < 40
+      ? `Contratto Part-Time concordato a ${employee.contractHours}h settimanali (${shift.startTime || '08:30'} — ${shift.endTime || '14:30'})`
+      : shift.areaNote?.includes('Straordinario') || shift.areaNote?.includes('Estensione')
+      ? `Estensione straordinario per copertura presidio: ${shift.areaNote}`
+      : 'Orario speciale concordato personalizzato');
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-150">
@@ -100,6 +114,28 @@ export const EditShiftModal: React.FC<EditShiftModalProps> = ({
 
         {/* Modal Form */}
         <form onSubmit={handleSave} className="p-4 space-y-3.5 text-xs">
+          
+          {/* Badge Spiegazione Orario Speciale */}
+          {shift.isCustomHours && (
+            <div className="bg-gradient-to-r from-amber-50 to-orange-50/70 border border-amber-300/80 rounded-2xl p-3 flex items-start gap-2.5 shadow-2xs">
+              <div className="w-7 h-7 rounded-xl bg-amber-500 text-white flex items-center justify-center flex-shrink-0 mt-0.5 shadow-xs">
+                <Sparkles size={14} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-900">
+                    Motivo Dicitura "Speciale"
+                  </span>
+                  <span className="bg-amber-200/80 text-amber-900 text-[9px] font-black px-1.5 py-0.2 rounded-full border border-amber-300">
+                    {shift.startTime || '08:30'} — {shift.endTime || '14:30'}
+                  </span>
+                </div>
+                <p className="text-xs font-semibold text-amber-950 mt-1 leading-snug">
+                  {specialReason}
+                </p>
+              </div>
+            </div>
+          )}
           
           {/* Tipologia Turno */}
           <div>

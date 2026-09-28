@@ -72,6 +72,10 @@ export interface ReplacementCandidate {
   isAvailable: boolean;
   statusLabel: string;
   isMobile: boolean;
+  type: 'at_rest' | 'extension'; // 'at_rest' = A Riposo (ideale: nessun reparto scoperto); 'extension' = Estensione turno / Straordinario
+  existingShift?: Shift;
+  extraHours?: number;
+  extendedHoursLabel?: string;
 }
 
 /**
@@ -357,7 +361,7 @@ export const detectDepartmentHourlyGap = (
     const effectiveDept = s.department || emp?.role;
     const isDept =
       effectiveDept === department ||
-      (department === 'Cassa' && (s.department === 'Cassa' || s.areaNote?.toLowerCase().includes('cassa')));
+      Boolean(s.areaNote && s.areaNote.toLowerCase().includes(department.toLowerCase()));
     return isDept;
   };
 
@@ -600,19 +604,35 @@ export const findCandidatesForGap = ({
 
       let isAvailable = false;
       let statusLabel = 'Non disponibile';
+      let type: 'at_rest' | 'extension' = 'at_rest';
+      let extraHours = 0;
+      let extendedHoursLabel = '';
 
       if (isLeave) {
         isAvailable = false;
         statusLabel = shiftToday.type === 'ferie' ? 'In ferie' : 'In malattia';
       } else if (isAtRest) {
         isAvailable = true;
-        statusLabel = 'A riposo (Disponibile)';
+        type = 'at_rest';
+        statusLabel = 'A Riposo (Ideale: nessun reparto scoperto)';
       } else if (shiftToday.endTime && gap.startMissing && shiftToday.endTime <= gap.startMissing) {
         isAvailable = true;
-        statusLabel = `Disponibile dopo le ${shiftToday.endTime}`;
+        type = 'extension';
+        const [ghEnd, gmEnd] = gap.endMissing.split(':').map(Number);
+        const [ghStart, gmStart] = gap.startMissing.split(':').map(Number);
+        extraHours = Math.round(((ghEnd * 60 + gmEnd) - (ghStart * 60 + gmStart)) / 60 * 10) / 10;
+        extendedHoursLabel = `${shiftToday.startTime || '08:30'} — ${gap.endMissing}`;
+        const currentDept = shiftToday.department || shiftToday.areaNote || emp.role;
+        statusLabel = `In servizio in ${currentDept} (08:30–${shiftToday.endTime}) ➔ Estensione per ${gap.department} (+${extraHours}h)`;
       } else if (shiftToday.startTime && gap.endMissing && shiftToday.startTime >= gap.endMissing) {
         isAvailable = true;
-        statusLabel = `Disponibile fino alle ${shiftToday.startTime}`;
+        type = 'extension';
+        const [ghEnd, gmEnd] = gap.endMissing.split(':').map(Number);
+        const [ghStart, gmStart] = gap.startMissing.split(':').map(Number);
+        extraHours = Math.round(((ghEnd * 60 + gmEnd) - (ghStart * 60 + gmStart)) / 60 * 10) / 10;
+        extendedHoursLabel = `${gap.startMissing} — ${shiftToday.endTime || '19:30'}`;
+        const currentDept = shiftToday.department || shiftToday.areaNote || emp.role;
+        statusLabel = `In servizio in ${currentDept} (${shiftToday.startTime}–${shiftToday.endTime}) ➔ Anticipo per ${gap.department} (+${extraHours}h)`;
       } else {
         isAvailable = false;
         statusLabel = `In servizio (${shiftToday.startTime || '08:30'}–${shiftToday.endTime || '19:30'})`;
@@ -627,11 +647,21 @@ export const findCandidatesForGap = ({
         isAvailable,
         statusLabel,
         isMobile,
+        type,
+        existingShift: shiftToday,
+        extraHours,
+        extendedHoursLabel,
       };
     })
     .filter((c) => c.isAvailable)
     .sort((a, b) => {
+      // 1. Priorità assoluta a chi è a RIPOSO ('at_rest' prima di 'extension')
+      if (a.type !== b.type) {
+        return a.type === 'at_rest' ? -1 : 1;
+      }
+      // 2. Ordinati per competenza decrescente nel reparto
       if (b.skillScore !== a.skillScore) return b.skillScore - a.skillScore;
+      // 3. Sede primaria prima di trasferta mobile
       if (!a.isMobile && b.isMobile) return -1;
       if (a.isMobile && !b.isMobile) return 1;
       return a.employee.name.localeCompare(b.employee.name);
@@ -645,16 +675,30 @@ function getDailyShiftSchedule(
   contractHours: number,
   dayIndexInWorkerWeek: number, // 0..4 (i 5 giorni di servizio)
   mode: ScheduleMode
-): { type: ShiftType; startTime: string; endTime: string; hours: number; isCustomHours?: boolean } {
+): { type: ShiftType; startTime: string; endTime: string; hours: number; isCustomHours?: boolean; customHoursReason?: string } {
   if (mode === 'continuato') {
     // In orario continuato (8h per slot standard)
     if (contractHours >= 38) {
       const slot = CONTINUATO_SLOTS[dayIndexInWorkerWeek % CONTINUATO_SLOTS.length];
-      return { type: 'giornata', startTime: slot.start, endTime: slot.end, hours: 8, isCustomHours: true };
+      return {
+        type: 'giornata',
+        startTime: slot.start,
+        endTime: slot.end,
+        hours: 8,
+        isCustomHours: true,
+        customHoursReason: `Orario Continuato Nicora (${slot.label}: ${slot.start} — ${slot.end})`,
+      };
     }
     if (contractHours === 30) {
       // 6 ore continuate
-      return { type: 'giornata', startTime: '09:00', endTime: '15:00', hours: 6, isCustomHours: true };
+      return {
+        type: 'giornata',
+        startTime: '09:00',
+        endTime: '15:00',
+        hours: 6,
+        isCustomHours: true,
+        customHoursReason: 'Contratto Part-Time concordato a 30h (orario continuato 09:00 — 15:00)',
+      };
     }
     if (contractHours === 24) {
       // 4 giorni da 5h + 1 da 4h = 24h
@@ -666,11 +710,19 @@ function getDailyShiftSchedule(
         endTime: `${endH.toString().padStart(2, '0')}:00`,
         hours: h,
         isCustomHours: true,
+        customHoursReason: `Contratto Part-Time concordato a 24h (orario continuato ${h}h)`,
       };
     }
     if (contractHours === 20) {
       // 5 giorni da 4h
-      return { type: 'mattina', startTime: '09:00', endTime: '13:00', hours: 4, isCustomHours: true };
+      return {
+        type: 'mattina',
+        startTime: '09:00',
+        endTime: '13:00',
+        hours: 4,
+        isCustomHours: true,
+        customHoursReason: 'Contratto Part-Time concordato a 20h (orario continuato 09:00 — 13:00)',
+      };
     }
   }
 
@@ -693,6 +745,7 @@ function getDailyShiftSchedule(
       endTime: '14:30',
       hours: 6,
       isCustomHours: true,
+      customHoursReason: 'Contratto Part-Time concordato a 30h (orario continuato 08:30 — 14:30)',
     };
   }
 
@@ -748,6 +801,7 @@ function getDailyShiftSchedule(
     endTime: `${endH.toString().padStart(2, '0')}:${startM.toString().padStart(2, '0')}`,
     hours,
     isCustomHours: true,
+    customHoursReason: `Contratto orario speciale (${contractHours}h settimanali)`,
   };
 }
 
@@ -1186,6 +1240,12 @@ export const generateWeeklySchedule = ({
       const endTime = scheduleChangeReq?.requestedEndTime || shiftSchedule.endTime;
       const finalNote = scheduleChangeReq ? `${note} (Orario concordato)` : note;
 
+      const customHoursReason =
+        shiftSchedule.customHoursReason ||
+        (scheduleChangeReq
+          ? `Richiesta approvata: ${scheduleChangeReq.reason || 'Variazione orario concordata'}`
+          : undefined);
+
       shifts.push({
         id: `shift-${emp.id}-${dateStr}`,
         employeeId: emp.id,
@@ -1197,6 +1257,7 @@ export const generateWeeklySchedule = ({
         endTime,
         areaNote: finalNote,
         isCustomHours,
+        customHoursReason,
         assignedSkillScore,
       });
 

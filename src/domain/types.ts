@@ -54,6 +54,7 @@ export interface Shift {
   areaNote?: string;       // es. 'Cassa 1 Continua', 'Scarico Merci Serra'
   isManualOverride?: boolean;
   isCustomHours?: boolean; // Orario personalizzato concordato
+  customHoursReason?: string; // Motivo esplicito dell'orario speciale (es. Part-Time 30h, Richiesta approvata, Straordinario)
   assignedSkillScore?: number; // Punteggio competenza del dipendente nel reparto assegnato (1-10)
 }
 
