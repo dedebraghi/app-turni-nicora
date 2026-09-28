@@ -182,6 +182,7 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
 
   // Turni del giorno selezionato
   const dayShifts = shifts.filter((s) => s.date === selectedDayMeta.dateStr);
+  const storeShiftsCount = shifts.filter((s) => s.locationId === location.id).length;
 
   // Turni lavorativi effettivi del giorno corrente
   const workingShifts = dayShifts.filter(
@@ -345,6 +346,24 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
             </button>
           )}
         </div>
+
+        {/* --- SVUOTA TURNI SU MOBILE (se presenti) --- */}
+        {isManagerMode && onClearShifts && storeShiftsCount > 0 && (
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm(`Sei sicuro di voler azzerare i turni da oggi in poi per ${location.name}? Lo storico dei giorni passati rimarrà protetto e intatto.`)) {
+                  onClearShifts(location.id);
+                }
+              }}
+              className="text-neutral-500 hover:text-rose-700 text-[11px] font-medium flex items-center gap-1.5 py-1 px-2.5 rounded-lg hover:bg-rose-50 transition-colors"
+            >
+              <Trash2 size={13} className="text-neutral-400 group-hover:text-rose-600" />
+              <span>Svuota turni futuri ({location.name})</span>
+            </button>
+          </div>
+        )}
 
         {/* --- BANNER ALLERTA CRITICITÀ SETTIMANALE (Stile Fedele a Stitch: Rosso per assenza totale, Giallo per ore scoperte) --- */}
         {activeGaps.length > 0 && currentGap && (
