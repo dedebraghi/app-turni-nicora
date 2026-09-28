@@ -522,6 +522,11 @@ export const App: React.FC = () => {
             shifts={shifts}
             requests={requests}
             isManagerMode={isManagerMode}
+            currentEmployee={currentEmployee}
+            activeLocation={activeLocation}
+            onChangeLocation={setActiveLocation}
+            onLogout={handleLogout}
+            onSaveEmployee={handleSaveEmployee}
             onEditShift={(shift) => setEditingShift(shift)}
             onOpenGenerateModal={() => setIsGenerateModalOpen(true)}
             onOpenSkillsModal={() => setIsSkillsModalOpen(true)}

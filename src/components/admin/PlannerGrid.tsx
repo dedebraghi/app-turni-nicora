@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Department, Employee, LocationInfo, Shift, ShiftRequest } from '../../domain/types';
+import { Department, Employee, LocationId, LocationInfo, Shift, ShiftRequest } from '../../domain/types';
 import { calculateFairnessMetrics } from '../../engine/fairnessTracker';
 import {
   calculateDayCoverage,
@@ -40,6 +40,11 @@ interface PlannerGridProps {
   onOpenExportModal: () => void;
   onApproveRequest?: (requestId: string) => void;
   onRejectRequest?: (requestId: string) => void;
+  currentEmployee?: Employee;
+  activeLocation?: LocationId;
+  onChangeLocation?: (loc: LocationId) => void;
+  onLogout?: () => void;
+  onSaveEmployee?: (emp: Employee) => void;
 }
 
 export const PlannerGrid: React.FC<PlannerGridProps> = ({
@@ -55,6 +60,11 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
   onOpenExportModal,
   onApproveRequest,
   onRejectRequest,
+  currentEmployee,
+  activeLocation,
+  onChangeLocation,
+  onLogout,
+  onSaveEmployee,
 }) => {
   const [weekOffset, setWeekOffset] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState('');
@@ -120,189 +130,184 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
   return (
     <div className="space-y-4 pb-20 md:pb-8 max-w-full">
       
-      {/* Banner Approvazione Ferie & Richieste 1-Click Direzione */}
+      {/* Banner Approvazione Ferie & Richieste 1-Click Direzione (Desktop) */}
       {isManagerMode && requests && onApproveRequest && onRejectRequest && (
-        <PendingRequestsBanner
-          requests={requests.filter((r) => r.locationId === location.id)}
-          employees={employees}
-          onApprove={onApproveRequest}
-          onReject={onRejectRequest}
-        />
+        <div className="hidden md:block">
+          <PendingRequestsBanner
+            requests={requests.filter((r) => r.locationId === location.id)}
+            employees={employees}
+            onApprove={onApproveRequest}
+            onReject={onRejectRequest}
+          />
+        </div>
       )}
 
-      {/* Management Toolbar */}
-      <div className="bg-nicora-card rounded-2xl p-4.5 border border-nicora-sage-border shadow-clean flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-        
-        {/* Left: Week Navigation & View Toggle */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1 bg-nicora-sage-light p-1 rounded-full border border-nicora-sage-border">
-            <button
-              onClick={() => setWeekOffset((p) => p - 1)}
-              className="p-1.5 rounded-full text-nicora-text hover:bg-white active:scale-90 transition-all shadow-xs"
-              title="Settimana precedente"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <span className="font-serif font-semibold text-xs px-2.5 text-nicora-title whitespace-nowrap">
-              Dom {weekDays[0].dayNum} — Sab {weekDays[6].dayNum}
+      {/* --- CONTROLLI DESKTOP (Toolbar, Allarmi, Filtri) --- */}
+      <div className="hidden md:block space-y-4">
+        {/* Management Toolbar Desktop */}
+        <div className="bg-nicora-card rounded-2xl p-4.5 border border-nicora-sage-border shadow-clean flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+          
+          {/* Left: Week Navigation */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1 bg-nicora-sage-light p-1 rounded-full border border-nicora-sage-border">
+              <button
+                onClick={() => setWeekOffset((p) => p - 1)}
+                className="p-1.5 rounded-full text-nicora-text hover:bg-white active:scale-90 transition-all shadow-xs"
+                title="Settimana precedente"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <span className="font-serif font-semibold text-xs px-2.5 text-nicora-title whitespace-nowrap">
+                Dom {weekDays[0].dayNum} — Sab {weekDays[6].dayNum}
+              </span>
+              <button
+                onClick={() => setWeekOffset((p) => p + 1)}
+                className="p-1.5 rounded-full text-nicora-text hover:bg-white active:scale-90 transition-all shadow-xs"
+                title="Settimana successiva"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+
+            <span className="text-xs font-semibold text-nicora-orange bg-nicora-orange-light px-3 py-1 rounded-full border border-nicora-orange-border whitespace-nowrap">
+              {weekOffset === 0 ? 'Settimana Attuale' : weekOffset === 1 ? 'Prossima Settimana' : `Offset: ${weekOffset} sett.`}
             </span>
-            <button
-              onClick={() => setWeekOffset((p) => p + 1)}
-              className="p-1.5 rounded-full text-nicora-text hover:bg-white active:scale-90 transition-all shadow-xs"
-              title="Settimana successiva"
-            >
-              <ChevronRight size={16} />
-            </button>
           </div>
 
-          <span className="text-xs font-semibold text-nicora-orange bg-nicora-orange-light px-3 py-1 rounded-full border border-nicora-orange-border whitespace-nowrap">
-            {weekOffset === 0 ? 'Settimana Attuale' : weekOffset === 1 ? 'Prossima Settimana' : `Offset: ${weekOffset} sett.`}
-          </span>
+          {/* Right: Actions */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Stampa / WhatsApp */}
+            <button
+              onClick={onOpenExportModal}
+              className="bg-nicora-teal-light hover:bg-nicora-teal-border/30 text-nicora-teal font-semibold text-xs px-3.5 py-2 rounded-xl border border-nicora-teal-border/40 flex items-center gap-1.5 active:scale-95 transition-all"
+              title="Stampa bacheca A4 o copia testo WhatsApp"
+            >
+              <Share2 size={14} />
+              <span>Stampa & WhatsApp</span>
+            </button>
 
-          {/* Toggle Vista: Turni Dipendenti vs Copertura Reparti */}
-          <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-full text-neutral-600 ml-0 sm:ml-2">
-            <button
-              onClick={() => setDisplayMode('shifts')}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                displayMode === 'shifts' ? 'bg-nicora-teal text-white shadow-xs' : 'hover:text-neutral-900'
-              }`}
-            >
-              Turni Dipendenti
-            </button>
-            <button
-              onClick={() => setDisplayMode('coverage')}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                displayMode === 'coverage' ? 'bg-nicora-teal text-white shadow-xs' : 'hover:text-neutral-900'
-              }`}
-            >
-              Copertura Reparti
-            </button>
+            {/* Genera Bozza */}
+            {isManagerMode && (
+              <button
+                onClick={onOpenGenerateModal}
+                className="bg-nicora-orange hover:bg-nicora-orange-hover text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs flex items-center gap-1.5 active:scale-95 transition-transform"
+              >
+                <Zap size={15} />
+                <span>Genera Bozza Turni</span>
+              </button>
+            )}
           </div>
+
         </div>
 
-        {/* Right: Actions */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Stampa / WhatsApp */}
-          <button
-            onClick={onOpenExportModal}
-            className="bg-nicora-teal-light hover:bg-nicora-teal-border/30 text-nicora-teal font-semibold text-xs px-3.5 py-2 rounded-xl border border-nicora-teal-border/40 flex items-center gap-1.5 active:scale-95 transition-all"
-            title="Stampa bacheca A4 o copia testo WhatsApp"
-          >
-            <Share2 size={14} />
-            <span>Stampa & WhatsApp</span>
-          </button>
+        {/* Banner Allarme Scopertura Reparti Desktop (se ci sono reparti a 0) */}
+        {(() => {
+          const weekCoverage = weekDays.map((d) => calculateDayCoverage(d.dateStr, storeShifts));
+          const daysWithUncovered = weekCoverage.filter((c) => c.uncoveredDepartments.length > 0);
 
-          {/* Genera Bozza */}
-          <button
-            onClick={onOpenGenerateModal}
-            className="bg-nicora-orange hover:bg-nicora-orange-hover text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs flex items-center gap-1.5 active:scale-95 transition-transform"
-          >
-            <Zap size={15} />
-            <span>Genera Bozza Turni</span>
-          </button>
-        </div>
+          if (daysWithUncovered.length === 0) return null;
 
-      </div>
+          return (
+            <div className="bg-rose-50 border-2 border-rose-300 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-rose-950 animate-in fade-in">
+              <div className="flex items-center gap-2.5">
+                <ShieldAlert size={24} className="text-rose-600 flex-shrink-0 animate-pulse" />
+                <div>
+                  <h4 className="font-black text-xs sm:text-sm text-rose-900">
+                    ⚠️ Attenzione Direzione: Rilevati Reparti Privi di Presidio nella Settimana!
+                  </h4>
+                  <p className="text-[11px] text-rose-700 mt-0.5">
+                    {daysWithUncovered
+                      .map((d) => {
+                        const dayMeta = weekDays.find((w) => w.dateStr === d.dateStr);
+                        return `${dayMeta?.dayShort || ''} ${d.dateStr.slice(8)}: ${d.uncoveredDepartments.join(', ')} scoperto`;
+                      })
+                      .join(' • ')}
+                  </p>
+                </div>
+              </div>
 
-      {/* Banner Allarme Scopertura Reparti (se ci sono reparti a 0) */}
-      {(() => {
-        const weekCoverage = weekDays.map((d) => calculateDayCoverage(d.dateStr, storeShifts));
-        const daysWithUncovered = weekCoverage.filter((c) => c.uncoveredDepartments.length > 0);
+              <button
+                onClick={() => onOpenEmergencyModal()}
+                className="bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs px-3.5 py-2 rounded-xl shadow-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all whitespace-nowrap self-start sm:self-auto"
+              >
+                <ShieldAlert size={14} />
+                <span>Trova Sostituto Rapido</span>
+              </button>
+            </div>
+          );
+        })()}
 
-        if (daysWithUncovered.length === 0) return null;
-
-        return (
-          <div className="bg-rose-50 border-2 border-rose-300 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-rose-950 animate-in fade-in">
-            <div className="flex items-center gap-2.5">
-              <ShieldAlert size={24} className="text-rose-600 flex-shrink-0 animate-pulse" />
-              <div>
-                <h4 className="font-black text-xs sm:text-sm text-rose-900">
-                  ⚠️ Attenzione Direzione: Rilevati Reparti Privi di Presidio nella Settimana!
-                </h4>
-                <p className="text-[11px] text-rose-700 mt-0.5">
-                  {daysWithUncovered
-                    .map((d) => {
-                      const dayMeta = weekDays.find((w) => w.dateStr === d.dateStr);
-                      return `${dayMeta?.dayShort || ''} ${d.dateStr.slice(8)}: ${d.uncoveredDepartments.join(', ')} scoperto`;
-                    })
-                    .join(' • ')}
-                </p>
+        {/* Filter & Search Bar Desktop */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1 sm:w-64">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Filtra collaboratore..."
+                className="w-full bg-white border border-nicora-sage-border rounded-xl pl-8 pr-3 py-1.5 text-xs font-semibold focus:ring-2 focus:ring-nicora-teal focus:outline-none shadow-clean"
+              />
+              <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-neutral-400">
+                <Search size={13} />
               </div>
             </div>
 
-            <button
-              onClick={() => onOpenEmergencyModal()}
-              className="bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs px-3.5 py-2 rounded-xl shadow-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all whitespace-nowrap self-start sm:self-auto"
+            <select
+              value={selectedDeptFilter}
+              onChange={(e) => setSelectedDeptFilter(e.target.value)}
+              className="bg-white border border-nicora-sage-border rounded-xl px-2.5 py-1.5 text-xs font-semibold text-neutral-700 shadow-clean cursor-pointer"
             >
-              <ShieldAlert size={14} />
-              <span>Trova Sostituto Rapido</span>
-            </button>
-          </div>
-        );
-      })()}
-
-      {/* Filter & Search Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1 sm:w-64">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Filtra collaboratore..."
-              className="w-full bg-white border border-nicora-sage-border rounded-xl pl-8 pr-3 py-1.5 text-xs font-semibold focus:ring-2 focus:ring-nicora-teal focus:outline-none shadow-clean"
-            />
-            <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-neutral-400">
-              <Search size={13} />
-            </div>
+              <option value="all">Tutti i reparti ({storeEmployees.length})</option>
+              <option value="Cassa">Cassa</option>
+              <option value="Fioreria">Fioreria</option>
+              <option value="Decor">Decor</option>
+              <option value="Serra Calda">Serra Calda</option>
+              <option value="Serra Fredda">Serra Fredda</option>
+            </select>
           </div>
 
-          <select
-            value={selectedDeptFilter}
-            onChange={(e) => setSelectedDeptFilter(e.target.value)}
-            className="bg-white border border-nicora-sage-border rounded-xl px-2.5 py-1.5 text-xs font-semibold text-neutral-700 shadow-clean cursor-pointer"
-          >
-            <option value="all">Tutti i reparti ({storeEmployees.length})</option>
-            <option value="Cassa">Cassa</option>
-            <option value="Fioreria">Fioreria</option>
-            <option value="Decor">Decor</option>
-            <option value="Serra Calda">Serra Calda</option>
-            <option value="Serra Fredda">Serra Fredda</option>
-          </select>
-        </div>
-
-        <div className="text-[11px] text-neutral-500 font-medium flex items-center gap-2">
-          <span className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-rose-600 inline-block" /> Cassa
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-pink-500 inline-block" /> Fioreria
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block" /> Decor
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-sky-500 inline-block" /> Serre
-          </span>
+          <div className="text-[11px] text-neutral-500 font-medium flex items-center gap-2">
+            <span className="flex items-center gap-1">
+              <span className="w-2.5 h-2.5 rounded-full bg-rose-600 inline-block" /> Cassa
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2.5 h-2.5 rounded-full bg-pink-500 inline-block" /> Fioreria
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block" /> Decor
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2.5 h-2.5 rounded-full bg-sky-500 inline-block" /> Serre
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* --- VISTA MOBILE (Device-Dedicated Smartphone) --- */}
+      {/* --- VISTA MOBILE (Device-Dedicated Smartphone, Stile Stitch) --- */}
       {(viewMode === 'mobile' || viewMode === 'responsive') && (
         <div className={viewMode === 'responsive' ? 'block md:hidden' : 'block'}>
           <MobileDayView
             location={location}
-            employees={filteredEmployees}
+            employees={storeEmployees}
             shifts={storeShifts}
             weekDays={weekDays}
             selectedDateStr={selectedMobileDateStr}
             onSelectDate={setSelectedMobileDateStr}
+            weekOffset={weekOffset}
+            onPrevWeek={() => setWeekOffset((p) => p - 1)}
+            onNextWeek={() => setWeekOffset((p) => p + 1)}
             isManagerMode={isManagerMode}
             onEditShift={onEditShift}
-            selectedDeptFilter={selectedDeptFilter}
-            onSelectDeptFilter={setSelectedDeptFilter}
-            searchQuery={searchQuery}
-            onSearchQueryChange={setSearchQuery}
+            onOpenGenerateModal={onOpenGenerateModal}
+            onOpenExportModal={onOpenExportModal}
+            onOpenEmergencyModal={onOpenEmergencyModal}
+            currentEmployee={currentEmployee}
+            activeLocation={activeLocation}
+            onChangeLocation={onChangeLocation}
+            onLogout={onLogout}
+            onSaveEmployee={onSaveEmployee}
+            allStoreEmployees={employees}
           />
         </div>
       )}
