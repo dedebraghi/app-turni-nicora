@@ -89,6 +89,18 @@ export function mapShiftToDb(shift: Shift) {
 }
 
 export function mapDbToRequest(row: any): ShiftRequest {
+  let status = row.status;
+  let managerNote = row.manager_note || undefined;
+
+  // Compatibilità retroattiva per DB con vincolo status limitato: estrai stato collega da manager_note se presente
+  if (managerNote?.includes('[STATO_COLLEGA:pending]') && status === 'pending') {
+    status = 'pending_colleague';
+    managerNote = managerNote.replace('[STATO_COLLEGA:pending]', '').trim() || undefined;
+  } else if (managerNote?.includes('[STATO_COLLEGA:rejected]')) {
+    status = 'rejected_colleague';
+    managerNote = managerNote.replace('[STATO_COLLEGA:rejected]', '').trim() || undefined;
+  }
+
   return {
     id: row.id,
     requesterId: row.requester_id,
@@ -97,14 +109,27 @@ export function mapDbToRequest(row: any): ShiftRequest {
     targetEmployeeId: row.target_employee_id || undefined,
     shiftDate: row.shift_date,
     targetShiftDate: row.target_shift_date || undefined,
+    protocolNumber: row.protocol_number || undefined,
     reason: row.reason,
-    status: row.status,
+    status: status,
     createdAt: row.created_at ? new Date(row.created_at).toLocaleDateString('it-IT') : 'Oggi',
-    managerNote: row.manager_note || undefined,
+    managerNote: managerNote,
   };
 }
 
 export function mapRequestToDb(req: ShiftRequest) {
+  let dbStatus = req.status;
+  let note = req.managerNote || '';
+
+  // Se lo stato è in attesa del collega o rifiutato dal collega, mappa su pending/rejected con tag note di sicurezza
+  if (req.status === 'pending_colleague') {
+    dbStatus = 'pending';
+    note = (note ? note + ' ' : '') + '[STATO_COLLEGA:pending]';
+  } else if (req.status === 'rejected_colleague') {
+    dbStatus = 'rejected';
+    note = (note ? note + ' ' : '') + '[STATO_COLLEGA:rejected]';
+  }
+
   return {
     id: req.id,
     requester_id: req.requesterId,
@@ -114,7 +139,7 @@ export function mapRequestToDb(req: ShiftRequest) {
     shift_date: req.shiftDate,
     target_shift_date: req.targetShiftDate || null,
     reason: req.reason,
-    status: req.status,
-    manager_note: req.managerNote || null,
+    status: dbStatus,
+    manager_note: note.trim() || null,
   };
 }

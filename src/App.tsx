@@ -15,7 +15,7 @@ import { EditShiftModal } from './components/common/EditShiftModal';
 import { LoginScreen } from './components/auth/LoginScreen';
 import { NotificationToast, ToastMessage } from './components/common/NotificationToast';
 
-import { ActiveTab, Department, Employee, LocationId, Shift, ShiftRequest, SkillScores, UserSession } from './domain/types';
+import { ActiveTab, Department, Employee, LocationId, Shift, ShiftRequest, ShiftRequestStatus, ShiftType, SkillScores, UserSession } from './domain/types';
 import { LOCATIONS } from './domain/mockData';
 import { formatLocalDate, getSundayOfWeek, getWeekDays } from './engine/schedulerEngine';
 import {
@@ -402,17 +402,42 @@ export const App: React.FC = () => {
   };
 
   const handleSubmitRequest = (newReq: Omit<ShiftRequest, 'id' | 'createdAt' | 'status'>) => {
+    const isSwap = newReq.type === 'swap';
     const created: ShiftRequest = {
       ...newReq,
       id: `req-${Date.now()}`,
-      status: 'pending',
+      status: isSwap ? 'pending_colleague' : 'pending',
       createdAt: 'Proprio adesso',
     };
     setRequests((prev) => [created, ...prev]);
     saveCloudRequest(created);
+
+    if (isSwap) {
+      const colleague = employees.find((e) => e.id === newReq.targetEmployeeId);
+      setToast({
+        id: `toast-${Date.now()}`,
+        title: 'Proposta di Scambio Inviata',
+        message: `Inviata a ${colleague?.name || 'collega'}. Lo scambio sarà inoltrato al responsabile appena il collega avrà accettato.`,
+        type: 'info',
+      });
+    } else if (newReq.type === 'sick') {
+      setToast({
+        id: `toast-${Date.now()}`,
+        title: 'Segnalazione Malattia Registrata',
+        message: 'La Direzione è stata allertata per la copertura del reparto.',
+        type: 'warning',
+      });
+    } else {
+      setToast({
+        id: `toast-${Date.now()}`,
+        title: 'Richiesta Inoltrata',
+        message: 'La richiesta è stata inviata alla Direzione per la valutazione.',
+        type: 'success',
+      });
+    }
   };
 
-  const handleUpdateRequestStatus = (id: string, status: 'approved' | 'rejected', managerNote?: string) => {
+  const handleUpdateRequestStatus = (id: string, status: ShiftRequestStatus, managerNote?: string) => {
     const targetReq = requests.find((r) => r.id === id);
 
     setRequests((prev) =>
@@ -420,23 +445,49 @@ export const App: React.FC = () => {
     );
     updateCloudRequestStatus(id, status, managerNote);
 
-    // Se approvata richiesta ferie, converti automaticamente il turno in 'ferie'
-    if (status === 'approved' && targetReq && targetReq.type === 'leave') {
+    // Se il collega accetta lo scambio proposto da un compagno
+    if (status === 'pending' && targetReq && targetReq.type === 'swap' && targetReq.status === 'pending_colleague') {
+      setToast({
+        id: `toast-swap-accepted-${Date.now()}`,
+        title: 'Scambio Accettato tra Colleghi! 🤝',
+        message: 'La richiesta è stata inoltrata al responsabile per la conferma definitiva.',
+        type: 'success',
+      });
+      return;
+    }
+
+    // Se il collega rifiuta lo scambio
+    if (status === 'rejected_colleague') {
+      setToast({
+        id: `toast-swap-rejected-${Date.now()}`,
+        title: 'Proposta di Scambio Rifiutata',
+        message: 'La proposta è stata rifiutata e archiviata.',
+        type: 'info',
+      });
+      return;
+    }
+
+    // Se approvata richiesta ferie o malattia, converti automaticamente il turno
+    if (status === 'approved' && targetReq && (targetReq.type === 'leave' || targetReq.type === 'sick')) {
       const priorShift = shifts.find(
         (s) => s.employeeId === targetReq.requesterId && s.date === targetReq.shiftDate
       );
       const priorDept = priorShift?.department;
+      const newType: ShiftType = targetReq.type === 'sick' ? 'malattia' : 'ferie';
+      const defaultNote = targetReq.type === 'sick'
+        ? (targetReq.protocolNumber ? `Malattia (PUC ${targetReq.protocolNumber})` : 'Malattia comunicata')
+        : 'Ferie concordate con la direzione';
 
       setShifts((prev) => {
         const next = prev.map((s) => {
           if (s.employeeId === targetReq.requesterId && s.date === targetReq.shiftDate) {
             return {
               ...s,
-              type: 'ferie' as const,
+              type: newType,
               department: undefined,
               startTime: undefined,
               endTime: undefined,
-              areaNote: 'Ferie concordate con la direzione',
+              areaNote: defaultNote,
             };
           }
           return s;
@@ -459,7 +510,7 @@ export const App: React.FC = () => {
             setToast({
               id: `toast-uncovered-${Date.now()}`,
               title: `⚠️ Reparto ${priorDept} Scoperto!`,
-              message: `L'approvazione delle ferie per il ${targetReq.shiftDate} ha lasciato ${priorDept} privo di personale. Assegna un sostituto rapido.`,
+              message: `L'assenza per il ${targetReq.shiftDate} ha lasciato ${priorDept} privo di personale. Assegna un sostituto rapido.`,
               type: 'warning',
             });
           }
@@ -472,8 +523,11 @@ export const App: React.FC = () => {
     // Se approvata richiesta di scambio turno
     if (status === 'approved' && targetReq && targetReq.type === 'swap' && targetReq.targetEmployeeId) {
       setShifts((prev) => {
-        const reqShift = prev.find((s) => s.employeeId === targetReq.requesterId && s.date === targetReq.shiftDate);
-        const targetShift = prev.find((s) => s.employeeId === targetReq.targetEmployeeId && s.date === targetReq.shiftDate);
+        const reqDate = targetReq.shiftDate;
+        const targetDate = targetReq.targetShiftDate || targetReq.shiftDate;
+
+        const reqShift = prev.find((s) => s.employeeId === targetReq.requesterId && s.date === reqDate);
+        const targetShift = prev.find((s) => s.employeeId === targetReq.targetEmployeeId && s.date === targetDate);
 
         if (!reqShift || !targetShift) return prev;
 
@@ -502,6 +556,13 @@ export const App: React.FC = () => {
         });
         saveCloudShifts(next);
         return next;
+      });
+
+      setToast({
+        id: `toast-swap-done-${Date.now()}`,
+        title: 'Turni Scambiati con Successo! 🎉',
+        message: `I turni di ${employees.find((e) => e.id === targetReq.requesterId)?.name} e ${employees.find((e) => e.id === targetReq.targetEmployeeId)?.name} sono stati aggiornati.`,
+        type: 'success',
       });
     }
 
@@ -536,7 +597,11 @@ export const App: React.FC = () => {
 
   const currentEmployee = session.user;
   const storeRequests = requests.filter((r) => r.locationId === activeLocation);
-  const pendingRequestsCount = storeRequests.filter((r) => r.status === 'pending').length;
+  const myIncomingSwapsCount = requests.filter(
+    (r) => r.targetEmployeeId === currentEmployee.id && r.status === 'pending_colleague'
+  ).length;
+  const pendingManagerCount = storeRequests.filter((r) => r.status === 'pending').length;
+  const pendingRequestsCount = isManagerMode ? pendingManagerCount : myIncomingSwapsCount;
   const locationInfo = LOCATIONS.find((l) => l.id === activeLocation) || LOCATIONS[0];
 
   const currentSunday = getSundayOfWeek(new Date());
@@ -627,6 +692,7 @@ export const App: React.FC = () => {
         {/* Tab 4: Richieste Ferie & Scambi Turno */}
         {activeTab === 'requests' && (
           <LeaveRequests
+            currentEmployee={currentEmployee}
             currentEmployeeId={currentEmployee.id}
             employees={employees}
             requests={requests}
@@ -634,6 +700,9 @@ export const App: React.FC = () => {
             isManagerMode={isManagerMode}
             onUpdateStatus={handleUpdateRequestStatus}
             activeLocation={activeLocation}
+            onChangeLocation={setActiveLocation}
+            onLogout={handleLogout}
+            onSaveEmployee={handleSaveEmployee}
           />
         )}
 

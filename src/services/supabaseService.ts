@@ -1,4 +1,4 @@
-import { Employee, LocationId, Shift, ShiftRequest } from '../domain/types';
+import { Employee, LocationId, Shift, ShiftRequest, ShiftRequestStatus } from '../domain/types';
 import {
   isSupabaseConfigured,
   mapDbToEmployee,
@@ -293,11 +293,11 @@ export const saveCloudRequest = async (req: ShiftRequest): Promise<{ success: bo
 };
 
 /**
- * Aggiorna lo stato di una richiesta (approvata/rifiutata dalla Direzione)
+ * Aggiorna lo stato di una richiesta (approvata/rifiutata dalla Direzione o concordata tra colleghi)
  */
 export const updateCloudRequestStatus = async (
   requestId: string,
-  status: 'approved' | 'rejected',
+  status: ShiftRequestStatus,
   managerNote?: string
 ): Promise<{ success: boolean; error?: string }> => {
   const current = loadStoredRequests();
@@ -311,9 +311,19 @@ export const updateCloudRequestStatus = async (
   }
 
   try {
+    let dbStatus = status;
+    let note = managerNote || '';
+    if (status === 'pending_colleague') {
+      dbStatus = 'pending';
+      note = (note ? note + ' ' : '') + '[STATO_COLLEGA:pending]';
+    } else if (status === 'rejected_colleague') {
+      dbStatus = 'rejected';
+      note = (note ? note + ' ' : '') + '[STATO_COLLEGA:rejected]';
+    }
+
     const { error } = await supabase
       .from('shift_requests')
-      .update({ status, manager_note: managerNote || null })
+      .update({ status: dbStatus, manager_note: note.trim() || null })
       .eq('id', requestId);
 
     if (error) throw error;

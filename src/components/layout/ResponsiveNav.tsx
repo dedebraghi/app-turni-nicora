@@ -39,7 +39,7 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
       label: 'Richieste & Ferie',
       mobileLabel: 'Richieste',
       icon: Mail,
-      badge: pendingRequestsCount || 1, // mostra badge 1 come da Stitch se ci sono richieste
+      badge: pendingRequestsCount > 0 ? pendingRequestsCount : undefined,
     },
     {
       id: 'personnel' as ActiveTab,

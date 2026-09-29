@@ -484,8 +484,9 @@ export const INITIAL_REQUESTS: ShiftRequest[] = [
     type: 'swap',
     targetEmployeeId: 'emp-gz-9', // Ivano
     shiftDate: new Date().toISOString().split('T')[0],
+    targetShiftDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
     reason: 'Visita medica programmata al mattino',
-    status: 'pending',
+    status: 'pending_colleague',
     createdAt: 'Oggi alle 08:15',
   },
   {
@@ -494,10 +495,10 @@ export const INITIAL_REQUESTS: ShiftRequest[] = [
     locationId: 'gazzada',
     type: 'leave',
     shiftDate: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
-    reason: 'Ferie programmate',
+    reason: 'Ferie estive / riposo programmato',
     status: 'approved',
     createdAt: 'Ieri alle 17:30',
-    managerNote: 'Ferie approvate',
+    managerNote: 'Ferie approvate dalla Direzione',
   },
   {
     id: 'req-3',
@@ -508,5 +509,18 @@ export const INITIAL_REQUESTS: ShiftRequest[] = [
     reason: 'Permesso speciale fiera floreale',
     status: 'pending',
     createdAt: 'Ieri alle 10:00',
+  },
+  {
+    id: 'req-4',
+    requesterId: 'emp-gz-1', // Sabrina
+    locationId: 'gazzada',
+    type: 'swap',
+    targetEmployeeId: 'emp-gz-2', // Eleonora
+    shiftDate: new Date(Date.now() + 86400000 * 4).toISOString().split('T')[0],
+    targetShiftDate: new Date(Date.now() + 86400000 * 5).toISOString().split('T')[0],
+    reason: 'Scambio concordato per impegno familiare',
+    status: 'pending', // Accettato da Eleonora, ora al vaglio del responsabile
+    createdAt: 'Oggi alle 09:30',
+    colleagueNote: 'Accettato da Eleonora. In attesa di approvazione della Direzione.',
   },
 ];

@@ -67,20 +67,31 @@ export interface Shift {
   assignedSkillScore?: number; // Punteggio competenza del dipendente nel reparto assegnato (1-10)
 }
 
+export type ShiftRequestType = 'swap' | 'leave' | 'schedule_change' | 'sick';
+
+export type ShiftRequestStatus =
+  | 'pending'            // In attesa di valutazione Direzione / titolare (o ferie/orario/malattia)
+  | 'pending_colleague'  // Scambio turno: in attesa di accettazione da parte del collega
+  | 'rejected_colleague' // Scambio turno: rifiutato dal collega
+  | 'approved'           // Approvato definitivamente dalla Direzione
+  | 'rejected';          // Rifiutato dalla Direzione
+
 export interface ShiftRequest {
   id: string;
   requesterId: string;
   locationId: LocationId;
-  type: 'swap' | 'leave' | 'schedule_change'; // Scambio turno, Permesso/Ferie o Variazione Orario
+  type: ShiftRequestType; // Scambio turno, Ferie/Permesso, Variazione Orario o Malattia
   targetEmployeeId?: string; // Per scambio turno
   shiftDate: string;        // YYYY-MM-DD
   targetShiftDate?: string;
   requestedStartTime?: string; // HH:MM per variazione orario
   requestedEndTime?: string;   // HH:MM per variazione orario
+  protocolNumber?: string;     // Numero telematico certificato medico INPS (per malattia)
   reason: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: ShiftRequestStatus;
   createdAt: string;
   managerNote?: string;
+  colleagueNote?: string;
 }
 
 export type ActiveTab = 'today' | 'my-shifts' | 'planner' | 'requests' | 'personnel' | 'skills' | 'staff';

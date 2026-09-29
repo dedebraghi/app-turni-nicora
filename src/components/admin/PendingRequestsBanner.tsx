@@ -90,7 +90,9 @@ export const PendingRequestsBanner: React.FC<PendingRequestsBannerProps> = ({
               {currentReq.type === 'leave'
                 ? 'Ferie / Permesso'
                 : currentReq.type === 'swap'
-                ? 'Scambio Turno'
+                ? 'Scambio Turno (Accettato dal collega)'
+                : currentReq.type === 'sick'
+                ? 'Segnalazione Malattia'
                 : 'Variazione Orario'}
             </span>
           </div>
@@ -109,9 +111,21 @@ export const PendingRequestsBanner: React.FC<PendingRequestsBannerProps> = ({
         )}
 
         {currentReq.type === 'swap' && target && (
-          <p className="text-amber-900 font-medium flex items-center gap-1 bg-white/70 p-1.5 rounded-lg border border-amber-200/60">
-            <ArrowLeftRight size={13} className="text-nicora-orange" />
-            <span>Scambio con: <strong>{target.name}</strong></span>
+          <p className="text-amber-900 font-medium flex items-center gap-1 bg-emerald-50 p-1.5 rounded-lg border border-emerald-200 text-emerald-900">
+            <ArrowLeftRight size={13} className="text-emerald-700" />
+            <span>
+              Scambio concordato tra <strong>{requester?.name}</strong> e <strong>{target.name}</strong>
+              {currentReq.targetShiftDate && ` (Turno suo: ${currentReq.targetShiftDate})`}
+            </span>
+          </p>
+        )}
+
+        {currentReq.type === 'sick' && (
+          <p className="text-rose-900 font-medium flex items-center gap-1 bg-rose-50 p-1.5 rounded-lg border border-rose-200 text-rose-900">
+            <CalendarOff size={13} className="text-rose-700" />
+            <span>
+              Assenza per malattia {currentReq.protocolNumber ? `(PUC ${currentReq.protocolNumber})` : ''}
+            </span>
           </p>
         )}
 

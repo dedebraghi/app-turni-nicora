@@ -23,6 +23,7 @@ import {
   ChevronRight,
   Clock,
   Coffee,
+  MapPin,
   Monitor,
   Search,
   Share2,
@@ -151,10 +152,85 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
     };
   });
 
+  const isAllCassaCovered = dayStats.every((d) => d.isCassaCovered);
+  const totalWorkedShifts = storeShifts.filter((s) => s.type !== 'riposo' && s.type !== 'ferie' && s.type !== 'malattia').length;
+  const startDay = weekDays[0];
+  const endDay = weekDays[6];
+  const endDayDate = new Date(`${endDay.dateStr}T12:00:00`);
+  const monthName = endDayDate.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
+  const weekLabel = `Domenica ${startDay.dayNum} — Sabato ${endDay.dayNum} ${monthName}`;
+  const locationAddress = (activeLocation || location.id) === 'gazzada'
+    ? 'Viale Gallarate 26, Gazzada Schianno (VA)'
+    : 'Via Carnia 2, Varese (VA)';
+
   const [displayMode, setDisplayMode] = useState<'shifts' | 'coverage'>('shifts');
 
   return (
     <div className="space-y-4 pb-20 md:pb-8 max-w-full">
+
+      {/* --- HEADER DESKTOP UFFICIALE (Stile Stitch / "Dentro oggi") --- */}
+      <div className="hidden md:flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-2">
+        <div className="flex flex-col gap-2.5">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="px-3.5 py-1 rounded-full bg-nicora-orange-light text-nicora-orange font-bold text-xs uppercase tracking-wider border border-nicora-orange-border">
+              {location.name || 'Nicora Garden'}
+            </span>
+            {isAllCassaCovered ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 font-semibold text-xs border border-emerald-200 shadow-2xs">
+                <ShieldCheck size={14} className="text-emerald-600" />
+                <span>Presidio Cassa OK (7/7 giorni)</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 text-rose-800 font-bold text-xs border border-rose-200 shadow-2xs animate-pulse">
+                <ShieldAlert size={14} className="text-rose-600" />
+                <span>Attenzione: Cassa Scoperta nella Settimana!</span>
+              </span>
+            )}
+            <span className="hidden sm:inline-flex items-center gap-1 text-nicora-muted text-xs">
+              <MapPin size={14} className="text-nicora-teal" />
+              <span>{locationAddress}</span>
+            </span>
+          </div>
+
+          <h1 className="font-serif text-3xl lg:text-4xl text-nicora-title font-medium tracking-tight">
+            Tabellone Turni &amp; Pianificazione
+          </h1>
+          <p className="text-sm text-nicora-muted">
+            Supervisione settimanale dei turni ({weekLabel}), presidi cassa continui e monitoraggio organico di punto vendita.
+          </p>
+        </div>
+
+        {/* 3 Quick KPI Badges */}
+        <div className="flex items-center gap-3 self-start lg:self-auto">
+          <div className="flex flex-col items-center justify-center px-5 py-3 rounded-xl bg-white border border-nicora-sage-border shadow-2xs min-w-[110px]">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-nicora-muted">Organico Attivo</span>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="font-serif text-2xl font-bold text-nicora-teal">{storeEmployees.length}</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+            </div>
+            <span className="text-[10px] text-emerald-700 font-medium">{location.shortName}</span>
+          </div>
+
+          <div className="flex flex-col items-center justify-center px-5 py-3 rounded-xl bg-white border border-nicora-sage-border shadow-2xs min-w-[110px]">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-nicora-muted">Turni Settimana</span>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="font-serif text-2xl font-bold text-nicora-orange">{totalWorkedShifts}</span>
+            </div>
+            <span className="text-[10px] text-neutral-500 font-medium">In servizio</span>
+          </div>
+
+          <div className="flex flex-col items-center justify-center px-5 py-3 rounded-xl bg-white border border-nicora-sage-border shadow-2xs min-w-[110px]">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-nicora-muted">Richieste Attive</span>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="font-serif text-2xl font-bold text-neutral-800">
+                {requests?.filter((r) => r.locationId === location.id && r.status === 'pending').length || 0}
+              </span>
+              <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+            </div>
+            <span className="text-[10px] text-neutral-500 font-medium">In sospeso</span>
+          </div>
+        </div>
+      </div>
       
       {/* Banner Approvazione Ferie & Richieste 1-Click Direzione (Desktop) */}
       {isManagerMode && requests && onApproveRequest && onRejectRequest && (
