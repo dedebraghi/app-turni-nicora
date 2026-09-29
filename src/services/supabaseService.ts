@@ -160,6 +160,43 @@ export const archiveCloudEmployee = async (
 };
 
 /**
+ * Elimina definitivamente un collaboratore (hard-delete) e pulisce i turni/richieste associati
+ */
+export const deleteCloudEmployee = async (
+  empId: string
+): Promise<{ success: boolean; error?: string }> => {
+  const currentEmps = loadStoredEmployees();
+  saveStoredEmployees(currentEmps.filter((e) => e.id !== empId));
+
+  const currentShifts = loadStoredShifts();
+  saveStoredShifts(currentShifts.filter((s) => s.employeeId !== empId));
+
+  const currentReqs = loadStoredRequests();
+  saveStoredRequests(
+    currentReqs.filter((r) => r.requesterId !== empId && r.targetEmployeeId !== empId)
+  );
+
+  if (!isSupabaseConfigured || !supabase) {
+    return { success: true };
+  }
+
+  try {
+    await supabase.from('shifts').delete().eq('employee_id', empId);
+    await supabase
+      .from('shift_requests')
+      .delete()
+      .or(`requester_id.eq.${empId},target_employee_id.eq.${empId}`);
+    const { error } = await supabase.from('employees').delete().eq('id', empId);
+
+    if (error) throw error;
+    return { success: true };
+  } catch (err: any) {
+    console.error('[Supabase] Errore eliminazione definitiva collaboratore:', err);
+    return { success: false, error: err.message };
+  }
+};
+
+/**
  * Carica i turni da Supabase con fallback a cache locale
  */
 export const fetchCloudShifts = async (): Promise<Shift[]> => {
@@ -245,18 +282,30 @@ export const fetchCloudRequests = async (): Promise<ShiftRequest[]> => {
  * Salva i turni su Supabase e in cache locale (Cloud-First con Cache Offline)
  */
 export const saveCloudShifts = async (shifts: Shift[]): Promise<{ success: boolean; error?: string }> => {
+  // Normalizza gli ID e deduplica per (employeeId, date) mantenendo l'ultima versione
+  const dedupMap = new Map<string, Shift>();
+  for (const s of shifts) {
+    if (!s.employeeId || !s.date) continue;
+    const key = `${s.employeeId}_${s.date}`;
+    dedupMap.set(key, {
+      ...s,
+      id: `shift-${s.employeeId}-${s.date}`,
+    });
+  }
+  const normalizedShifts = Array.from(dedupMap.values());
+
   // Salva sempre prima in locale per reattività immediata
-  saveStoredShifts(shifts);
+  saveStoredShifts(normalizedShifts);
 
   if (!isSupabaseConfigured || !supabase) {
     return { success: true };
   }
 
   try {
-    const rows = shifts.map(mapShiftToDb);
+    const rows = normalizedShifts.map(mapShiftToDb);
     const { error } = await supabase
       .from('shifts')
-      .upsert(rows, { onConflict: 'id' });
+      .upsert(rows, { onConflict: 'employee_id,date' });
 
     if (error) throw error;
     return { success: true };
@@ -298,11 +347,19 @@ export const saveCloudRequest = async (req: ShiftRequest): Promise<{ success: bo
 export const updateCloudRequestStatus = async (
   requestId: string,
   status: ShiftRequestStatus,
-  managerNote?: string
+  managerNote?: string,
+  colleagueNote?: string
 ): Promise<{ success: boolean; error?: string }> => {
   const current = loadStoredRequests();
   const updated = current.map((r) =>
-    r.id === requestId ? { ...r, status, managerNote: managerNote ?? r.managerNote } : r
+    r.id === requestId
+      ? {
+          ...r,
+          status,
+          managerNote: managerNote !== undefined ? managerNote : r.managerNote,
+          colleagueNote: colleagueNote !== undefined ? colleagueNote : r.colleagueNote,
+        }
+      : r
   );
   saveStoredRequests(updated);
 
@@ -311,22 +368,31 @@ export const updateCloudRequestStatus = async (
   }
 
   try {
-    let dbStatus = status;
-    let note = managerNote || '';
-    if (status === 'pending_colleague') {
-      dbStatus = 'pending';
-      note = (note ? note + ' ' : '') + '[STATO_COLLEGA:pending]';
-    } else if (status === 'rejected_colleague') {
-      dbStatus = 'rejected';
-      note = (note ? note + ' ' : '') + '[STATO_COLLEGA:rejected]';
+    const targetReq = updated.find((r) => r.id === requestId);
+    if (targetReq) {
+      const row = mapRequestToDb(targetReq);
+      const { error } = await supabase
+        .from('shift_requests')
+        .upsert(row, { onConflict: 'id' });
+      if (error) throw error;
+    } else {
+      let dbStatus = status;
+      let note = managerNote || '';
+      if (status === 'pending_colleague') {
+        dbStatus = 'pending';
+        note = (note ? note + ' ' : '') + '[STATO_COLLEGA:pending]';
+      } else if (status === 'rejected_colleague') {
+        dbStatus = 'rejected';
+        note = (note ? note + ' ' : '') + '[STATO_COLLEGA:rejected]';
+      }
+
+      const { error } = await supabase
+        .from('shift_requests')
+        .update({ status: dbStatus, manager_note: note.trim() || null })
+        .eq('id', requestId);
+
+      if (error) throw error;
     }
-
-    const { error } = await supabase
-      .from('shift_requests')
-      .update({ status: dbStatus, manager_note: note.trim() || null })
-      .eq('id', requestId);
-
-    if (error) throw error;
     return { success: true };
   } catch (err: any) {
     console.error('[Supabase] Errore aggiornamento richiesta:', err);

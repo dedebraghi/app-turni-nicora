@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Employee, ShiftRequest } from '../../domain/types';
-import { ArrowLeftRight, CalendarOff, CheckCircle2, ChevronLeft, ChevronRight, Clock, Sparkles, X, XCircle } from 'lucide-react';
+import { Employee, Shift, ShiftRequest } from '../../domain/types';
+import { ArrowLeftRight, CalendarOff, CheckCircle2, ChevronLeft, ChevronRight, Clock, X, XCircle } from 'lucide-react';
 
 interface PendingRequestsBannerProps {
   requests: ShiftRequest[];
   employees: Employee[];
+  shifts?: Shift[];
   onApprove: (requestId: string) => void;
   onReject: (requestId: string) => void;
 }
@@ -12,6 +13,7 @@ interface PendingRequestsBannerProps {
 export const PendingRequestsBanner: React.FC<PendingRequestsBannerProps> = ({
   requests,
   employees,
+  shifts = [],
   onApprove,
   onReject,
 }) => {
@@ -32,6 +34,18 @@ export const PendingRequestsBanner: React.FC<PendingRequestsBannerProps> = ({
   const target = currentReq.targetEmployeeId
     ? employees.find((e) => e.id === currentReq.targetEmployeeId)
     : null;
+
+  const reqDate = currentReq.shiftDate;
+  const targetDate = currentReq.targetShiftDate || currentReq.shiftDate;
+  const liveReqShift = shifts.find((s) => s.employeeId === currentReq.requesterId && s.date === reqDate);
+  const liveTargetShift = currentReq.targetEmployeeId
+    ? shifts.find((s) => s.employeeId === currentReq.targetEmployeeId && s.date === targetDate)
+    : undefined;
+
+  const reqDept = liveReqShift?.department || currentReq.requesterDepartment || requester?.role || 'Non disp.';
+  const reqHours = `${liveReqShift?.startTime || currentReq.requesterStartTime || '08:30'} - ${liveReqShift?.endTime || currentReq.requesterEndTime || '17:00'}`;
+  const targetDept = liveTargetShift?.department || currentReq.targetDepartment || target?.role || 'Non disp.';
+  const targetHours = `${liveTargetShift?.startTime || currentReq.targetStartTime || '08:30'} - ${liveTargetShift?.endTime || currentReq.targetEndTime || '17:00'}`;
 
   return (
     <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300/80 rounded-2xl p-3 sm:p-4 shadow-clean animate-in slide-in-from-top duration-200">
@@ -111,13 +125,22 @@ export const PendingRequestsBanner: React.FC<PendingRequestsBannerProps> = ({
         )}
 
         {currentReq.type === 'swap' && target && (
-          <p className="text-amber-900 font-medium flex items-center gap-1 bg-emerald-50 p-1.5 rounded-lg border border-emerald-200 text-emerald-900">
-            <ArrowLeftRight size={13} className="text-emerald-700" />
-            <span>
-              Scambio concordato tra <strong>{requester?.name}</strong> e <strong>{target.name}</strong>
-              {currentReq.targetShiftDate && ` (Turno suo: ${currentReq.targetShiftDate})`}
-            </span>
-          </p>
+          <div className="bg-emerald-50 p-2 rounded-xl border border-emerald-200 text-emerald-950 space-y-1">
+            <div className="flex items-center gap-1.5 font-bold">
+              <ArrowLeftRight size={13} className="text-emerald-700 shrink-0" />
+              <span>
+                Scambio concordato tra <strong>{requester?.name}</strong> e <strong>{target.name}</strong>:
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px] pt-1">
+              <div className="bg-white/80 px-2 py-1 rounded-lg border border-emerald-200/60">
+                • <strong>{target.name}</strong> copre il <strong>{reqDate}</strong> in <strong>{reqDept}</strong> ({reqHours})
+              </div>
+              <div className="bg-white/80 px-2 py-1 rounded-lg border border-emerald-200/60">
+                • <strong>{requester?.name}</strong> copre il <strong>{targetDate}</strong> in <strong>{targetDept}</strong> ({targetHours})
+              </div>
+            </div>
+          </div>
         )}
 
         {currentReq.type === 'sick' && (

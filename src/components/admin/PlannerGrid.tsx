@@ -200,36 +200,6 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
           </p>
         </div>
 
-        {/* 3 Quick KPI Badges */}
-        <div className="flex items-center gap-3 self-start lg:self-auto">
-          <div className="flex flex-col items-center justify-center px-5 py-3 rounded-xl bg-white border border-nicora-sage-border shadow-2xs min-w-[110px]">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-nicora-muted">Organico Attivo</span>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="font-serif text-2xl font-bold text-nicora-teal">{storeEmployees.length}</span>
-              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-            </div>
-            <span className="text-[10px] text-emerald-700 font-medium">{location.shortName}</span>
-          </div>
-
-          <div className="flex flex-col items-center justify-center px-5 py-3 rounded-xl bg-white border border-nicora-sage-border shadow-2xs min-w-[110px]">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-nicora-muted">Turni Settimana</span>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="font-serif text-2xl font-bold text-nicora-orange">{totalWorkedShifts}</span>
-            </div>
-            <span className="text-[10px] text-neutral-500 font-medium">In servizio</span>
-          </div>
-
-          <div className="flex flex-col items-center justify-center px-5 py-3 rounded-xl bg-white border border-nicora-sage-border shadow-2xs min-w-[110px]">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-nicora-muted">Richieste Attive</span>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="font-serif text-2xl font-bold text-neutral-800">
-                {requests?.filter((r) => r.locationId === location.id && r.status === 'pending').length || 0}
-              </span>
-              <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-            </div>
-            <span className="text-[10px] text-neutral-500 font-medium">In sospeso</span>
-          </div>
-        </div>
       </div>
       
       {/* Banner Approvazione Ferie & Richieste 1-Click Direzione (Desktop) */}
@@ -238,6 +208,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
           <PendingRequestsBanner
             requests={requests.filter((r) => r.locationId === location.id)}
             employees={employees}
+            shifts={shifts}
             onApprove={onApproveRequest}
             onReject={onRejectRequest}
           />
@@ -315,8 +286,8 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
 
         </div>
 
-        {/* Banner Allarme Scopertura Reparti Desktop (Stile Stitch: Rosso per assenza totale, Giallo per ore scoperte) */}
-        {(() => {
+        {/* Banner Allarme Scopertura Reparti Desktop (solo admin) */}
+        {isManagerMode && (() => {
           const weekAnalysis: WeekCoverageAnalysis = calculateWeekHourlyCoverage(
             weekDays,
             storeShifts,
@@ -409,8 +380,8 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
 
         {/* Filter & Search Bar Desktop */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1 sm:w-64">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="relative sm:w-64">
               <input
                 type="text"
                 value={searchQuery}
@@ -423,33 +394,35 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
               </div>
             </div>
 
-            <select
-              value={selectedDeptFilter}
-              onChange={(e) => setSelectedDeptFilter(e.target.value)}
-              className="bg-white border border-nicora-sage-border rounded-xl px-2.5 py-1.5 text-xs font-semibold text-neutral-700 shadow-clean cursor-pointer"
+            <button
+              type="button"
+              onClick={() => setSelectedDeptFilter('all')}
+              className={`px-3 py-1.5 rounded-full font-semibold text-xs whitespace-nowrap shadow-2xs transition-all ${
+                selectedDeptFilter === 'all'
+                  ? 'bg-nicora-teal text-white shadow-xs'
+                  : 'bg-white hover:bg-neutral-50 text-neutral-700 border border-nicora-sage-border'
+              }`}
             >
-              <option value="all">Tutti i reparti ({storeEmployees.length})</option>
-              <option value="Cassa">Cassa</option>
-              <option value="Fioreria">Fioreria</option>
-              <option value="Decor">Decor</option>
-              <option value="Serra Calda">Serra Calda</option>
-              <option value="Serra Fredda">Serra Fredda</option>
-            </select>
-          </div>
-
-          <div className="text-[11px] text-neutral-500 font-medium flex items-center gap-2">
-            <span className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-rose-600 inline-block" /> Cassa
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-pink-500 inline-block" /> Fioreria
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block" /> Decor
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-sky-500 inline-block" /> Serre
-            </span>
+              Tutti ({storeEmployees.length})
+            </button>
+            {getLocationDepartments(location.id, true).map((dept) => {
+              const count = storeEmployees.filter((e) => e.role === dept).length;
+              const isSelected = selectedDeptFilter === dept;
+              return (
+                <button
+                  key={dept}
+                  type="button"
+                  onClick={() => setSelectedDeptFilter(dept)}
+                  className={`px-3 py-1.5 rounded-full font-semibold text-xs whitespace-nowrap shadow-2xs transition-all ${
+                    isSelected
+                      ? 'bg-nicora-orange text-white shadow-xs'
+                      : 'bg-white hover:bg-neutral-50 text-neutral-700 border border-nicora-sage-border'
+                  }`}
+                >
+                  {dept} ({count})
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -736,15 +709,25 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                 isCassa
                                   ? 'bg-rose-50 border-rose-200 text-rose-900 font-extrabold'
                                   : shift.department === 'Fioreria'
-                                  ? 'bg-pink-50 border-pink-200 text-pink-900 font-bold'
+                                  ? 'bg-fuchsia-50 border-fuchsia-200 text-fuchsia-900 font-bold'
                                   : shift.department === 'Decor'
-                                  ? 'bg-purple-50 border-purple-200 text-purple-900 font-bold'
+                                  ? 'bg-amber-50 border-amber-200 text-amber-900 font-bold'
+                                  : shift.department === 'Serra Calda'
+                                  ? 'bg-orange-50 border-orange-200 text-orange-900 font-bold'
+                                  : shift.department === 'Serra Fredda'
+                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-900 font-bold'
+                                  : shift.department === 'Area Tecnica'
+                                  ? 'bg-slate-50 border-slate-200 text-slate-900 font-bold'
+                                  : shift.department === 'Emporio'
+                                  ? 'bg-indigo-50 border-indigo-200 text-indigo-900 font-bold'
+                                  : shift.department === 'Natale'
+                                  ? 'bg-red-50 border-red-200 text-red-900 font-bold'
                                   : 'bg-sky-50 border-sky-200 text-sky-900 font-bold'
                               }`}
                             >
                               <div className="text-[10px] truncate leading-tight flex items-center justify-between gap-0.5">
                                 <span className="truncate">{shift.department || emp.role}</span>
-                                {(() => {
+                                {isManagerMode && (() => {
                                   const score = shift.assignedSkillScore ?? emp.skills?.[shift.department || emp.role] ?? 1;
                                   return (
                                     <span
@@ -827,7 +810,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                               </div>
                             </>
                           )}
-                          {cov.averageSkillScore !== undefined && cov.averageSkillScore > 0 && (
+                          {isManagerMode && cov.averageSkillScore !== undefined && cov.averageSkillScore > 0 && (
                             <div className="text-[8px] font-extrabold text-emerald-900 bg-emerald-50 rounded px-1 py-0.2 mt-0.5 inline-block">
                               Comp: {cov.averageSkillScore}/10
                             </div>

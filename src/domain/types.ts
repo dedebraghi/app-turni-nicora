@@ -84,6 +84,12 @@ export interface ShiftRequest {
   targetEmployeeId?: string; // Per scambio turno
   shiftDate: string;        // YYYY-MM-DD
   targetShiftDate?: string;
+  requesterDepartment?: Department; // Reparto effettivo del richiedente nel giorno shiftDate
+  requesterStartTime?: string;      // Orario inizio turno del richiedente
+  requesterEndTime?: string;        // Orario fine turno del richiedente
+  targetDepartment?: Department;    // Reparto effettivo del collega nel giorno targetShiftDate
+  targetStartTime?: string;         // Orario inizio turno del collega
+  targetEndTime?: string;           // Orario fine turno del collega
   requestedStartTime?: string; // HH:MM per variazione orario
   requestedEndTime?: string;   // HH:MM per variazione orario
   protocolNumber?: string;     // Numero telematico certificato medico INPS (per malattia)

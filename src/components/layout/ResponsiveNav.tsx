@@ -1,6 +1,6 @@
 import React from 'react';
 import { ActiveTab } from '../../domain/types';
-import { CalendarDays, Clock, Contact, LayoutGrid, Mail, UserCheck, Users } from 'lucide-react';
+import { CalendarDays, Clock, Contact, LayoutGrid, Mail } from 'lucide-react';
 
 interface ResponsiveNavProps {
   activeTab: ActiveTab;
@@ -15,45 +15,55 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
   pendingRequestsCount,
   isManagerMode,
 }) => {
-  const tabs = [
+  const tabs: Array<{
+    id: ActiveTab;
+    label: string;
+    mobileLabel: string;
+    icon: React.ElementType;
+    badge?: number;
+  }> = [
     {
-      id: 'today' as ActiveTab,
+      id: 'today',
       label: 'Oggi in Sede',
       mobileLabel: 'Oggi',
       icon: Clock,
     },
     {
-      id: 'my-shifts' as ActiveTab,
+      id: 'my-shifts',
       label: 'I Miei Turni',
       mobileLabel: 'I Miei Turni',
       icon: CalendarDays,
     },
     {
-      id: 'planner' as ActiveTab,
+      id: 'planner',
       label: isManagerMode ? 'Tabellone Pianificatore' : 'Settimana Completa',
       mobileLabel: 'Tabellone',
       icon: LayoutGrid,
     },
     {
-      id: 'requests' as ActiveTab,
+      id: 'requests',
       label: 'Richieste & Ferie',
       mobileLabel: 'Richieste',
       icon: Mail,
       badge: pendingRequestsCount > 0 ? pendingRequestsCount : undefined,
     },
-    {
-      id: 'personnel' as ActiveTab,
-      label: 'Personale & Competenze',
-      mobileLabel: 'Personale',
-      icon: Contact,
-    },
+    ...(isManagerMode
+      ? [
+          {
+            id: 'personnel' as ActiveTab,
+            label: 'Personale & Competenze',
+            mobileLabel: 'Personale',
+            icon: Contact,
+          },
+        ]
+      : []),
   ];
 
   return (
     <>
       {/* --- DESKTOP / TABLET TOP TAB BAR --- */}
       <nav className="hidden md:flex items-center justify-between border-b border-nicora-sage-border bg-nicora-card/95 backdrop-blur-sm px-6 py-2 shadow-clean sticky top-[57px] z-20">
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 max-w-7xl mx-auto w-full">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive =
@@ -86,12 +96,6 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
               </button>
             );
           })}
-        </div>
-
-        <div className="text-[11px] text-nicora-muted font-normal flex items-center gap-2">
-          <span>Settimana Lavorativa: <strong className="font-semibold text-nicora-text">Domenica ➔ Sabato</strong></span>
-          <span>•</span>
-          <span>Regola: <strong className="font-semibold text-nicora-text">5 giorni / 2 riposi</strong></span>
         </div>
       </nav>
 

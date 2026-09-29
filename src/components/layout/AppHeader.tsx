@@ -1,10 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NicoraLogo } from '../NicoraLogo';
 import { InstallPWAButton } from '../InstallPWAButton';
 import { LOCATIONS } from '../../domain/mockData';
 import { Employee, LocationId, UserSession } from '../../domain/types';
-import { LogOut, MapPin, ShieldCheck, Cloud, CloudOff } from 'lucide-react';
-import { getCloudStatus } from '../../services/supabaseService';
+import { AlertCircle, Check, ChevronDown, KeyRound, LogOut, MapPin, X } from 'lucide-react';
 
 interface AppHeaderProps {
   session: UserSession;
@@ -14,131 +13,331 @@ interface AppHeaderProps {
   activeLocation: LocationId;
   onChangeLocation: (loc: LocationId) => void;
   employees?: Employee[];
+  onSaveEmployee?: (emp: Employee) => void;
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
   session,
   onLogout,
-  isManagerMode,
-  onToggleManagerMode,
   activeLocation,
   onChangeLocation,
   employees = [],
+  onSaveEmployee,
 }) => {
-  const isManagerUser = session.role === 'manager' || session.user.isManager;
-  const cloudStatus = getCloudStatus();
+  const isManagerAccount = session.role === 'manager';
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+
+  // Stato Modale Cambio PIN / Password
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [currentPinInput, setCurrentPinInput] = useState('');
+  const [newPinInput, setNewPinInput] = useState('');
+  const [confirmPinInput, setConfirmPinInput] = useState('');
+  const [pinError, setPinError] = useState('');
+  const [pinSuccess, setPinSuccess] = useState('');
+
+  const handleOpenPinModal = () => {
+    setCurrentPinInput('');
+    setNewPinInput('');
+    setConfirmPinInput('');
+    setPinError('');
+    setPinSuccess('');
+    setIsPinModalOpen(true);
+  };
+
+  const handleSavePin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPinError('');
+    setPinSuccess('');
+
+    const currentUser =
+      employees.find((emp) => emp.id === session.user.id) || session.user;
+    const defaultSecret = isManagerAccount ? 'admin' : '1234';
+    const actualSecret = currentUser.password || defaultSecret;
+
+    const validCurrentSecrets = isManagerAccount
+      ? [actualSecret, 'admin']
+      : [actualSecret, '1234', '123'];
+
+    if (!validCurrentSecrets.includes(currentPinInput)) {
+      setPinError(
+        isManagerAccount
+          ? 'La password attuale inserita non è corretta'
+          : 'Il PIN attuale inserito non è corretto'
+      );
+      return;
+    }
+
+    if (newPinInput.length < 3) {
+      setPinError(
+        isManagerAccount
+          ? 'La nuova password deve contenere almeno 3 caratteri'
+          : 'Il nuovo PIN deve contenere almeno 3 cifre'
+      );
+      return;
+    }
+
+    if (newPinInput !== confirmPinInput) {
+      setPinError(
+        isManagerAccount
+          ? 'Le due password inserite non coincidono'
+          : 'I due PIN inseriti non coincidono'
+      );
+      return;
+    }
+
+    if (onSaveEmployee) {
+      onSaveEmployee({
+        ...currentUser,
+        password: newPinInput,
+      });
+    }
+
+    setPinSuccess(
+      isManagerAccount ? 'Password modificata con successo!' : 'PIN modificato con successo!'
+    );
+    setTimeout(() => {
+      setIsPinModalOpen(false);
+      setPinSuccess('');
+    }, 1500);
+  };
 
   return (
-    <header className="hidden md:block sticky top-0 z-30 bg-nicora-teal-dark text-white shadow-clean border-b border-white/10 pt-safe">
-      {/* Top Main Navigation Bar */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex items-center justify-between">
-        
-        {/* Brand Logo & Name */}
-        <div className="flex items-center gap-3">
-          <NicoraLogo size={30} variant="white" />
-          <div className="hidden sm:flex flex-col border-l border-white/20 pl-3">
-            <span className="text-[10px] uppercase font-bold tracking-[0.18em] text-nicora-orange-light leading-tight">
-              Atelier Botanico
-            </span>
-            <span className="text-[11px] font-serif text-white/90 leading-tight">
-              Gestione Turni
-            </span>
+    <>
+      <header className="hidden md:block sticky top-0 z-30 bg-nicora-teal-dark text-white shadow-clean border-b border-white/10 pt-safe">
+        {/* Top Main Navigation Bar */}
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex items-center justify-between">
+          
+          {/* Brand Logo & Name */}
+          <div className="flex items-center gap-3">
+            <NicoraLogo size={30} variant="white" />
+            <div className="hidden sm:flex flex-col border-l border-white/20 pl-3">
+              <span className="text-[10px] uppercase font-bold tracking-[0.18em] text-nicora-orange-light leading-tight">
+                Atelier Botanico
+              </span>
+              <span className="text-[11px] font-serif text-white/90 leading-tight">
+                Gestione Turni
+              </span>
+            </div>
           </div>
-        </div>
 
-        {/* Center: Sede Switcher (Desktop & Mobile) */}
-        <div className="flex items-center gap-1 bg-black/25 p-1 rounded-full border border-white/10 shadow-inner">
-          {LOCATIONS.map((loc) => {
-            const isActive = loc.id === activeLocation;
-            const dynamicStaffCount = employees.length > 0
-              ? employees.filter((e) => e.locationId === loc.id && e.isActive !== false && !e.isOwner).length
-              : loc.defaultStaffCount;
+          {/* Center: Sede Switcher */}
+          <div className="flex items-center gap-1 bg-black/25 p-1 rounded-full border border-white/10 shadow-inner">
+            {LOCATIONS.map((loc) => {
+              const isActive = loc.id === activeLocation;
+              const dynamicStaffCount = employees.length > 0
+                ? employees.filter((e) => e.locationId === loc.id && e.isActive !== false && !e.isOwner).length
+                : loc.defaultStaffCount;
 
-            return (
-              <button
-                key={loc.id}
-                onClick={() => onChangeLocation(loc.id)}
-                className={`flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-semibold transition-all ${
-                  isActive
-                    ? 'bg-nicora-orange text-white shadow-xs'
-                    : 'text-white/70 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                <MapPin size={12} className={isActive ? 'text-white' : 'text-white/60'} />
-                <span>{loc.shortName}</span>
-                <span
-                  className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold ${
-                    isActive ? 'bg-black/30 text-white' : 'bg-white/15 text-white/70'
+              return (
+                <button
+                  key={loc.id}
+                  onClick={() => onChangeLocation(loc.id)}
+                  className={`flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-semibold transition-all ${
+                    isActive
+                      ? 'bg-nicora-orange text-white shadow-xs'
+                      : 'text-white/70 hover:text-white hover:bg-white/10'
                   }`}
                 >
-                  {dynamicStaffCount}
-                </span>
+                  <MapPin size={12} className={isActive ? 'text-white' : 'text-white/60'} />
+                  <span>{loc.shortName}</span>
+                  <span
+                    className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold ${
+                      isActive ? 'bg-black/30 text-white' : 'bg-white/15 text-white/70'
+                    }`}
+                  >
+                    {dynamicStaffCount}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Right Action Tools & User Profile Dropdown */}
+          <div className="flex items-center gap-2.5">
+            <InstallPWAButton />
+
+            {/* User Profile Button with Dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                className="flex items-center gap-2.5 bg-black/20 hover:bg-black/30 px-3 py-1.5 rounded-full border border-white/10 transition-colors focus:outline-none"
+                title="Profilo e opzioni sessione"
+              >
+                <div className="w-6 h-6 rounded-full bg-nicora-orange flex items-center justify-center text-[10px] font-black text-white">
+                  {session.user.avatar || session.user.name.slice(0, 2).toUpperCase()}
+                </div>
+                <div className="text-left leading-tight">
+                  <span className="block text-xs font-semibold text-white truncate max-w-[130px]">
+                    {session.user.name}
+                  </span>
+                  <span className="block text-[9px] text-nicora-teal-light/80 uppercase tracking-wider">
+                    {isManagerAccount ? 'Responsabile' : session.user.role}
+                  </span>
+                </div>
+                <ChevronDown
+                  size={14}
+                  className={`text-white/70 transition-transform duration-150 ${
+                    isProfileMenuOpen ? 'rotate-180' : ''
+                  }`}
+                />
               </button>
-            );
-          })}
-        </div>
 
-        {/* Right Action Tools & User Profile */}
-        <div className="flex items-center gap-2">
-          {/* Badge Stato Connessione Cloud */}
-          {cloudStatus.isConfigured ? (
-            <div
-              className="hidden sm:flex items-center gap-1.5 text-[10px] text-emerald-200 bg-emerald-950/60 border border-emerald-500/40 px-2.5 py-1 rounded-full font-medium"
-              title="Sincronizzazione Supabase Cloud attiva"
-            >
-              <Cloud size={12} className="text-emerald-400" />
-              <span className="hidden md:inline">Cloud Live</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            </div>
-          ) : (
-            <div
-              className="hidden sm:flex items-center gap-1.5 text-[10px] text-white/70 bg-black/25 border border-white/10 px-2.5 py-1 rounded-full font-medium"
-              title="Modalità offline / locale attiva (localStorage)"
-            >
-              <CloudOff size={12} className="text-white/50" />
-              <span className="hidden md:inline">Locale</span>
-            </div>
-          )}
+              {isProfileMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setIsProfileMenuOpen(false)}
+                  />
+                  <div className="absolute right-0 top-12 z-50 w-60 rounded-2xl bg-white text-nicora-text p-3.5 shadow-modal border border-nicora-sage-border animate-in fade-in zoom-in-95 duration-150">
+                    <div className="flex items-center gap-2.5 pb-2.5 border-b border-neutral-100">
+                      <div className="w-9 h-9 rounded-full bg-nicora-teal-dark text-white flex items-center justify-center font-serif font-bold text-sm">
+                        {session.user.avatar || session.user.name.charAt(0)}
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-xs font-bold text-neutral-900 truncate">
+                          {session.user.name}
+                        </span>
+                        <span className="text-[10px] text-neutral-500">
+                          {isManagerAccount ? 'Direzione / Responsabile' : `Reparto ${session.user.role}`}
+                        </span>
+                        <span className="text-[9px] text-nicora-orange font-semibold uppercase mt-0.5">
+                          {activeLocation === 'gazzada' ? 'Sede Gazzada' : 'Sede Varese'}
+                        </span>
+                      </div>
+                    </div>
 
-          <InstallPWAButton />
+                    <div className="pt-2.5 flex flex-col gap-1.5">
+                      {onSaveEmployee && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsProfileMenuOpen(false);
+                            handleOpenPinModal();
+                          }}
+                          className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-semibold transition-colors cursor-pointer"
+                        >
+                          <KeyRound size={14} className="text-nicora-orange" />
+                          <span>{isManagerAccount ? 'Modifica Password' : 'Modifica PIN'}</span>
+                        </button>
+                      )}
 
-          {/* Badge Ruolo Direzione */}
-          {isManagerUser && (
-            <div
-              className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-amber-400 text-amber-950 border border-amber-300/60 shadow-xs"
-              title="Accesso effettuato come Direzione / Responsabile"
-            >
-              <ShieldCheck size={14} />
-              <span className="hidden sm:inline">Direzione</span>
-            </div>
-          )}
-
-          {/* User Badge */}
-          <div className="hidden md:flex items-center gap-2 bg-black/20 px-3 py-1 rounded-full border border-white/10">
-            <div className="w-6 h-6 rounded-full bg-nicora-orange flex items-center justify-center text-[10px] font-black text-white">
-              {session.user.avatar}
-            </div>
-            <div className="text-left leading-tight">
-              <span className="block text-xs font-semibold text-white truncate max-w-[120px]">
-                {session.user.name}
-              </span>
-              <span className="block text-[9px] text-nicora-teal-light/80 uppercase tracking-wider">
-                {session.role === 'manager' ? 'Responsabile' : session.user.role}
-              </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsProfileMenuOpen(false);
+                          onLogout();
+                        }}
+                        className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-colors cursor-pointer"
+                      >
+                        <LogOut size={14} />
+                        <span>Esci dalla sessione</span>
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
-          {/* Logout Button */}
-          <button
-            onClick={onLogout}
-            className="w-8 h-8 rounded-full bg-white/10 hover:bg-rose-600 text-white/90 hover:text-white flex items-center justify-center transition-colors active:scale-90"
-            title="Esci dalla sessione"
-          >
-            <LogOut size={14} />
-          </button>
         </div>
+      </header>
 
-      </div>
-    </header>
+      {/* Modal Cambio PIN / Password */}
+      {isPinModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl border border-nicora-sage-border w-full max-w-md overflow-hidden">
+            <div className="bg-nicora-teal text-white p-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <KeyRound size={20} className="text-amber-300" />
+                <h3 className="font-serif text-base font-semibold">
+                  {isManagerAccount ? 'Modifica Password Direzione' : 'Modifica PIN Personale'}
+                </h3>
+              </div>
+              <button onClick={() => setIsPinModalOpen(false)} className="text-white hover:opacity-80">
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePin} className="p-5 space-y-4 text-xs">
+              {pinError && (
+                <div className="bg-rose-50 border border-rose-200 text-rose-800 p-3 rounded-xl flex items-center gap-2">
+                  <AlertCircle size={16} className="text-rose-600 shrink-0" />
+                  <span>{pinError}</span>
+                </div>
+              )}
+              {pinSuccess && (
+                <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-3 rounded-xl flex items-center gap-2">
+                  <Check size={16} className="text-emerald-600 shrink-0" />
+                  <span>{pinSuccess}</span>
+                </div>
+              )}
+
+              <div>
+                <label className="block font-semibold text-neutral-700 mb-1">
+                  {isManagerAccount ? 'Password Attuale:' : 'PIN Attuale:'}
+                </label>
+                <input
+                  type="password"
+                  value={currentPinInput}
+                  onChange={(e) => setCurrentPinInput(e.target.value)}
+                  placeholder={isManagerAccount ? 'Inserisci password attuale' : 'Inserisci PIN attuale'}
+                  maxLength={isManagerAccount ? 32 : 6}
+                  className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl px-3.5 py-2.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-nicora-teal"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-neutral-700 mb-1">
+                  {isManagerAccount ? 'Nuova Password:' : 'Nuovo PIN (min. 3 cifre):'}
+                </label>
+                <input
+                  type="password"
+                  value={newPinInput}
+                  onChange={(e) => setNewPinInput(e.target.value)}
+                  placeholder={isManagerAccount ? 'Nuova password riservata' : 'Nuovo PIN riservato'}
+                  maxLength={isManagerAccount ? 32 : 6}
+                  className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl px-3.5 py-2.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-nicora-teal"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-neutral-700 mb-1">
+                  {isManagerAccount ? 'Conferma Nuova Password:' : 'Conferma Nuovo PIN:'}
+                </label>
+                <input
+                  type="password"
+                  value={confirmPinInput}
+                  onChange={(e) => setConfirmPinInput(e.target.value)}
+                  placeholder={isManagerAccount ? 'Ripeti nuova password' : 'Ripeti nuovo PIN'}
+                  maxLength={isManagerAccount ? 32 : 6}
+                  className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl px-3.5 py-2.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-nicora-teal"
+                  required
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsPinModalOpen(false)}
+                  className="px-4 py-2 text-neutral-600 font-bold hover:bg-neutral-100 rounded-xl"
+                >
+                  Annulla
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-nicora-teal hover:bg-nicora-teal-hover text-white font-extrabold rounded-xl shadow-xs"
+                >
+                  {isManagerAccount ? 'Salva Password' : 'Salva PIN'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
+

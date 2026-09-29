@@ -74,7 +74,7 @@ export function mapDbToShift(row: any): Shift {
 
 export function mapShiftToDb(shift: Shift) {
   return {
-    id: shift.id,
+    id: `shift-${shift.employeeId}-${shift.date}`,
     employee_id: shift.employeeId,
     location_id: shift.locationId,
     date: shift.date,
@@ -90,16 +90,45 @@ export function mapShiftToDb(shift: Shift) {
 
 export function mapDbToRequest(row: any): ShiftRequest {
   let status = row.status;
-  let managerNote = row.manager_note || undefined;
+  let rawNote: string = row.manager_note || '';
+  let colleagueNote: string | undefined = undefined;
+  let swapMeta: {
+    rDept?: any;
+    rStart?: string;
+    rEnd?: string;
+    tDept?: any;
+    tStart?: string;
+    tEnd?: string;
+  } = {};
 
-  // Compatibilità retroattiva per DB con vincolo status limitato: estrai stato collega da manager_note se presente
-  if (managerNote?.includes('[STATO_COLLEGA:pending]') && status === 'pending') {
-    status = 'pending_colleague';
-    managerNote = managerNote.replace('[STATO_COLLEGA:pending]', '').trim() || undefined;
-  } else if (managerNote?.includes('[STATO_COLLEGA:rejected]')) {
-    status = 'rejected_colleague';
-    managerNote = managerNote.replace('[STATO_COLLEGA:rejected]', '').trim() || undefined;
+  // Estrai metadati scambio se presenti
+  const metaMatch = rawNote.match(/\[META_SCAMBIO:(\{.*?\})\]/);
+  if (metaMatch) {
+    try {
+      swapMeta = JSON.parse(metaMatch[1]);
+    } catch {
+      // ignora errori di parsing
+    }
+    rawNote = rawNote.replace(metaMatch[0], '').trim();
   }
+
+  // Estrai nota del collega se presente
+  const collMatch = rawNote.match(/\[NOTA_COLLEGA:(.*?)\]/);
+  if (collMatch) {
+    colleagueNote = collMatch[1].trim() || undefined;
+    rawNote = rawNote.replace(collMatch[0], '').trim();
+  }
+
+  // Compatibilità per DB con vincolo status limitato: estrai stato collega da manager_note se presente
+  if (rawNote.includes('[STATO_COLLEGA:pending]') && status === 'pending') {
+    status = 'pending_colleague';
+    rawNote = rawNote.replace('[STATO_COLLEGA:pending]', '').trim();
+  } else if (rawNote.includes('[STATO_COLLEGA:rejected]')) {
+    status = 'rejected_colleague';
+    rawNote = rawNote.replace('[STATO_COLLEGA:rejected]', '').trim();
+  }
+
+  const managerNote = rawNote || undefined;
 
   return {
     id: row.id,
@@ -109,37 +138,75 @@ export function mapDbToRequest(row: any): ShiftRequest {
     targetEmployeeId: row.target_employee_id || undefined,
     shiftDate: row.shift_date,
     targetShiftDate: row.target_shift_date || undefined,
+    requesterDepartment: swapMeta.rDept || undefined,
+    requesterStartTime: swapMeta.rStart || undefined,
+    requesterEndTime: swapMeta.rEnd || undefined,
+    targetDepartment: swapMeta.tDept || undefined,
+    targetStartTime: swapMeta.tStart || undefined,
+    targetEndTime: swapMeta.tEnd || undefined,
     protocolNumber: row.protocol_number || undefined,
     reason: row.reason,
     status: status,
     createdAt: row.created_at ? new Date(row.created_at).toLocaleDateString('it-IT') : 'Oggi',
     managerNote: managerNote,
+    colleagueNote: colleagueNote,
   };
 }
 
 export function mapRequestToDb(req: ShiftRequest) {
   let dbStatus = req.status;
-  let note = req.managerNote || '';
+  const noteParts: string[] = [];
+
+  if (req.managerNote) {
+    noteParts.push(req.managerNote.trim());
+  }
+
+  if (req.colleagueNote) {
+    noteParts.push(`[NOTA_COLLEGA:${req.colleagueNote.trim()}]`);
+  }
+
+  if (
+    req.requesterDepartment ||
+    req.requesterStartTime ||
+    req.requesterEndTime ||
+    req.targetDepartment ||
+    req.targetStartTime ||
+    req.targetEndTime
+  ) {
+    const metaJson = JSON.stringify({
+      rDept: req.requesterDepartment,
+      rStart: req.requesterStartTime,
+      rEnd: req.requesterEndTime,
+      tDept: req.targetDepartment,
+      tStart: req.targetStartTime,
+      tEnd: req.targetEndTime,
+    });
+    noteParts.push(`[META_SCAMBIO:${metaJson}]`);
+  }
 
   // Se lo stato è in attesa del collega o rifiutato dal collega, mappa su pending/rejected con tag note di sicurezza
   if (req.status === 'pending_colleague') {
     dbStatus = 'pending';
-    note = (note ? note + ' ' : '') + '[STATO_COLLEGA:pending]';
+    noteParts.push('[STATO_COLLEGA:pending]');
   } else if (req.status === 'rejected_colleague') {
     dbStatus = 'rejected';
-    note = (note ? note + ' ' : '') + '[STATO_COLLEGA:rejected]';
+    noteParts.push('[STATO_COLLEGA:rejected]');
   }
+
+  // Per compatibilità con vincolo CHECK (type IN ('swap', 'leave')) sul DB
+  const dbType = req.type === 'swap' ? 'swap' : 'leave';
 
   return {
     id: req.id,
     requester_id: req.requesterId,
     location_id: req.locationId,
-    type: req.type,
+    type: dbType,
     target_employee_id: req.targetEmployeeId || null,
     shift_date: req.shiftDate,
     target_shift_date: req.targetShiftDate || null,
     reason: req.reason,
     status: dbStatus,
-    manager_note: note.trim() || null,
+    manager_note: noteParts.join(' ').trim() || null,
   };
 }
+

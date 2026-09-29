@@ -1,11 +1,9 @@
-import React, { useState } from 'react';
-import { Employee, LocationId, ShiftRequest, ShiftRequestStatus, ShiftRequestType } from '../../domain/types';
+import React, { useState, useEffect } from 'react';
+import { Employee, LocationId, Shift, ShiftRequest, ShiftRequestStatus, ShiftRequestType } from '../../domain/types';
 import { CONTINUATO_SLOTS } from '../../domain/rules';
 import { 
   ArrowLeftRight, 
-  CalendarOff, 
   CheckCircle2, 
-  Clock, 
   HeartPulse, 
   Info, 
   Send, 
@@ -21,20 +19,25 @@ interface LeaveRequestsMobileProps {
   currentEmployee?: Employee;
   currentEmployeeId: string;
   employees: Employee[];
+  shifts: Shift[];
   requests: ShiftRequest[];
   onSubmitRequest: (newReq: Omit<ShiftRequest, 'id' | 'createdAt' | 'status'>) => void;
   isManagerMode: boolean;
-  onUpdateStatus: (id: string, status: ShiftRequestStatus, note?: string) => void;
+  onUpdateStatus: (id: string, status: ShiftRequestStatus, note?: string, colleagueNote?: string) => void;
   activeLocation: LocationId;
   onChangeLocation?: (loc: LocationId) => void;
   onLogout?: () => void;
   onSaveEmployee?: (emp: Employee) => void;
 }
 
+const isWorkingShift = (s?: Shift): boolean =>
+  Boolean(s && (s.type === 'giornata' || s.type === 'mattina' || s.type === 'pomeriggio'));
+
 export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
   currentEmployee,
   currentEmployeeId,
   employees,
+  shifts,
   requests,
   onSubmitRequest,
   isManagerMode,
@@ -47,27 +50,62 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
   const [requestType, setRequestType] = useState<ShiftRequestType>('leave');
   
   const myEmployee = currentEmployee || employees.find((e) => e.id === currentEmployeeId);
-  const storeEmployees = employees.filter((e) => e.locationId === activeLocation && e.isActive !== false && !e.isOwner);
-  const eligibleColleagues = storeEmployees.filter((e) => e.id !== currentEmployeeId);
 
   const gazzadaStaffCount = employees.filter((e) => e.locationId === 'gazzada' && e.isActive !== false && !e.isOwner).length;
   const vareseStaffCount = employees.filter((e) => e.locationId === 'varese' && e.isActive !== false && !e.isOwner).length;
 
-  const [targetEmployeeId, setTargetEmployeeId] = useState<string>(
-    eligibleColleagues[0]?.id || ''
-  );
   const [shiftDate, setShiftDate] = useState<string>(() =>
     new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0]
   );
   const [targetShiftDate, setTargetShiftDate] = useState<string>(() =>
     new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0]
   );
+
+  // Turno effettivo del richiedente nel giorno shiftDate
+  const myRawShiftOnDate = shifts.find(
+    (s) => s.employeeId === currentEmployeeId && s.date === shiftDate
+  );
+  const myShiftOnDate = isWorkingShift(myRawShiftOnDate) ? myRawShiftOnDate : undefined;
+
+  // Colleghi effettivamente in turno lavorativo nel giorno targetShiftDate nella sede attiva
+  const colleaguesInTurnOnTargetDate = employees
+    .filter((emp) => emp.isActive !== false && !emp.isOwner && emp.id !== currentEmployeeId)
+    .map((emp) => {
+      const shift = shifts.find(
+        (s) =>
+          s.employeeId === emp.id &&
+          s.date === targetShiftDate &&
+          s.locationId === activeLocation &&
+          isWorkingShift(s)
+      );
+      return shift ? { employee: emp, shift } : null;
+    })
+    .filter((item): item is { employee: Employee; shift: Shift } => item !== null);
+
+  const [targetEmployeeId, setTargetEmployeeId] = useState<string>(
+    () => colleaguesInTurnOnTargetDate[0]?.employee.id || ''
+  );
+
+  // Sincronizza automaticamente il collega selezionato quando cambia targetShiftDate o i turni
+  useEffect(() => {
+    const stillValid = colleaguesInTurnOnTargetDate.some((c) => c.employee.id === targetEmployeeId);
+    if (!stillValid) {
+      setTargetEmployeeId(colleaguesInTurnOnTargetDate[0]?.employee.id || '');
+    }
+  }, [targetShiftDate, activeLocation, shifts, currentEmployeeId]);
+
   const [requestedStartTime, setRequestedStartTime] = useState('10:00');
   const [requestedEndTime, setRequestedEndTime] = useState('18:30');
   const [protocolNumber, setProtocolNumber] = useState('');
   const [reason, setReason] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
   const [successMsg, setSuccessMsg] = useState('Richiesta inviata con successo!');
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Pulisce eventuali errori quando l'utente modifica i campi
+  useEffect(() => {
+    setErrorMsg(null);
+  }, [requestType, shiftDate, targetShiftDate, targetEmployeeId]);
 
   const storeRequests = requests.filter((r) => r.locationId === activeLocation);
   const locationInfo = LOCATIONS.find((l) => l.id === activeLocation);
@@ -77,27 +115,140 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
     (r) => r.type === 'swap' && r.targetEmployeeId === currentEmployeeId && r.status === 'pending_colleague'
   );
 
+  const getEmployee = (empId: string) => employees.find((e) => e.id === empId);
+
+  const getSwapDetails = (req: ShiftRequest) => {
+    const requester = getEmployee(req.requesterId);
+    const target = req.targetEmployeeId ? getEmployee(req.targetEmployeeId) : undefined;
+    const reqDate = req.shiftDate;
+    const targetDate = req.targetShiftDate || req.shiftDate;
+
+    const liveReqShift = shifts.find((s) => s.employeeId === req.requesterId && s.date === reqDate);
+    const liveTargetShift = req.targetEmployeeId
+      ? shifts.find((s) => s.employeeId === req.targetEmployeeId && s.date === targetDate)
+      : undefined;
+
+    const reqDept =
+      (req.status === 'approved' ? req.requesterDepartment : liveReqShift?.department) ||
+      req.requesterDepartment ||
+      liveReqShift?.department ||
+      requester?.role ||
+      'Non assegnato';
+    const reqStart =
+      (req.status === 'approved' ? req.requesterStartTime : liveReqShift?.startTime) ||
+      req.requesterStartTime ||
+      liveReqShift?.startTime ||
+      '08:30';
+    const reqEnd =
+      (req.status === 'approved' ? req.requesterEndTime : liveReqShift?.endTime) ||
+      req.requesterEndTime ||
+      liveReqShift?.endTime ||
+      '17:00';
+
+    const targetDept =
+      (req.status === 'approved' ? req.targetDepartment : liveTargetShift?.department) ||
+      req.targetDepartment ||
+      liveTargetShift?.department ||
+      target?.role ||
+      'Non assegnato';
+    const targetStart =
+      (req.status === 'approved' ? req.targetStartTime : liveTargetShift?.startTime) ||
+      req.targetStartTime ||
+      liveTargetShift?.startTime ||
+      '08:30';
+    const targetEnd =
+      (req.status === 'approved' ? req.targetEndTime : liveTargetShift?.endTime) ||
+      req.targetEndTime ||
+      liveTargetShift?.endTime ||
+      '17:00';
+
+    return {
+      reqDate,
+      reqDept,
+      reqHours: `${reqStart} - ${reqEnd}`,
+      targetDate,
+      targetDept,
+      targetHours: `${targetStart} - ${targetEnd}`,
+    };
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!reason.trim()) return;
+    setErrorMsg(null);
+
+    if (!reason.trim()) {
+      setErrorMsg('Inserisci una motivazione per la richiesta.');
+      return;
+    }
+
+    if (requestType === 'swap') {
+      if (!myShiftOnDate) {
+        const statusLabel =
+          myRawShiftOnDate?.type === 'riposo'
+            ? 'risulti a riposo'
+            : myRawShiftOnDate?.type === 'ferie'
+            ? 'risulti in ferie'
+            : myRawShiftOnDate?.type === 'malattia'
+            ? 'risulti in malattia'
+            : 'non hai alcun turno assegnato';
+        setErrorMsg(
+          `Errore: non puoi richiedere uno scambio per il ${shiftDate} perché in quella data ${statusLabel}. Seleziona un giorno in cui sei effettivamente in turno.`
+        );
+        return;
+      }
+
+      const selectedColleagueEntry = colleaguesInTurnOnTargetDate.find(
+        (c) => c.employee.id === targetEmployeeId
+      );
+
+      if (!targetEmployeeId || !selectedColleagueEntry) {
+        setErrorMsg(
+          `Errore: il collega selezionato non ha un turno lavorativo attivo il giorno ${targetShiftDate}. Seleziona una data e un collega effettivamente in turno.`
+        );
+        return;
+      }
+
+      const myEffectiveDept = myShiftOnDate.department || myEmployee?.role || 'Cassa';
+      const colleagueEffectiveDept =
+        selectedColleagueEntry.shift.department || selectedColleagueEntry.employee.role || 'Cassa';
+
+      onSubmitRequest({
+        requesterId: currentEmployeeId,
+        locationId: activeLocation,
+        type: 'swap',
+        targetEmployeeId,
+        shiftDate,
+        targetShiftDate,
+        requesterDepartment: myEffectiveDept,
+        requesterStartTime: myShiftOnDate.startTime || '08:30',
+        requesterEndTime: myShiftOnDate.endTime || '17:00',
+        targetDepartment: colleagueEffectiveDept,
+        targetStartTime: selectedColleagueEntry.shift.startTime || '08:30',
+        targetEndTime: selectedColleagueEntry.shift.endTime || '17:00',
+        reason,
+      });
+
+      setSuccessMsg(
+        `Proposta di scambio inviata a ${selectedColleagueEntry.employee.name} (Reparto ${colleagueEffectiveDept}). Verrà inoltrata al responsabile appena il collega accetterà.`
+      );
+      setReason('');
+      setIsSuccess(true);
+      setTimeout(() => setIsSuccess(false), 5000);
+      return;
+    }
 
     onSubmitRequest({
       requesterId: currentEmployeeId,
       locationId: activeLocation,
       type: requestType,
-      targetEmployeeId: requestType === 'swap' ? targetEmployeeId : undefined,
       shiftDate,
-      targetShiftDate: requestType === 'swap' ? targetShiftDate : undefined,
       requestedStartTime: requestType === 'schedule_change' ? requestedStartTime : undefined,
       requestedEndTime: requestType === 'schedule_change' ? requestedEndTime : undefined,
       protocolNumber: requestType === 'sick' ? protocolNumber : undefined,
       reason,
     });
 
-    if (requestType === 'swap') {
-      const colleague = employees.find((e) => e.id === targetEmployeeId);
-      setSuccessMsg(`Proposta di scambio inviata a ${colleague?.name || 'collega'}. Verrà inoltrata al responsabile appena il collega accetterà.`);
-    } else if (requestType === 'sick') {
+    if (requestType === 'sick') {
       setSuccessMsg('Segnalazione di malattia registrata e trasmessa alla direzione.');
     } else {
       setSuccessMsg('Richiesta inviata alla direzione per la valutazione.');
@@ -113,6 +264,7 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
     onUpdateStatus(
       reqId,
       'pending',
+      undefined,
       `Accettato dal collega (${myEmployee?.name || 'collega'}). In attesa di approvazione della Direzione.`
     );
   };
@@ -121,11 +273,10 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
     onUpdateStatus(
       reqId,
       'rejected_colleague',
+      undefined,
       `Rifiutato dal collega (${myEmployee?.name || 'collega'}).`
     );
   };
-
-  const getEmployee = (empId: string) => employees.find((e) => e.id === empId);
 
   return (
     <div className="min-h-screen bg-[#f2fcf7] text-[#151d1b] flex flex-col font-sans">
@@ -175,6 +326,17 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
           </div>
         )}
 
+        {/* Alert di Errore Validazione */}
+        {errorMsg && (
+          <div className="bg-rose-50 border-2 border-rose-300 rounded-xl p-3 flex items-start gap-2.5 text-rose-900 animate-in fade-in shadow-xs">
+            <AlertTriangle size={18} className="text-rose-600 shrink-0 mt-0.5" />
+            <div className="text-xs space-y-0.5">
+              <p className="font-bold text-rose-800">Impossibile inviare la proposta</p>
+              <p className="text-rose-700 text-[11px] leading-snug">{errorMsg}</p>
+            </div>
+          </div>
+        )}
+
         {/* ========================================================
             3. BOX PROPOSTE DI SCAMBIO RICEVUTE (Step 1: Collega)
             ======================================================== */}
@@ -195,12 +357,13 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
             </div>
 
             <p className="text-[11px] text-amber-900/90 leading-tight">
-              Un collega ha proposto uno scambio turno con te. Se accetti, la richiesta verrà inoltrata alla direzione per la convalida definitiva.
+              Un collega ha proposto uno scambio turno con te. Controlla il giorno, il reparto e l'orario che andrai a coprire: se accetti, la richiesta passerà alla direzione per l'approvazione finale.
             </p>
 
-            <div className="space-y-2 pt-1">
+            <div className="space-y-2.5 pt-1">
               {incomingSwapRequests.map((req) => {
                 const requester = getEmployee(req.requesterId);
+                const swapInfo = getSwapDetails(req);
                 return (
                   <div key={req.id} className="bg-white rounded-xl p-3 border border-amber-200/80 shadow-2xs space-y-2.5">
                     <div className="flex items-center justify-between">
@@ -210,28 +373,59 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
                         </div>
                         <div>
                           <p className="text-xs font-bold text-neutral-800">
-                            {requester?.name} ({requester?.role})
+                            {requester?.name} <span className="font-normal text-neutral-500">• ti propone uno scambio</span>
                           </p>
                           <span className="text-[10px] text-neutral-400">Inviata: {req.createdAt}</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="bg-neutral-50 p-2.5 rounded-lg border border-neutral-100 text-xs space-y-1 text-neutral-700">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] text-neutral-500">Turno proposto:</span>
-                        <strong className="text-nicora-teal">{req.shiftDate}</strong>
-                      </div>
-                      {req.targetShiftDate && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] text-neutral-500">In cambio del tuo:</span>
-                          <strong className="text-nicora-orange">{req.targetShiftDate}</strong>
+                    {/* Dettaglio completo del turno che il collega ricevente andrà a fare e di quello che cede */}
+                    <div className="grid grid-cols-1 gap-2 text-xs">
+                      <div className="bg-teal-50/80 p-2.5 rounded-xl border border-teal-200 space-y-1">
+                        <div className="text-[10px] font-extrabold uppercase tracking-wider text-nicora-teal">
+                          👉 Turno che andrai a fare (al posto di {requester?.name}):
                         </div>
-                      )}
-                      <p className="text-[11px] italic text-neutral-600 pt-1 border-t border-neutral-200/60">
-                        "{req.reason}"
-                      </p>
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-neutral-600">Giorno:</span>
+                          <strong className="text-neutral-900 font-bold">{swapInfo.reqDate}</strong>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-neutral-600">Reparto assegnato:</span>
+                          <span className="px-2 py-0.5 rounded-md bg-nicora-teal text-white font-bold text-[10px]">
+                            {swapInfo.reqDept}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-neutral-600">Orario da svolgere:</span>
+                          <strong className="text-nicora-teal font-bold">{swapInfo.reqHours}</strong>
+                        </div>
+                      </div>
+
+                      <div className="bg-orange-50/80 p-2.5 rounded-xl border border-orange-200 space-y-1">
+                        <div className="text-[10px] font-extrabold uppercase tracking-wider text-nicora-orange">
+                          🔄 Il tuo turno che cedi a {requester?.name}:
+                        </div>
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-neutral-600">Giorno ceduto:</span>
+                          <strong className="text-neutral-900 font-bold">{swapInfo.targetDate}</strong>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-neutral-600">Il tuo reparto:</span>
+                          <span className="px-2 py-0.5 rounded-md bg-orange-200/80 text-orange-950 font-bold text-[10px]">
+                            {swapInfo.targetDept}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-neutral-600">Il tuo orario:</span>
+                          <strong className="text-nicora-orange font-bold">{swapInfo.targetHours}</strong>
+                        </div>
+                      </div>
                     </div>
+
+                    <p className="bg-neutral-50 p-2 rounded-lg text-[11px] italic text-neutral-600 border border-neutral-100">
+                      "{req.reason}"
+                    </p>
 
                     <div className="grid grid-cols-2 gap-2 pt-1">
                       <button
@@ -329,7 +523,7 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
             <div className="bg-orange-50/80 border border-orange-200 rounded-xl p-2.5 flex items-start gap-2 text-[11px] text-orange-950">
               <Info size={15} className="text-nicora-orange shrink-0 mt-0.5" />
               <span>
-                <strong>Flusso a 2 passaggi:</strong> La proposta verrà inviata al collega. Se accetta, la richiesta passerà al responsabile per l'approvazione finale.
+                <strong>Flusso a 2 passaggi:</strong> Scegli la data del tuo turno e quella del turno del collega. Il sistema mostra i reparti reali assegnati in quei giorni.
               </span>
             </div>
           )}
@@ -344,10 +538,14 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
           )}
 
           <form onSubmit={handleSubmit} className="space-y-3 text-xs">
-            {/* Campo Data */}
+            {/* Campo Data del richiedente */}
             <div>
               <label className="block font-semibold text-neutral-700 mb-1">
-                {requestType === 'sick' ? 'Data inizio assenza:' : 'Data turno interessato:'}
+                {requestType === 'sick'
+                  ? 'Data inizio assenza:'
+                  : requestType === 'swap'
+                  ? 'Data turno da variare / scambiare (tuo turno):'
+                  : 'Data turno interessato:'}
               </label>
               <input
                 type="date"
@@ -356,29 +554,42 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
                 className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl px-3 py-2 text-neutral-800 font-semibold text-xs focus:ring-2 focus:ring-nicora-teal focus:outline-none"
                 required
               />
+
+              {/* Box reparto effettivo del richiedente nel giorno shiftDate */}
+              {requestType === 'swap' && (
+                <div className="mt-1.5">
+                  {myShiftOnDate ? (
+                    <div className="bg-teal-50/90 border border-teal-200 rounded-xl px-3 py-2 flex items-center justify-between text-[11px] text-teal-950">
+                      <span>
+                        Il tuo turno del <strong>{shiftDate}</strong>:
+                      </span>
+                      <span className="font-bold text-nicora-teal">
+                        Reparto {myShiftOnDate.department || myEmployee?.role} ({myShiftOnDate.startTime || '08:30'} - {myShiftOnDate.endTime || '17:00'})
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="bg-rose-50 border border-rose-200 rounded-xl px-3 py-2 flex items-center gap-1.5 text-[11px] text-rose-800 font-semibold">
+                      <AlertTriangle size={14} className="text-rose-600 shrink-0" />
+                      <span>
+                        Non hai un turno lavorativo attivo il {shiftDate} (
+                        {myRawShiftOnDate?.type === 'riposo'
+                          ? 'Riposo'
+                          : myRawShiftOnDate?.type === 'ferie'
+                          ? 'Ferie'
+                          : myRawShiftOnDate?.type === 'malattia'
+                          ? 'Malattia'
+                          : 'Nessun turno'}
+                        ).
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
-            {/* Campi specifici per SCAMBIO TURNO */}
+            {/* Campi specifici per SCAMBIO TURNO: 1. Data turno collega -> 2. Selettore colleghi in turno */}
             {requestType === 'swap' && (
               <>
-                <div>
-                  <label className="block font-semibold text-neutral-700 mb-1">
-                    Collega con cui scambiare:
-                  </label>
-                  <select
-                    value={targetEmployeeId}
-                    onChange={(e) => setTargetEmployeeId(e.target.value)}
-                    className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl px-3 py-2 text-neutral-800 font-semibold text-xs focus:ring-2 focus:ring-nicora-orange focus:outline-none"
-                    required
-                  >
-                    {eligibleColleagues.map((emp) => (
-                      <option key={emp.id} value={emp.id}>
-                        {emp.name} ({emp.role})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
                 <div>
                   <label className="block font-semibold text-neutral-700 mb-1">
                     Data del turno del collega in cambio:
@@ -390,6 +601,37 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
                     className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl px-3 py-2 text-neutral-800 font-semibold text-xs focus:ring-2 focus:ring-nicora-orange focus:outline-none"
                     required
                   />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-neutral-700 mb-1">
+                    Collega effettivamente in turno il {targetShiftDate}:
+                  </label>
+                  {colleaguesInTurnOnTargetDate.length > 0 ? (
+                    <select
+                      value={targetEmployeeId}
+                      onChange={(e) => setTargetEmployeeId(e.target.value)}
+                      className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl px-3 py-2 text-neutral-800 font-semibold text-xs focus:ring-2 focus:ring-nicora-orange focus:outline-none"
+                      required
+                    >
+                      {colleaguesInTurnOnTargetDate.map(({ employee: emp, shift }) => {
+                        const actualDept = shift.department || emp.role;
+                        const actualHours = `${shift.startTime || '08:30'} - ${shift.endTime || '17:00'}`;
+                        return (
+                          <option key={emp.id} value={emp.id}>
+                            {emp.name} — Reparto: {actualDept} ({actualHours})
+                          </option>
+                        );
+                      })}
+                    </select>
+                  ) : (
+                    <div className="bg-amber-50 border border-amber-300 rounded-xl px-3 py-2.5 flex items-center gap-2 text-[11px] text-amber-900 font-semibold">
+                      <AlertTriangle size={14} className="text-amber-600 shrink-0" />
+                      <span>
+                        Nessun collega risulta in turno lavorativo il {targetShiftDate} in questa sede. Seleziona un'altra data.
+                      </span>
+                    </div>
+                  )}
                 </div>
               </>
             )}
@@ -421,7 +663,7 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
                 </div>
 
                 <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                  {CONTINUATO_SLOTS.slice(0, 3).map((slot, idx) => (
+                  {CONTINUATO_SLOTS.slice(0, 3).map((slot) => (
                     <button
                       key={slot.start}
                       type="button"
@@ -520,6 +762,7 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
                 const target = req.targetEmployeeId ? getEmployee(req.targetEmployeeId) : null;
                 const isMyReq = req.requesterId === currentEmployeeId;
                 const isTargetOfReq = req.targetEmployeeId === currentEmployeeId;
+                const swapInfo = req.type === 'swap' ? getSwapDetails(req) : null;
 
                 // Definizione badge e stato chiaro a due passaggi
                 let badgeClass = 'bg-amber-100 text-amber-900 border-amber-200';
@@ -568,12 +811,12 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
                       </span>
                     </div>
 
-                    <div className="text-[11px] text-neutral-600 space-y-0.5">
+                    <div className="text-[11px] text-neutral-600 space-y-1">
                       <div className="flex items-center justify-between">
                         <span>Data turno: <strong>{req.shiftDate}</strong></span>
                         <span className="font-bold text-neutral-700">
                           {req.type === 'swap'
-                            ? 'Scambio'
+                            ? 'Scambio Turno'
                             : req.type === 'leave'
                             ? 'Ferie'
                             : req.type === 'sick'
@@ -582,13 +825,22 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
                         </span>
                       </div>
 
-                      {req.type === 'swap' && target && (
-                        <div className="flex items-center gap-1.5 text-nicora-orange font-semibold pt-0.5">
-                          <ArrowLeftRight size={12} />
-                          <span>Scambio con: <strong>{target.name}</strong> {isTargetOfReq && '(Tu)'}</span>
-                          {req.targetShiftDate && (
-                            <span className="text-neutral-500 font-normal">({req.targetShiftDate})</span>
-                          )}
+                      {req.type === 'swap' && target && swapInfo && (
+                        <div className="bg-orange-50/60 border border-orange-200/80 rounded-lg p-2 space-y-1.5 mt-1">
+                          <div className="flex items-center gap-1.5 text-nicora-orange font-bold">
+                            <ArrowLeftRight size={12} />
+                            <span>
+                              Scambio tra <strong>{requester?.name}</strong> e <strong>{target.name}</strong> {isTargetOfReq && '(Tu)'}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-1 gap-1 text-[10px] text-neutral-700 pt-1 border-t border-orange-200/50">
+                            <div>
+                              • <strong>{target.name}</strong> copre il <strong>{swapInfo.reqDate}</strong> in <strong>{swapInfo.reqDept}</strong> ({swapInfo.reqHours})
+                            </div>
+                            <div>
+                              • <strong>{requester?.name}</strong> copre il <strong>{swapInfo.targetDate}</strong> in <strong>{swapInfo.targetDept}</strong> ({swapInfo.targetHours})
+                            </div>
+                          </div>
                         </div>
                       )}
 
@@ -650,7 +902,7 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
                     {isManagerMode && req.status === 'pending' && (
                       <div className="flex items-center justify-between gap-2 pt-2 border-t border-neutral-100">
                         <span className="text-[10px] text-neutral-500 font-medium">
-                          {req.type === 'swap' ? 'Colleghi concordi' : 'In attesa Direzione'}
+                          {req.type === 'swap' ? 'Colleghi concordi • Scambia i turni' : 'In attesa Direzione'}
                         </span>
                         <div className="flex items-center gap-1.5">
                           <button

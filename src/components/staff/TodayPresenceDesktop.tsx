@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Employee, LocationId, Shift } from '../../domain/types';
 import { LOCATIONS } from '../../domain/mockData';
 import { 
-  CheckCircle2, 
   Clock, 
   Coffee, 
   Edit3, 
@@ -10,10 +9,8 @@ import {
   ShieldAlert, 
   ShieldCheck, 
   Sparkles, 
-  Sun, 
-  Sunset, 
   User, 
-  Utensils 
+  Users 
 } from 'lucide-react';
 
 interface TodayPresenceDesktopProps {
@@ -25,6 +22,29 @@ interface TodayPresenceDesktopProps {
   activeLocation: LocationId;
   onEditShift: (shift: Shift) => void;
 }
+
+const getDeptBadgeClass = (dept?: string) => {
+  switch (dept) {
+    case 'Cassa':
+      return 'bg-rose-600 text-white';
+    case 'Fioreria':
+      return 'bg-fuchsia-700 text-white';
+    case 'Decor':
+      return 'bg-amber-600 text-white';
+    case 'Serra Calda':
+      return 'bg-orange-600 text-white';
+    case 'Serra Fredda':
+      return 'bg-emerald-700 text-white';
+    case 'Area Tecnica':
+      return 'bg-slate-700 text-white';
+    case 'Emporio':
+      return 'bg-indigo-700 text-white';
+    case 'Natale':
+      return 'bg-red-700 text-white';
+    default:
+      return 'bg-nicora-teal text-white';
+  }
+};
 
 export const TodayPresenceDesktop: React.FC<TodayPresenceDesktopProps> = ({
   currentDate,
@@ -53,7 +73,7 @@ export const TodayPresenceDesktop: React.FC<TodayPresenceDesktopProps> = ({
   );
   const isCassaCovered = cassaShifts.length > 0;
 
-  // Turni suddivisi per orario
+  // Turni suddivisi tra presenti e riposo/assenti
   const workingShifts = todayStoreShifts.filter(
     (s) => s.type !== 'riposo' && s.type !== 'ferie' && s.type !== 'malattia'
   );
@@ -61,22 +81,31 @@ export const TodayPresenceDesktop: React.FC<TodayPresenceDesktopProps> = ({
     (s) => s.type === 'riposo' || s.type === 'ferie' || s.type === 'malattia'
   );
 
-  // Turno personale
-  const myShift = todayStoreShifts.find((s) => s.employeeId === currentEmployeeId);
-  const myEmployee = getEmployee(currentEmployeeId);
+  // Turno personale (cercato su tutti i turni del giorno come su Mobile)
+  const myShift = shifts.find((s) => s.employeeId === currentEmployeeId && s.date === currentDate);
+  const myEmployee = employees.find((e) => e.id === currentEmployeeId);
+
+  const getShiftDept = (s: Shift) => {
+    const emp = getEmployee(s.employeeId);
+    return s.department || emp?.role || 'Altro';
+  };
 
   // Filtro dipartimento
   const filteredWorkingShifts = workingShifts.filter((s) => {
     if (selectedDeptFilter === 'all') return true;
-    return s.department === selectedDeptFilter;
+    return getShiftDept(s) === selectedDeptFilter;
   });
 
-  const morningShifts = filteredWorkingShifts.filter(
-    (s) => s.type === 'mattina' || s.type === 'giornata'
-  );
-  const afternoonShifts = filteredWorkingShifts.filter(
-    (s) => s.type === 'pomeriggio' || s.type === 'giornata'
-  );
+  const allDepartmentsList = [
+    'Cassa',
+    'Fioreria',
+    'Decor',
+    'Serra Calda',
+    'Serra Fredda',
+    'Area Tecnica',
+    'Emporio',
+    'Natale',
+  ];
 
   const formatDisplayDate = (dStr: string) => {
     const d = new Date(dStr);
@@ -92,10 +121,14 @@ export const TodayPresenceDesktop: React.FC<TodayPresenceDesktopProps> = ({
     ? 'Viale Gallarate 26, Gazzada Schianno (VA)' 
     : 'Via Carnia 2, Varese (VA)';
 
+  const isMyShiftWorking =
+    myShift && myShift.type !== 'riposo' && myShift.type !== 'ferie' && myShift.type !== 'malattia';
+  const myDept = myShift?.department || myEmployee?.role;
+
   return (
     <div className="max-w-[1280px] w-full mx-auto space-y-7 pb-16">
       
-      {/* 1. Top Meta & Quick KPIs Bar (Stitch Desktop 0711c381e21247b3a46668de10aff1b5) */}
+      {/* 1. Top Meta & Quick KPIs Bar */}
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-2">
         <div className="flex flex-col gap-2.5">
           <div className="flex flex-wrap items-center gap-3">
@@ -122,110 +155,80 @@ export const TodayPresenceDesktop: React.FC<TodayPresenceDesktopProps> = ({
           <h1 className="font-serif text-3xl lg:text-4xl text-nicora-title font-medium tracking-tight capitalize">
             {formatDisplayDate(currentDate)}
           </h1>
-          <p className="text-sm text-nicora-muted">
-            Pianificazione turni attivi, presidi cassa continui e monitoraggio organico di punto vendita.
-          </p>
         </div>
 
         {/* 3 Quick KPI Badges */}
         <div className="flex items-center gap-3 self-start lg:self-auto">
-          <div className="flex flex-col items-center justify-center px-6 py-3.5 rounded-xl bg-white border border-nicora-sage-border shadow-2xs min-w-[110px]">
+          <div className="flex flex-col items-center justify-center px-6 py-3 rounded-xl bg-white border border-nicora-sage-border shadow-2xs min-w-[110px]">
             <span className="text-[10px] uppercase font-bold tracking-wider text-nicora-muted">In Servizio</span>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="font-serif text-2xl font-bold text-nicora-teal">{workingShifts.length}</span>
               <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
             </div>
-            <span className="text-[10px] text-emerald-700 font-medium">Sede Operativa</span>
           </div>
 
-          <div className="flex flex-col items-center justify-center px-6 py-3.5 rounded-xl bg-white border border-nicora-sage-border shadow-2xs min-w-[110px]">
+          <div className="flex flex-col items-center justify-center px-6 py-3 rounded-xl bg-white border border-nicora-sage-border shadow-2xs min-w-[110px]">
             <span className="text-[10px] uppercase font-bold tracking-wider text-nicora-muted">Riposo / Ferie</span>
             <span className="font-serif text-2xl font-bold text-neutral-600 mt-0.5">{restShifts.length}</span>
-            <span className="text-[10px] text-neutral-400 font-medium">Assenti oggi</span>
           </div>
 
-          <div className="flex flex-col items-center justify-center px-6 py-3.5 rounded-xl bg-nicora-orange-light border border-nicora-orange-border shadow-2xs min-w-[100px]">
+          <div className="flex flex-col items-center justify-center px-6 py-3 rounded-xl bg-nicora-orange-light border border-nicora-orange-border shadow-2xs min-w-[100px]">
             <span className="text-[10px] uppercase font-bold tracking-wider text-nicora-orange">Cassa</span>
             <span className="font-serif text-2xl font-bold text-nicora-orange mt-0.5">{cassaShifts.length}</span>
-            <span className="text-[10px] text-nicora-orange font-medium">Linee attive</span>
           </div>
         </div>
       </div>
 
-      {/* 2. Personalized Hero Shift Card (Stitch Desktop) */}
-      {myShift && (
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#002f32] via-[#0a474b] to-[#072e31] text-white shadow-xl p-6 sm:p-8 border border-white/10">
-          <div className="absolute right-0 top-0 bottom-0 w-80 pointer-events-none opacity-10 flex items-center justify-center -mr-10">
-            <Sparkles size={220} />
-          </div>
+      {/* 2. Personalized Hero Shift Card (sempre visibile come su Mobile) */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#002f32] via-[#0a474b] to-[#072e31] text-white shadow-xl p-6 sm:p-7 border border-white/10">
+        <div className="absolute right-0 top-0 bottom-0 w-80 pointer-events-none opacity-10 flex items-center justify-center -mr-10">
+          <Sparkles size={200} />
+        </div>
 
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-2">
-                <span className="px-3 py-1 rounded-full bg-black/30 text-emerald-200 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-sm border border-white/10">
-                  <User size={13} />
-                  <span>Il Tuo Orario Di Oggi • {myEmployee?.name}</span>
-                </span>
-                <span className="text-xs text-emerald-200/70 hidden sm:inline">
-                  Reparto primario: <strong>{myEmployee?.role}</strong>
-                </span>
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex flex-col gap-2.5">
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1 rounded-full bg-black/30 text-emerald-200 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-sm border border-white/10">
+                <User size={13} />
+                <span>Il Tuo Turno • {myEmployee?.name || 'Collaboratore'}</span>
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-baseline gap-4">
+              <div className="font-serif text-3xl lg:text-4xl text-white tracking-tight font-medium">
+                {!myShift
+                  ? 'Non pianificato'
+                  : myShift.type === 'riposo'
+                  ? 'Giorno di Riposo ☕'
+                  : myShift.type === 'ferie'
+                  ? 'In Ferie 🌴'
+                  : myShift.type === 'malattia'
+                  ? 'In Malattia 🏥'
+                  : `${myShift.startTime || '08:30'} — ${myShift.endTime || '19:30'}`}
               </div>
-
-              <div className="flex flex-wrap items-baseline gap-4">
-                <div className="font-serif text-4xl lg:text-5xl text-white tracking-tight font-medium">
-                  {myShift.type === 'riposo'
-                    ? 'Giorno di Riposo ☕'
-                    : myShift.type === 'ferie'
-                    ? 'In Ferie 🌴'
-                    : myShift.type === 'malattia'
-                    ? 'In Malattia 🏥'
-                    : `${myShift.startTime || '08:30'} — ${myShift.endTime || '19:30'}`}
-                </div>
-                {myShift.type !== 'riposo' && myShift.type !== 'ferie' && myShift.type !== 'malattia' && (
-                  <span className="px-3.5 py-1 rounded-lg bg-[#285c54] text-white font-semibold text-xs shadow-xs">
-                    Turno {myShift.type === 'giornata' ? 'Giornata Intera' : myShift.type}
-                  </span>
-                )}
-              </div>
-
-              {myShift.type !== 'riposo' && myShift.type !== 'ferie' && myShift.type !== 'malattia' && (
-                <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-white/90 text-sm pt-1">
-                  <div className="flex items-center gap-1.5 text-emerald-200">
-                    <MapPin size={16} />
-                    <span>Postazione Assegnata: <strong className="text-white">{myShift.areaNote || `Reparto ${myShift.department || myEmployee?.role}`}</strong></span>
-                  </div>
-                  <span className="hidden md:inline text-white/30">•</span>
-                  <div className="flex items-center gap-1.5 text-emerald-200">
-                    <Utensils size={15} />
-                    <span>Pausa programmata: <strong className="text-white">13:00 — 14:00</strong></span>
-                  </div>
-                </div>
+              {isMyShiftWorking && (
+                <span className="px-3.5 py-1 rounded-lg bg-[#285c54] text-white font-semibold text-xs shadow-xs">
+                  {myShift.type === 'giornata' ? 'Giornata Intera' : `Turno ${myShift.type}`}
+                </span>
               )}
             </div>
-
-            <div className="flex flex-col sm:flex-row md:flex-col items-start md:items-end justify-between gap-4">
-              <span className="px-4 py-1.5 rounded-full bg-nicora-orange text-white font-bold text-xs uppercase tracking-wider shadow-sm">
-                {myShift.department || myEmployee?.role}
-              </span>
-              <div className="flex items-center gap-2 text-emerald-200 text-xs bg-black/30 px-3.5 py-2 rounded-xl border border-white/10">
-                <CheckCircle2 size={16} className="text-emerald-400" />
-                <span>Orario Sincronizzato Live Cloud</span>
-              </div>
-            </div>
           </div>
-        </div>
-      )}
 
-      {/* 3. Filter Pills Section (Stitch Desktop) */}
-      <div className="flex flex-col gap-2.5">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold uppercase tracking-wider text-nicora-muted">
-            Filtra per Area Botanica &amp; Ruolo
-          </span>
-          <span className="text-xs text-nicora-muted hidden sm:inline">
-            Visualizzazione sincronizzata in tempo reale
-          </span>
+          {isMyShiftWorking && myDept && (
+            <div className="flex items-center gap-3 self-start md:self-center">
+              <span className={`px-4 py-1.5 rounded-full font-bold text-xs uppercase tracking-wider shadow-sm ${getDeptBadgeClass(myDept)}`}>
+                {myDept}
+              </span>
+            </div>
+          )}
         </div>
+      </div>
+
+      {/* 3. Filter Pills Section */}
+      <div className="flex flex-col gap-2.5">
+        <span className="text-xs font-bold uppercase tracking-wider text-nicora-muted">
+          Filtra per Reparto
+        </span>
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           <button
             type="button"
@@ -244,8 +247,9 @@ export const TodayPresenceDesktop: React.FC<TodayPresenceDesktopProps> = ({
             </span>
           </button>
 
-          {['Cassa', 'Fioreria', 'Decor', 'Serra Calda', 'Serra Fredda'].map((dept) => {
-            const count = workingShifts.filter((s) => s.department === dept).length;
+          {allDepartmentsList.map((dept) => {
+            const count = workingShifts.filter((s) => getShiftDept(s) === dept).length;
+            if (count === 0 && selectedDeptFilter !== dept) return null;
             const isSelected = selectedDeptFilter === dept;
             return (
               <button
@@ -270,76 +274,39 @@ export const TodayPresenceDesktop: React.FC<TodayPresenceDesktopProps> = ({
         </div>
       </div>
 
-      {/* 4. Shifts Dual Column Layout (Stitch Desktop: Mattina vs Pomeriggio) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-7 items-start">
-        
-        {/* Column 1: Mattina & Giornata Intera */}
-        <div className="space-y-3.5">
-          <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-orange-50 to-transparent border border-orange-200/50 shadow-2xs">
-            <div className="flex items-center gap-2 text-nicora-orange font-bold text-xs uppercase tracking-wider">
-              <Sun size={18} />
-              <span>Fascia Mattina &amp; Giornata Intera</span>
-            </div>
-            <span className="px-2.5 py-0.5 rounded-full bg-white text-neutral-600 text-xs font-semibold shadow-2xs border border-nicora-sage-border">
-              {morningShifts.length} presenti
-            </span>
+      {/* 4. Collaboratori in turno (Griglia unificata senza duplicati Mattina/Pomeriggio) */}
+      <div className="space-y-3.5">
+        <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-teal-50/80 to-transparent border border-teal-200/50 shadow-2xs">
+          <div className="flex items-center gap-2 text-nicora-teal font-bold text-xs uppercase tracking-wider">
+            <Users size={17} />
+            <span>Collaboratori in turno</span>
           </div>
-
-          {morningShifts.length === 0 ? (
-            <div className="bg-white rounded-xl p-8 text-center text-xs text-neutral-400 border border-dashed border-nicora-sage-border">
-              Nessun collaboratore in servizio per la fascia mattina.
-            </div>
-          ) : (
-            <div className="space-y-2.5">
-              {morningShifts.map((shift) => (
-                <DesktopShiftCard
-                  key={shift.id}
-                  shift={shift}
-                  employee={getEmployee(shift.employeeId)}
-                  isMe={shift.employeeId === currentEmployeeId}
-                  isManagerMode={isManagerMode}
-                  onEdit={() => onEditShift(shift)}
-                />
-              ))}
-            </div>
-          )}
+          <span className="px-2.5 py-0.5 rounded-full bg-white text-neutral-600 text-xs font-semibold shadow-2xs border border-nicora-sage-border">
+            {filteredWorkingShifts.length} presenti
+          </span>
         </div>
 
-        {/* Column 2: Pomeriggio & Continuato */}
-        <div className="space-y-3.5">
-          <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-teal-50 to-transparent border border-teal-200/50 shadow-2xs">
-            <div className="flex items-center gap-2 text-nicora-teal font-bold text-xs uppercase tracking-wider">
-              <Sunset size={18} />
-              <span>Fascia Pomeriggio &amp; Continuato</span>
-            </div>
-            <span className="px-2.5 py-0.5 rounded-full bg-white text-neutral-600 text-xs font-semibold shadow-2xs border border-nicora-sage-border">
-              {afternoonShifts.length} presenti
-            </span>
+        {filteredWorkingShifts.length === 0 ? (
+          <div className="bg-white rounded-xl p-8 text-center text-xs text-neutral-400 border border-dashed border-nicora-sage-border">
+            Nessun collaboratore in servizio per questo filtro.
           </div>
-
-          {afternoonShifts.length === 0 ? (
-            <div className="bg-white rounded-xl p-8 text-center text-xs text-neutral-400 border border-dashed border-nicora-sage-border">
-              Nessun collaboratore in servizio per la fascia pomeriggio.
-            </div>
-          ) : (
-            <div className="space-y-2.5">
-              {afternoonShifts.map((shift) => (
-                <DesktopShiftCard
-                  key={shift.id}
-                  shift={shift}
-                  employee={getEmployee(shift.employeeId)}
-                  isMe={shift.employeeId === currentEmployeeId}
-                  isManagerMode={isManagerMode}
-                  onEdit={() => onEditShift(shift)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {filteredWorkingShifts.map((shift) => (
+              <DesktopShiftCard
+                key={shift.id}
+                shift={shift}
+                employee={getEmployee(shift.employeeId)}
+                isMe={shift.employeeId === currentEmployeeId}
+                isManagerMode={isManagerMode}
+                onEdit={() => onEditShift(shift)}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* 5. Bottom Section: Riposo & Ferie del Giorno (Stitch Desktop) */}
+      {/* 5. Bottom Section: Riposo & Ferie del Giorno */}
       {restShifts.length > 0 && (
         <div className="space-y-3 pt-3">
           <div className="flex items-center justify-between">
@@ -426,8 +393,8 @@ const DesktopShiftCard: React.FC<DesktopShiftCardProps> = ({
         isMe ? 'bg-nicora-orange' : isCassa ? 'bg-rose-500' : 'bg-nicora-teal'
       }`}></div>
 
-      <div className="flex items-start justify-between gap-3 pl-2">
-        <div className="flex items-start gap-3 min-w-0">
+      <div className="flex items-center justify-between gap-3 pl-2">
+        <div className="flex items-center gap-3 min-w-0">
           <div
             className={`w-11 h-11 rounded-full flex items-center justify-center font-serif text-sm font-semibold shrink-0 shadow-2xs ${
               isMe
@@ -459,17 +426,7 @@ const DesktopShiftCard: React.FC<DesktopShiftCardProps> = ({
 
             <div className="mt-1 flex items-center gap-1.5">
               <span
-                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                  isCassa
-                    ? 'bg-rose-600 text-white'
-                    : dept === 'Fioreria'
-                    ? 'bg-pink-100 text-pink-800'
-                    : dept === 'Decor'
-                    ? 'bg-purple-100 text-purple-800'
-                    : dept === 'Serra Calda'
-                    ? 'bg-emerald-100 text-emerald-800'
-                    : 'bg-sky-100 text-sky-800'
-                }`}
+                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${getDeptBadgeClass(dept)}`}
               >
                 {dept}
               </span>
@@ -482,24 +439,13 @@ const DesktopShiftCard: React.FC<DesktopShiftCardProps> = ({
             <Clock size={13} className={isCassa ? 'text-rose-600' : 'text-nicora-orange'} />
             <span>{shift.startTime || '08:30'} — {shift.endTime || '19:30'}</span>
           </div>
-          <span className="text-[11px] text-nicora-muted mt-0.5">
-            {shift.type === 'giornata' ? 'Giornata Intera' : `Turno ${shift.type}`}
+          <span className="text-[11px] text-nicora-muted mt-0.5 flex items-center gap-1">
+            <span>{shift.type === 'giornata' ? 'Giornata Intera' : `Turno ${shift.type}`}</span>
+            {isManagerMode && <Edit3 size={11} className="text-nicora-orange" />}
           </span>
         </div>
-      </div>
-
-      {/* Postazione Bar at the bottom */}
-      <div className="mt-3 pt-2 pl-2 border-t border-neutral-100 flex items-center justify-between text-xs text-neutral-500">
-        <div className="flex items-center gap-1.5 truncate">
-          <MapPin size={13} className={isCassa ? 'text-rose-600' : 'text-nicora-teal'} />
-          <span className="truncate font-medium">{shift.areaNote || `Postazione Reparto ${dept}`}</span>
-        </div>
-        <span className={`text-[10px] uppercase font-bold shrink-0 ml-2 ${
-          isCassa ? 'text-emerald-700' : 'text-neutral-400'
-        }`}>
-          {isCassa ? '✓ Cassa Presidiata' : 'In Servizio'}
-        </span>
       </div>
     </div>
   );
 };
+

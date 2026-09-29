@@ -33,6 +33,7 @@ import {
 } from './services/storageService';
 import {
   archiveCloudEmployee,
+  deleteCloudEmployee,
   fetchCloudEmployees,
   fetchCloudRequests,
   fetchCloudShifts,
@@ -185,10 +186,20 @@ export const App: React.FC = () => {
     saveStoredSession(session);
   }, [session]);
 
+  useEffect(() => {
+    if (!isManagerMode && (activeTab === 'personnel' || activeTab === 'skills' || activeTab === 'staff')) {
+      setActiveTab('today');
+    }
+  }, [isManagerMode, activeTab]);
+
   const handleLoginSuccess = (newSession: UserSession, userLocation: LocationId) => {
     setSession(newSession);
     setActiveLocation(userLocation);
-    setIsManagerMode(newSession.role === 'manager');
+    const isMgr = newSession.role === 'manager';
+    setIsManagerMode(isMgr);
+    if (!isMgr && (activeTab === 'personnel' || activeTab === 'skills' || activeTab === 'staff')) {
+      setActiveTab('today');
+    }
   };
 
   const handleLogout = () => {
@@ -378,6 +389,7 @@ export const App: React.FC = () => {
       const next = exists ? prev.map((e) => (e.id === emp.id ? emp : e)) : [emp, ...prev];
       return next;
     });
+    setSession((prev) => (prev && prev.user.id === emp.id ? { ...prev, user: emp } : prev));
     await saveCloudEmployee(emp);
     setToast({
       id: `toast-${Date.now()}`,
@@ -397,6 +409,22 @@ export const App: React.FC = () => {
       message: isActive
         ? `${emp?.name || ''} è nuovamente attivo nei turni.`
         : `${emp?.name || ''} è stato archiviato (storico turni preservato).`,
+      type: 'info',
+    });
+  };
+
+  const handleDeleteEmployee = async (empId: string) => {
+    const emp = employees.find((e) => e.id === empId);
+    setEmployees((prev) => prev.filter((e) => e.id !== empId));
+    setShifts((prev) => prev.filter((s) => s.employeeId !== empId));
+    setRequests((prev) =>
+      prev.filter((r) => r.requesterId !== empId && r.targetEmployeeId !== empId)
+    );
+    await deleteCloudEmployee(empId);
+    setToast({
+      id: `toast-del-${Date.now()}`,
+      title: 'Collaboratore Eliminato',
+      message: `${emp?.name || 'Il collaboratore'} è stato eliminato definitivamente dall'anagrafica e dai turni.`,
       type: 'info',
     });
   };
@@ -437,13 +465,33 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleUpdateRequestStatus = (id: string, status: ShiftRequestStatus, managerNote?: string) => {
+  const handleUpdateRequestStatus = (
+    id: string,
+    status: ShiftRequestStatus,
+    managerNote?: string,
+    colleagueNote?: string
+  ) => {
     const targetReq = requests.find((r) => r.id === id);
+    const isColleagueAction =
+      status === 'rejected_colleague' ||
+      (status === 'pending' && targetReq?.status === 'pending_colleague');
+
+    const effectiveColleagueNote = colleagueNote ?? (isColleagueAction ? managerNote : undefined);
+    const effectiveManagerNote = isColleagueAction ? targetReq?.managerNote : managerNote;
 
     setRequests((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status, managerNote } : r))
+      prev.map((r) =>
+        r.id === id
+          ? {
+              ...r,
+              status,
+              managerNote: effectiveManagerNote !== undefined ? effectiveManagerNote : r.managerNote,
+              colleagueNote: effectiveColleagueNote !== undefined ? effectiveColleagueNote : r.colleagueNote,
+            }
+          : r
+      )
     );
-    updateCloudRequestStatus(id, status, managerNote);
+    updateCloudRequestStatus(id, status, effectiveManagerNote, effectiveColleagueNote);
 
     // Se il collega accetta lo scambio proposto da un compagno
     if (status === 'pending' && targetReq && targetReq.type === 'swap' && targetReq.status === 'pending_colleague') {
@@ -520,40 +568,146 @@ export const App: React.FC = () => {
       });
     }
 
-    // Se approvata richiesta di scambio turno
+    // Se approvata richiesta di scambio turno: scambia realmente i turni sia in memoria sia su Supabase
     if (status === 'approved' && targetReq && targetReq.type === 'swap' && targetReq.targetEmployeeId) {
+      const reqEmp = employees.find((e) => e.id === targetReq.requesterId);
+      const targetEmp = employees.find((e) => e.id === targetReq.targetEmployeeId);
+      const reqDate = targetReq.shiftDate;
+      const targetDate = targetReq.targetShiftDate || targetReq.shiftDate;
+      const targetEmpId = targetReq.targetEmployeeId;
+
       setShifts((prev) => {
-        const reqDate = targetReq.shiftDate;
-        const targetDate = targetReq.targetShiftDate || targetReq.shiftDate;
-
         const reqShift = prev.find((s) => s.employeeId === targetReq.requesterId && s.date === reqDate);
-        const targetShift = prev.find((s) => s.employeeId === targetReq.targetEmployeeId && s.date === targetDate);
+        const targetShift = prev.find((s) => s.employeeId === targetEmpId && s.date === targetDate);
 
-        if (!reqShift || !targetShift) return prev;
+        // Dati effettivi del turno del richiedente su reqDate (con fallback allo snapshot della richiesta)
+        const reqDept = reqShift?.department || targetReq.requesterDepartment || reqEmp?.role || 'Cassa';
+        const reqStart = reqShift?.startTime || targetReq.requesterStartTime || '08:30';
+        const reqEnd = reqShift?.endTime || targetReq.requesterEndTime || '17:00';
+        const reqType: ShiftType =
+          reqShift && reqShift.type !== 'riposo' && reqShift.type !== 'ferie' && reqShift.type !== 'malattia'
+            ? reqShift.type
+            : 'giornata';
+        const reqLoc = reqShift?.locationId || targetReq.locationId;
 
-        const next = prev.map((s) => {
-          if (s.id === reqShift.id) {
-            return {
-              ...s,
-              type: targetShift.type,
-              department: targetShift.department,
-              startTime: targetShift.startTime,
-              endTime: targetShift.endTime,
-              areaNote: `Scambiato con ${targetShift.employeeId}`,
-            };
+        // Dati effettivi del turno del collega su targetDate (con fallback allo snapshot della richiesta)
+        const targetDept = targetShift?.department || targetReq.targetDepartment || targetEmp?.role || 'Cassa';
+        const targetStart = targetShift?.startTime || targetReq.targetStartTime || '08:30';
+        const targetEnd = targetShift?.endTime || targetReq.targetEndTime || '17:00';
+        const targetType: ShiftType =
+          targetShift && targetShift.type !== 'riposo' && targetShift.type !== 'ferie' && targetShift.type !== 'malattia'
+            ? targetShift.type
+            : 'giornata';
+        const targetLoc = targetShift?.locationId || targetReq.locationId;
+
+        const upsertInList = (list: Shift[], updated: Shift): Shift[] => {
+          const normalizedId = `shift-${updated.employeeId}-${updated.date}`;
+          const normalizedShift: Shift = { ...updated, id: normalizedId };
+          const exists = list.some(
+            (s) => s.employeeId === updated.employeeId && s.date === updated.date
+          );
+          if (exists) {
+            return list.map((s) =>
+              s.employeeId === updated.employeeId && s.date === updated.date ? normalizedShift : s
+            );
           }
-          if (s.id === targetShift.id) {
-            return {
-              ...s,
-              type: reqShift.type,
-              department: reqShift.department,
-              startTime: reqShift.startTime,
-              endTime: reqShift.endTime,
-              areaNote: `Scambiato con ${reqShift.employeeId}`,
-            };
-          }
-          return s;
-        });
+          return [...list, normalizedShift];
+        };
+
+        let next = [...prev];
+
+        if (reqDate === targetDate) {
+          // Scambio sullo stesso giorno (es. cambio reparto/orario nella medesima giornata)
+          next = upsertInList(next, {
+            id: `shift-${targetReq.requesterId}-${reqDate}`,
+            employeeId: targetReq.requesterId,
+            locationId: targetLoc,
+            date: reqDate,
+            type: targetType,
+            department: targetDept,
+            startTime: targetStart,
+            endTime: targetEnd,
+            areaNote: `Scambio turno con ${targetEmp?.name || targetEmpId}`,
+            isManualOverride: true,
+            assignedSkillScore: reqEmp?.skills?.[targetDept] ?? 5,
+          });
+
+          next = upsertInList(next, {
+            id: `shift-${targetEmpId}-${targetDate}`,
+            employeeId: targetEmpId,
+            locationId: reqLoc,
+            date: targetDate,
+            type: reqType,
+            department: reqDept,
+            startTime: reqStart,
+            endTime: reqEnd,
+            areaNote: `Scambio turno con ${reqEmp?.name || targetReq.requesterId}`,
+            isManualOverride: true,
+            assignedSkillScore: targetEmp?.skills?.[reqDept] ?? 5,
+          });
+        } else {
+          // Scambio su due date differenti:
+          // 1. Nel giorno reqDate (turno originario del richiedente):
+          //    - Il collega (targetEmpId) subentra nel turno del richiedente (reqDept, reqStart-reqEnd)
+          //    - Il richiedente (requesterId) passa a riposo su reqDate
+          next = upsertInList(next, {
+            id: `shift-${targetEmpId}-${reqDate}`,
+            employeeId: targetEmpId,
+            locationId: reqLoc,
+            date: reqDate,
+            type: reqType,
+            department: reqDept,
+            startTime: reqStart,
+            endTime: reqEnd,
+            areaNote: `Scambio turno con ${reqEmp?.name || targetReq.requesterId}`,
+            isManualOverride: true,
+            assignedSkillScore: targetEmp?.skills?.[reqDept] ?? 5,
+          });
+
+          next = upsertInList(next, {
+            id: `shift-${targetReq.requesterId}-${reqDate}`,
+            employeeId: targetReq.requesterId,
+            locationId: reqLoc,
+            date: reqDate,
+            type: 'riposo',
+            department: undefined,
+            startTime: undefined,
+            endTime: undefined,
+            areaNote: `Riposo per scambio con ${targetEmp?.name || targetEmpId} (recupera il ${targetDate})`,
+            isManualOverride: true,
+          });
+
+          // 2. Nel giorno targetDate (turno originario del collega):
+          //    - Il richiedente (requesterId) subentra nel turno del collega (targetDept, targetStart-targetEnd)
+          //    - Il collega (targetEmpId) passa a riposo su targetDate
+          next = upsertInList(next, {
+            id: `shift-${targetReq.requesterId}-${targetDate}`,
+            employeeId: targetReq.requesterId,
+            locationId: targetLoc,
+            date: targetDate,
+            type: targetType,
+            department: targetDept,
+            startTime: targetStart,
+            endTime: targetEnd,
+            areaNote: `Scambio turno con ${targetEmp?.name || targetEmpId}`,
+            isManualOverride: true,
+            assignedSkillScore: reqEmp?.skills?.[targetDept] ?? 5,
+          });
+
+          next = upsertInList(next, {
+            id: `shift-${targetEmpId}-${targetDate}`,
+            employeeId: targetEmpId,
+            locationId: targetLoc,
+            date: targetDate,
+            type: 'riposo',
+            department: undefined,
+            startTime: undefined,
+            endTime: undefined,
+            areaNote: `Riposo per scambio con ${reqEmp?.name || targetReq.requesterId} (coperto il ${reqDate})`,
+            isManualOverride: true,
+          });
+        }
+
         saveCloudShifts(next);
         return next;
       });
@@ -561,7 +715,10 @@ export const App: React.FC = () => {
       setToast({
         id: `toast-swap-done-${Date.now()}`,
         title: 'Turni Scambiati con Successo! 🎉',
-        message: `I turni di ${employees.find((e) => e.id === targetReq.requesterId)?.name} e ${employees.find((e) => e.id === targetReq.targetEmployeeId)?.name} sono stati aggiornati.`,
+        message:
+          reqDate === targetDate
+            ? `I turni del ${reqDate} tra ${reqEmp?.name || 'richiedente'} e ${targetEmp?.name || 'collega'} sono stati invertiti.`
+            : `${targetEmp?.name || 'Il collega'} coprirà il turno del ${reqDate} e ${reqEmp?.name || 'il richiedente'} coprirà il turno del ${targetDate}.`,
         type: 'success',
       });
     }
@@ -619,6 +776,7 @@ export const App: React.FC = () => {
         activeLocation={activeLocation}
         onChangeLocation={setActiveLocation}
         employees={employees}
+        onSaveEmployee={handleSaveEmployee}
       />
 
       {/* Navigazione Responsive (Desktop Top Bar / Mobile Bottom Nav) */}
@@ -695,6 +853,7 @@ export const App: React.FC = () => {
             currentEmployee={currentEmployee}
             currentEmployeeId={currentEmployee.id}
             employees={employees}
+            shifts={shifts}
             requests={requests}
             onSubmitRequest={handleSubmitRequest}
             isManagerMode={isManagerMode}
@@ -717,6 +876,7 @@ export const App: React.FC = () => {
             onLogout={handleLogout}
             onSaveEmployee={handleSaveEmployee}
             onArchiveEmployee={handleArchiveEmployee}
+            onDeleteEmployee={handleDeleteEmployee}
             onUpdateSkillsAndHours={(empId, newSkills, newHours) => {
               setEmployees((prev) =>
                 prev.map((emp) =>

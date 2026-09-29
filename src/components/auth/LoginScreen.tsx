@@ -95,23 +95,36 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
         emp.locationId
       );
     } else {
-      if (password !== MANAGER_MASTER_PASSWORD && password !== 'admin') {
-        setError('Password direzione non corretta (demo: admin)');
-        return;
-      }
-
       const managerUser =
+        employees.find(
+          (e) =>
+            e.isManager &&
+            e.email?.toLowerCase() === managerEmail.trim().toLowerCase()
+        ) ||
         employees.find((e) => e.locationId === activeLocation && e.isManager) ||
         employees.find((e) => e.isManager) || {
           id: 'manager-admin',
           name: 'Vittore Nicora',
           locationId: activeLocation,
-          role: 'Serra Calda',
+          role: 'Serra Calda' as const,
           skills: { Cassa: 10, Fioreria: 8, Decor: 8, 'Serra Calda': 10, 'Serra Fredda': 10 },
           avatar: 'VN',
           email: managerEmail,
           isManager: true,
+          password: MANAGER_MASTER_PASSWORD,
         };
+
+      const validManagerPasswords = [
+        managerUser.password,
+        ...employees.filter((e) => e.isManager || e.isOwner).map((e) => e.password),
+        MANAGER_MASTER_PASSWORD,
+        'admin',
+      ].filter(Boolean);
+
+      if (!validManagerPasswords.includes(password)) {
+        setError('Password direzione non corretta (demo: admin)');
+        return;
+      }
 
       onLoginSuccess(
         {

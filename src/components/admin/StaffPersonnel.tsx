@@ -9,6 +9,7 @@ import {
   printMonthlyReport,
 } from '../../services/exportService';
 import {
+  AlertTriangle,
   Archive,
   Award,
   BarChart3,
@@ -27,6 +28,7 @@ import {
   RefreshCw,
   Search,
   ShieldCheck,
+  Trash2,
   UserCheck,
   UserPlus,
   Users,
@@ -43,6 +45,7 @@ interface StaffPersonnelProps {
   onLogout?: () => void;
   onSaveEmployee: (employee: Employee) => void;
   onArchiveEmployee: (employeeId: string, isActive: boolean) => void;
+  onDeleteEmployee?: (employeeId: string) => void;
   onUpdateSkillsAndHours?: (
     employeeId: string,
     skills: SkillScores,
@@ -59,6 +62,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
   onLogout,
   onSaveEmployee,
   onArchiveEmployee,
+  onDeleteEmployee,
   onUpdateSkillsAndHours,
 }) => {
   // Sotto-vista unificata: 'staff' (Organico, Anagrafica, Ore Contratto & Competenze) o 'monthly-report' (Report Ore & Export Mese)
@@ -66,6 +70,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
   const [tabFilter, setTabFilter] = useState<'active' | 'archived'>('active');
   const [searchQuery, setSearchQuery] = useState('');
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
 
   // Mese e Anno selezionati per il report analitico
@@ -664,11 +669,21 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                           ) : (
                             <button
                               onClick={() => onArchiveEmployee(emp.id, false)}
-                              className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border border-rose-200 flex items-center justify-center gap-1 transition-colors min-h-[38px]"
+                              className="px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold text-xs rounded-xl border border-amber-200 flex items-center justify-center gap-1 transition-colors min-h-[38px]"
                               title="Archivia cessato (preserva lo storico turni)"
                             >
                               <UserX size={13} />
                               <span>Archivia</span>
+                            </button>
+                          )}
+                          {onDeleteEmployee && (
+                            <button
+                              onClick={() => setEmployeeToDelete(emp)}
+                              className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border border-rose-200 flex items-center justify-center gap-1 transition-colors min-h-[38px]"
+                              title="Elimina definitivamente questo collaboratore"
+                            >
+                              <Trash2 size={13} />
+                              <span>Elimina</span>
                             </button>
                           )}
                         </div>
@@ -1419,6 +1434,20 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                 </div>
 
                 <div className="flex gap-2 pt-2">
+                  {editingEmployee && onDeleteEmployee && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsNewModalOpen(false);
+                        setEmployeeToDelete(editingEmployee);
+                      }}
+                      className="px-4 py-3 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-xl border border-rose-200 flex items-center justify-center gap-1.5 transition-colors min-h-[44px]"
+                      title="Elimina definitivamente collaboratore"
+                    >
+                      <Trash2 size={16} />
+                      <span>Elimina</span>
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => setIsNewModalOpen(false)}
@@ -1435,6 +1464,48 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Conferma Eliminazione Definitiva */}
+        {employeeToDelete && onDeleteEmployee && (
+          <div className="fixed inset-0 z-50 bg-neutral-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+            <div className="bg-white rounded-3xl shadow-2xl border border-neutral-200 max-w-md w-full p-6 space-y-5">
+              <div className="flex items-start gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                  <AlertTriangle size={22} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg font-extrabold text-neutral-900">
+                    Eliminare definitivamente {employeeToDelete.name}?
+                  </h3>
+                  <p className="text-xs text-neutral-600 mt-1 leading-relaxed">
+                    Questa azione rimuoverà in modo permanente il collaboratore e tutti i suoi turni e richieste associati. Se vuoi conservare lo storico dei turni passati usa invece il tasto <strong>Archivia</strong>.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEmployeeToDelete(null)}
+                  className="flex-1 py-2.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-bold text-sm rounded-xl transition-colors"
+                >
+                  Annulla
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onDeleteEmployee(employeeToDelete.id);
+                    setEmployeeToDelete(null);
+                  }}
+                  className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-sm rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <Trash2 size={16} />
+                  <span>Elimina Definitivamente</span>
+                </button>
+              </div>
             </div>
           </div>
         )}

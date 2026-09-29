@@ -1,5 +1,5 @@
 import React from 'react';
-import { Employee, LocationId, ShiftRequest, ShiftRequestStatus } from '../../domain/types';
+import { Employee, LocationId, Shift, ShiftRequest, ShiftRequestStatus } from '../../domain/types';
 import { LeaveRequestsMobile } from './LeaveRequestsMobile';
 import { LeaveRequestsDesktop } from './LeaveRequestsDesktop';
 
@@ -7,10 +7,11 @@ export interface LeaveRequestsProps {
   currentEmployee: Employee;
   currentEmployeeId: string;
   employees: Employee[];
+  shifts: Shift[];
   requests: ShiftRequest[];
   onSubmitRequest: (newReq: Omit<ShiftRequest, 'id' | 'createdAt' | 'status'>) => void;
   isManagerMode: boolean;
-  onUpdateStatus: (id: string, status: ShiftRequestStatus, note?: string) => void;
+  onUpdateStatus: (id: string, status: ShiftRequestStatus, note?: string, colleagueNote?: string) => void;
   activeLocation: LocationId;
   onChangeLocation?: (loc: LocationId) => void;
   onLogout?: () => void;

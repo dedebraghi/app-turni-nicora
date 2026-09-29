@@ -368,8 +368,8 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
           </div>
         )}
 
-        {/* --- BANNER ALLERTA CRITICITÀ SETTIMANALE (Stile Fedele a Stitch: Rosso per assenza totale, Giallo per ore scoperte) --- */}
-        {activeGaps.length > 0 && currentGap && (
+        {/* --- BANNER ALLERTA CRITICITÀ SETTIMANALE (solo admin) --- */}
+        {isManagerMode && activeGaps.length > 0 && currentGap && (
           <div
             className={`border rounded-2xl p-3.5 shadow-sm space-y-2.5 relative overflow-hidden animate-in fade-in ${
               currentGap.severity === 'critical'
