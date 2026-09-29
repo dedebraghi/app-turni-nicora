@@ -51,7 +51,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           {LOCATIONS.map((loc) => {
             const isActive = loc.id === activeLocation;
             const dynamicStaffCount = employees.length > 0
-              ? employees.filter((e) => e.locationId === loc.id && e.isActive !== false).length
+              ? employees.filter((e) => e.locationId === loc.id && e.isActive !== false && !e.isOwner).length
               : loc.defaultStaffCount;
 
             return (

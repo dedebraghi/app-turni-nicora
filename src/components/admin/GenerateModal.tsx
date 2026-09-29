@@ -92,7 +92,7 @@ export const GenerateModal: React.FC<GenerateModalProps> = ({
     onApplyShifts(result.shifts);
   };
 
-  const storeStaff = employees.filter((e) => e.locationId === locationId && e.isActive !== false);
+  const storeStaff = employees.filter((e) => e.locationId === locationId && e.isActive !== false && !e.isOwner);
   const selectedMonthName = MONTH_NAMES[selectedMonth - 1];
 
   // Generazione opzioni tendina (anno corrente e successivo)

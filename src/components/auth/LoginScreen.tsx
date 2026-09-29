@@ -29,7 +29,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
   const [activeLocation, setActiveLocation] = useState<LocationId>('gazzada');
   const [loginRole, setLoginRole] = useState<'employee' | 'manager'>('employee');
 
-  const storeEmployees = employees.filter((e) => e.locationId === activeLocation && e.isActive !== false);
+  const storeEmployees = employees.filter((e) => e.locationId === activeLocation && e.isActive !== false && !e.isOwner);
 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>(
     storeEmployees[0]?.id || employees[0]?.id || ''
@@ -45,7 +45,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
   // Handle location switch
   const handleLocationChange = (loc: LocationId) => {
     setActiveLocation(loc);
-    const newStoreEmps = employees.filter((e) => e.locationId === loc && e.isActive !== false);
+    const newStoreEmps = employees.filter((e) => e.locationId === loc && e.isActive !== false && !e.isOwner);
     if (newStoreEmps.length > 0) {
       setSelectedEmployeeId(newStoreEmps[0].id);
     }

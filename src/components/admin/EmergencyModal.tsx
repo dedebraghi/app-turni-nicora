@@ -25,7 +25,7 @@ export const EmergencyModal: React.FC<EmergencyModalProps> = ({
   onApplyReplacement,
 }) => {
   const storeStaff = employees.filter(
-    (e) => e.locationId === locationId && e.isActive !== false
+    (e) => e.locationId === locationId && e.isActive !== false && !e.isOwner
   );
 
   const [selectedShiftDate, setSelectedShiftDate] = useState<string>(

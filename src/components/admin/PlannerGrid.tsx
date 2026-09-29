@@ -116,7 +116,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
     }
   }, [baseSundayStr]);
 
-  const storeEmployees = employees.filter((e) => (e.locationId === location.id || e.isMobile) && e.isActive !== false);
+  const storeEmployees = employees.filter((e) => (e.locationId === location.id || e.isMobile) && e.isActive !== false && !e.isOwner);
   const storeShifts = shifts; // Conserviamo tutti i turni per poter rilevare i turni dei dipendenti mobili nell'altra sede
 
   // Metriche di equità

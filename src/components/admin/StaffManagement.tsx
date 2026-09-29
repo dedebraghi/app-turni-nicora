@@ -21,8 +21,8 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
 
-  // Filtra dipendenti della sede corrente
-  const storeEmployees = employees.filter((e) => e.locationId === activeLocation);
+  // Filtra dipendenti della sede corrente escludendo i titolari
+  const storeEmployees = employees.filter((e) => e.locationId === activeLocation && !e.isOwner);
   const activeEmployees = storeEmployees.filter((e) => e.isActive !== false);
   const archivedEmployees = storeEmployees.filter((e) => e.isActive === false);
 

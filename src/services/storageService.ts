@@ -49,7 +49,16 @@ export const loadStoredEmployees = (): Employee[] => {
     const saved = localStorage.getItem(STORAGE_KEYS.EMPLOYEES);
     if (saved) {
       const list: Employee[] = JSON.parse(saved);
-      return list.map((e) => (e.id === 'emp-gz-5' && e.contractHours === 30 ? { ...e, contractHours: 40 } : e));
+      return list.map((e) => {
+        let updated = e;
+        if (updated.id === 'emp-gz-5' && updated.contractHours === 30) {
+          updated = { ...updated, contractHours: 40 };
+        }
+        if (updated.id === 'emp-gz-4' || updated.email === 'vittore@nicoragarden.it') {
+          updated = { ...updated, isOwner: true, contractHours: 0 };
+        }
+        return updated;
+      });
     }
   } catch (e) {
     console.error('Errore caricamento impiegati:', e);
@@ -66,7 +75,8 @@ export const loadStoredShifts = (): Shift[] => {
     if (typeof window !== 'undefined' && window.localStorage) {
       const saved = localStorage.getItem(STORAGE_KEYS.SHIFTS);
       if (saved) {
-        return JSON.parse(saved);
+        const shifts: Shift[] = JSON.parse(saved);
+        return shifts.filter((s) => s.employeeId !== 'emp-gz-4');
       }
     }
   } catch (e) {

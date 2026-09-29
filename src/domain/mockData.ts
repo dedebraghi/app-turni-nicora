@@ -10,7 +10,7 @@ export const LOCATIONS: LocationInfo[] = [
     city: 'Gazzada Schianno (VA)',
     address: 'Via Gallarate 26, 21045 Gazzada Schianno (VA)',
     phone: '0332 461144',
-    defaultStaffCount: 10,
+    defaultStaffCount: 9,
   },
   {
     id: 'varese',
@@ -77,7 +77,8 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     phone: '335 1122334',
     password: 'admin',
     isManager: true,
-    contractHours: 40,
+    isOwner: true,
+    contractHours: 0,
     color: '#0284c7',
   },
   {

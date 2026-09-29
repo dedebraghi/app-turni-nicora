@@ -21,7 +21,7 @@ export const SkillsMatrix: React.FC<SkillsMatrixProps> = ({
   isStandaloneTab = false,
 }) => {
   const activeDepts = getLocationDepartments(locationId, true);
-  const storeEmployees = employees.filter((e) => e.locationId === locationId || e.isMobile);
+  const storeEmployees = employees.filter((e) => (e.locationId === locationId || e.isMobile) && !e.isOwner && e.isActive !== false);
   const [searchQuery, setSearchQuery] = useState('');
 
   const [editableSkills, setEditableSkills] = useState<Record<string, SkillScores>>(() => {

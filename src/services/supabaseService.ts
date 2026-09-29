@@ -175,7 +175,7 @@ export const fetchCloudShifts = async (): Promise<Shift[]> => {
 
     if (error) throw error;
     if (data && data.length > 0) {
-      const mapped = data.map(mapDbToShift);
+      const mapped = data.map(mapDbToShift).filter((s) => s.employeeId !== 'emp-gz-4');
       saveStoredShifts(mapped);
       return mapped;
     } else {

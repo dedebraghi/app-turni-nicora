@@ -172,7 +172,7 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
     shifts,
     'standard',
     activeLocation,
-    allStoreEmployees || employees
+    (allStoreEmployees || employees).filter((e) => !e.isOwner)
   );
 
   // Filtra i gap rimuovendo quelli ignorati e mostrando solo se esiste una bozza registrata per quel mese
@@ -213,7 +213,7 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
 
   // Filtraggio collaboratori
   const filteredEmployees = employees.filter((emp) => {
-    if (emp.isActive === false) return false;
+    if (emp.isActive === false || emp.isOwner) return false;
     const shift = dayShifts.find((s) => s.employeeId === emp.id);
     const isWorking = shift && shift.type !== 'riposo' && shift.type !== 'ferie' && shift.type !== 'malattia';
     const effectiveDept = shift?.department || emp.role;
@@ -736,7 +736,7 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
         isOpen={isWizardOpen}
         onClose={() => setIsWizardOpen(false)}
         gaps={activeGaps}
-        employees={allStoreEmployees || employees}
+        employees={(allStoreEmployees || employees).filter((e) => !e.isOwner)}
         shifts={shifts}
         locationId={activeLocation}
         onApplyShift={(newShift) => {

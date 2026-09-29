@@ -104,8 +104,8 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
     setSelectedMonth(today.getMonth() + 1);
   };
 
-  // Dipendenti della sede corrente (oppure mobili attivi)
-  const storeEmployees = employees.filter((e) => e.locationId === activeLocation || (e.isMobile && e.isActive !== false));
+  // Dipendenti della sede corrente (oppure mobili attivi) esclusi i titolari
+  const storeEmployees = employees.filter((e) => (e.locationId === activeLocation || (e.isMobile && e.isActive !== false)) && !e.isOwner);
   const activeEmployees = storeEmployees.filter((e) => e.isActive !== false);
   const archivedEmployees = storeEmployees.filter((e) => e.isActive === false);
 

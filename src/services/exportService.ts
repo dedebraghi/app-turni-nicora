@@ -19,7 +19,7 @@ export const generateWhatsAppScheduleText = ({
   employees,
   shifts,
 }: ExportParams): string => {
-  const storeStaff = employees.filter((e) => e.locationId === location.id);
+  const storeStaff = employees.filter((e) => e.locationId === location.id && !e.isOwner);
   const startDay = weekDays[0];
   const endDay = weekDays[6];
 
@@ -81,7 +81,7 @@ export const printWeeklyBoard = ({
   employees,
   shifts,
 }: ExportParams) => {
-  const storeStaff = employees.filter((e) => e.locationId === location.id);
+  const storeStaff = employees.filter((e) => e.locationId === location.id && !e.isOwner);
   const startDay = weekDays[0];
   const endDay = weekDays[6];
 
@@ -333,7 +333,7 @@ export const calculateMonthlyStoreReport = (
   const daysInMonth = new Date(year, month, 0).getDate();
   const standardWorkingDays = Math.round((daysInMonth / 7) * 5);
 
-  const storeEmployees = employees.filter((e) => e.locationId === locationId);
+  const storeEmployees = employees.filter((e) => e.locationId === locationId && !e.isOwner);
 
   const departmentTotals: Record<Department, number> = {
     Cassa: 0,

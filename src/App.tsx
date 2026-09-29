@@ -88,7 +88,7 @@ export const App: React.FC = () => {
         ]);
         if (isMounted) {
           if (cloudEmps && cloudEmps.length > 0) setEmployees(cloudEmps);
-          if (cloudShifts && cloudShifts.length > 0) setShifts(cloudShifts);
+          if (cloudShifts && cloudShifts.length > 0) setShifts(cloudShifts.filter((s) => s.employeeId !== 'emp-gz-4'));
           if (cloudReqs && cloudReqs.length > 0) setRequests(cloudReqs);
         }
       } catch (err) {

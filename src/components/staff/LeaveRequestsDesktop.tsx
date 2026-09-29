@@ -25,7 +25,7 @@ export const LeaveRequestsDesktop: React.FC<LeaveRequestsDesktopProps> = ({
 }) => {
   const [requestType, setRequestType] = useState<'swap' | 'leave' | 'schedule_change'>('leave');
   
-  const storeEmployees = employees.filter((e) => e.locationId === activeLocation && e.isActive !== false);
+  const storeEmployees = employees.filter((e) => e.locationId === activeLocation && e.isActive !== false && !e.isOwner);
   const eligibleColleagues = storeEmployees.filter((e) => e.id !== currentEmployeeId);
 
   const [targetEmployeeId, setTargetEmployeeId] = useState<string>(

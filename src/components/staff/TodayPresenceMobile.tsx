@@ -36,11 +36,11 @@ export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
 }) => {
   const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>('all');
 
-  const storeEmployees = employees.filter((e) => e.locationId === activeLocation && e.isActive !== false);
+  const storeEmployees = employees.filter((e) => e.locationId === activeLocation && e.isActive !== false && !e.isOwner);
   const locationInfo = LOCATIONS.find((l) => l.id === activeLocation);
 
-  const gazzadaStaffCount = employees.filter((e) => e.locationId === 'gazzada' && e.isActive !== false).length;
-  const vareseStaffCount = employees.filter((e) => e.locationId === 'varese' && e.isActive !== false).length;
+  const gazzadaStaffCount = employees.filter((e) => e.locationId === 'gazzada' && e.isActive !== false && !e.isOwner).length;
+  const vareseStaffCount = employees.filter((e) => e.locationId === 'varese' && e.isActive !== false && !e.isOwner).length;
 
   const todayStoreShifts = shifts.filter(
     (s) => s.locationId === activeLocation && s.date === currentDate

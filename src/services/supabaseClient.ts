@@ -32,7 +32,8 @@ export function mapDbToEmployee(row: any): Employee {
     phone: row.phone || undefined,
     password: row.pin || '1234',
     isManager: Boolean(row.is_manager),
-    contractHours: row.contract_hours || 40,
+    isOwner: Boolean(row.is_owner) || row.id === 'emp-gz-4' || row.email === 'vittore@nicoragarden.it',
+    contractHours: (row.id === 'emp-gz-4' || row.email === 'vittore@nicoragarden.it') ? 0 : (row.contract_hours || 40),
     isActive: row.is_active !== false,
   };
 }
@@ -49,6 +50,7 @@ export function mapEmployeeToDb(emp: Employee) {
     phone: emp.phone || null,
     pin: emp.password || '1234',
     is_manager: Boolean(emp.isManager),
+    is_owner: Boolean(emp.isOwner),
     contract_hours: emp.contractHours || 40,
     is_active: emp.isActive !== false,
     updated_at: new Date().toISOString(),

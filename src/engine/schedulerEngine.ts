@@ -613,8 +613,8 @@ export const findCandidatesForGap = ({
   shifts: Shift[];
   locationId: LocationId;
 }): ReplacementCandidate[] => {
-  const storeStaff = employees.filter((e) => e.locationId === locationId && e.isActive !== false);
-  const mobileStaff = employees.filter((e) => e.locationId !== locationId && e.isMobile && e.isActive !== false);
+  const storeStaff = employees.filter((e) => e.locationId === locationId && e.isActive !== false && !e.isOwner);
+  const mobileStaff = employees.filter((e) => e.locationId !== locationId && e.isMobile && e.isActive !== false && !e.isOwner);
   const allCandidates = [...storeStaff, ...mobileStaff];
 
   return allCandidates
@@ -952,7 +952,7 @@ export const generateWeeklySchedule = ({
   isChristmasSeason = false,
   todayDate,
 }: SchedulerOptions): ScheduleGenerationResult => {
-  const storeStaff = employees.filter((e) => e.locationId === locationId && e.isActive !== false);
+  const storeStaff = employees.filter((e) => e.locationId === locationId && e.isActive !== false && !e.isOwner);
   const weekDays = getWeekDays(weekStartDate);
   const todayStr = todayDate || formatLocalDate(new Date());
   const warnings: string[] = [];
@@ -1219,7 +1219,7 @@ export const generateWeeklySchedule = ({
     if (actuallyMissingDepartments.length > 0) {
       // Tenta la copertura di rinforzo tramite dipendenti mobili dell'altra sede
       const mobileCandidates = employees.filter(
-        (e) => e.locationId !== locationId && e.isMobile && e.isActive !== false
+        (e) => e.locationId !== locationId && e.isMobile && e.isActive !== false && !e.isOwner
       );
 
       actuallyMissingDepartments.forEach((dept) => {
@@ -1548,7 +1548,7 @@ export const generateMonthlySchedule = ({
     (s) => s.locationId === locationId && s.date.startsWith(monthPrefix) && s.date >= todayStr
   ).length;
 
-  const storeStaff = employees.filter((e) => e.locationId === locationId && e.isActive !== false);
+  const storeStaff = employees.filter((e) => e.locationId === locationId && e.isActive !== false && !e.isOwner);
   const employeesWorkingDays: Record<string, number> = {};
   const employeesWorkingHours: Record<string, EmployeeWeeklyHours> = {};
 

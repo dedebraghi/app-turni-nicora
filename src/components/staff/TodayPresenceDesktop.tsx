@@ -37,7 +37,7 @@ export const TodayPresenceDesktop: React.FC<TodayPresenceDesktopProps> = ({
 }) => {
   const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>('all');
 
-  const storeEmployees = employees.filter((e) => e.locationId === activeLocation && e.isActive !== false);
+  const storeEmployees = employees.filter((e) => e.locationId === activeLocation && e.isActive !== false && !e.isOwner);
   const locationInfo = LOCATIONS.find((l) => l.id === activeLocation);
 
   const todayStoreShifts = shifts.filter(
