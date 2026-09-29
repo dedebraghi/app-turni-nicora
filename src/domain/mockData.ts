@@ -90,7 +90,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     email: 'daniela@nicoragarden.it',
     phone: '340 1000005',
     password: '123',
-    contractHours: 30,
+    contractHours: 40,
     color: '#22c55e', // Green (Serra Fredda)
   },
   {

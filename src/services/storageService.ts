@@ -46,7 +46,10 @@ export const saveStoredLocation = (location: LocationId) => {
 export const loadStoredEmployees = (): Employee[] => {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.EMPLOYEES);
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const list: Employee[] = JSON.parse(saved);
+      return list.map((e) => (e.id === 'emp-gz-5' && e.contractHours === 30 ? { ...e, contractHours: 40 } : e));
+    }
   } catch (e) {
     console.error('Errore caricamento impiegati:', e);
   }

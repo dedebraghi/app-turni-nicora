@@ -75,7 +75,16 @@ export const fetchCloudEmployees = async (): Promise<Employee[]> => {
         }
       }
 
-      const mapped = data.map(mapDbToEmployee);
+      const mapped = data.map((row: any) => {
+        const emp = mapDbToEmployee(row);
+        if (emp.id === 'emp-gz-5' && emp.contractHours === 30) {
+          emp.contractHours = 40;
+          if (supabase) {
+            supabase.from('employees').update({ contract_hours: 40 }).eq('id', 'emp-gz-5').then();
+          }
+        }
+        return emp;
+      });
       saveStoredEmployees(mapped);
       return mapped;
     } else {
