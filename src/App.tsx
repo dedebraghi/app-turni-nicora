@@ -709,9 +709,12 @@ export const App: React.FC = () => {
         {/* Tab 5: Personale & Competenze (Unificata per Direzione) */}
         {(activeTab === 'personnel' || activeTab === 'skills' || activeTab === 'staff') && isManagerMode && (
           <StaffPersonnel
+            currentEmployee={currentEmployee}
             employees={employees}
             shifts={shifts}
             activeLocation={activeLocation}
+            onChangeLocation={setActiveLocation}
+            onLogout={handleLogout}
             onSaveEmployee={handleSaveEmployee}
             onArchiveEmployee={handleArchiveEmployee}
             onUpdateSkillsAndHours={(empId, newSkills, newHours) => {

@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Department, Employee, LocationId, Shift, SkillScores } from '../../domain/types';
-import { ALL_DEPARTMENTS, DEPARTMENTS, DEPARTMENT_COLORS, getLocationDepartments } from '../../domain/rules';
+import { ALL_DEPARTMENTS, DEPARTMENT_COLORS, getLocationDepartments } from '../../domain/rules';
+import { LOCATIONS } from '../../domain/mockData';
+import { MobileHeader } from '../layout/MobileHeader';
 import {
   calculateMonthlyStoreReport,
   exportMonthlyReportCSV,
@@ -15,11 +17,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
-  Download,
   Edit3,
   FileSpreadsheet,
   Info,
-  KeyRound,
   Mail,
   MapPin,
   Phone,
@@ -35,9 +35,12 @@ import {
 } from 'lucide-react';
 
 interface StaffPersonnelProps {
+  currentEmployee?: Employee;
   employees: Employee[];
   shifts?: Shift[];
   activeLocation: LocationId;
+  onChangeLocation?: (loc: LocationId) => void;
+  onLogout?: () => void;
   onSaveEmployee: (employee: Employee) => void;
   onArchiveEmployee: (employeeId: string, isActive: boolean) => void;
   onUpdateSkillsAndHours?: (
@@ -48,15 +51,18 @@ interface StaffPersonnelProps {
 }
 
 export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
+  currentEmployee,
   employees,
   shifts = [],
   activeLocation,
+  onChangeLocation,
+  onLogout,
   onSaveEmployee,
   onArchiveEmployee,
   onUpdateSkillsAndHours,
 }) => {
-  // Sotto-vista: 'skills-contracts' (Competenze & Contratti), 'roster' (Anagrafica Organico) o 'monthly-report' (Report Ore Mese)
-  const [activeSubView, setActiveSubView] = useState<'skills-contracts' | 'roster' | 'monthly-report'>('skills-contracts');
+  // Sotto-vista unificata: 'staff' (Organico, Anagrafica, Ore Contratto & Competenze) o 'monthly-report' (Report Ore & Export Mese)
+  const [activeSubView, setActiveSubView] = useState<'staff' | 'monthly-report'>('staff');
   const [tabFilter, setTabFilter] = useState<'active' | 'archived'>('active');
   const [searchQuery, setSearchQuery] = useState('');
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
@@ -67,7 +73,19 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
   const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth() + 1); // 1-12
 
+  const locationInfo = LOCATIONS.find((l) => l.id === activeLocation);
   const locationName = activeLocation === 'gazzada' ? 'Gazzada Schianno' : 'Varese Centro';
+  const locationAddress =
+    activeLocation === 'gazzada'
+      ? 'Viale Gallarate 26, Gazzada Schianno (VA)'
+      : 'Via Carnia 2, Varese (VA)';
+
+  const gazzadaStaffCount = employees.filter(
+    (e) => e.locationId === 'gazzada' && e.isActive !== false && !e.isOwner
+  ).length;
+  const vareseStaffCount = employees.filter(
+    (e) => e.locationId === 'varese' && e.isActive !== false && !e.isOwner
+  ).length;
 
   // Calcolo aggregazione analitica mensile
   const monthlySummary = useMemo(() => {
@@ -105,15 +123,11 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
   };
 
   // Dipendenti della sede corrente (oppure mobili attivi) esclusi i titolari
-  const storeEmployees = employees.filter((e) => (e.locationId === activeLocation || (e.isMobile && e.isActive !== false)) && !e.isOwner);
+  const storeEmployees = employees.filter(
+    (e) => (e.locationId === activeLocation || (e.isMobile && e.isActive !== false)) && !e.isOwner
+  );
   const activeEmployees = storeEmployees.filter((e) => e.isActive !== false);
   const archivedEmployees = storeEmployees.filter((e) => e.isActive === false);
-
-  // Calcolo Monte Ore Totale di Sede
-  const totalWeeklyStoreHours = activeEmployees.reduce(
-    (sum, e) => sum + (e.contractHours || 40),
-    0
-  );
 
   // State locale per modifiche rapide competenze e ore di contratto
   const [editableStaff, setEditableStaff] = useState<
@@ -208,14 +222,13 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
     setHasUnsavedChanges(false);
   };
 
-  // Form State per Nuovo / Modifica Anagrafica
+  // Form State per Nuovo / Modifica Anagrafica (senza esposizione PIN)
   const [formData, setFormData] = useState<{
     id: string;
     name: string;
     locationId: LocationId;
     role: Department;
     contractHours: number;
-    password: string;
     email: string;
     phone: string;
     isManager: boolean;
@@ -227,7 +240,6 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
     locationId: activeLocation,
     role: 'Cassa',
     contractHours: 40,
-    password: '1234',
     email: '',
     phone: '',
     isManager: false,
@@ -242,7 +254,6 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
       locationId: activeLocation,
       role: 'Cassa',
       contractHours: 40,
-      password: '1234',
       email: '',
       phone: '',
       isManager: false,
@@ -261,7 +272,6 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
       locationId: emp.locationId || activeLocation,
       role: emp.role,
       contractHours: currentQuick?.contractHours || emp.contractHours || 40,
-      password: emp.password || '1234',
       email: emp.email || '',
       phone: emp.phone || '',
       isManager: Boolean(emp.isManager),
@@ -290,9 +300,12 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
       role: formData.role,
       skills: formData.skills,
       avatar,
-      email: formData.email.trim() || `${formData.name.toLowerCase().replace(/\s+/g, '.')}@nicoragarden.it`,
+      email:
+        formData.email.trim() ||
+        `${formData.name.toLowerCase().replace(/\s+/g, '.')}@nicoragarden.it`,
       phone: formData.phone.trim() || undefined,
-      password: formData.password.trim() || '1234',
+      // Mantiene il PIN personale esistente del collaboratore o assegna il default iniziale '1234' per i nuovi assunti
+      password: editingEmployee?.password || '1234',
       isManager: formData.isManager,
       isMobile: formData.isMobile,
       contractHours: Number(formData.contractHours) || 40,
@@ -318,13 +331,9 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
     return 'bg-neutral-100 text-neutral-600 border-neutral-200 font-medium';
   };
 
-  // Filtraggio dipendenti
+  // Filtraggio dipendenti nella vista unificata
   const displayedEmployees = (
-    activeSubView === 'skills-contracts'
-      ? activeEmployees
-      : tabFilter === 'active'
-      ? activeEmployees
-      : archivedEmployees
+    tabFilter === 'active' ? activeEmployees : archivedEmployees
   ).filter(
     (e) =>
       e.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -332,32 +341,84 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
   );
 
   return (
-    <div className="space-y-4 pb-20 md:pb-8 max-w-5xl mx-auto">
-      
-      {/* Header & Dashboard Metriche Personale */}
-      <div className="bg-nicora-card rounded-2xl p-4 sm:p-6 border border-nicora-sage-border shadow-clean space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-2xl bg-nicora-teal-light text-nicora-teal flex items-center justify-center font-black">
-                <Users size={22} />
-              </div>
-              <div>
-                <h2 className="font-serif text-lg sm:text-xl font-semibold text-nicora-title tracking-tight">
-                  Personale &amp; Competenze
-                </h2>
-                <p className="text-xs text-neutral-500">
-                  Punto Vendita: <strong className="text-neutral-800 capitalize">{activeLocation === 'gazzada' ? 'Gazzada Schianno' : 'Varese'}</strong> ({storeEmployees.length} collaboratori registrati)
-                </p>
-              </div>
-            </div>
+    <>
+      {/* Header Mobile Condiviso (< 768px) */}
+      <div className="block md:hidden">
+        <MobileHeader
+          title="Personale"
+          employee={currentEmployee}
+          activeLocation={activeLocation}
+          onChangeLocation={onChangeLocation}
+          gazzadaStaffCount={gazzadaStaffCount}
+          vareseStaffCount={vareseStaffCount}
+          onLogout={onLogout}
+          onSaveEmployee={onSaveEmployee}
+        />
+      </div>
+
+      <div className="pt-[calc(6.25rem+env(safe-area-inset-top,0px))] md:pt-0 px-3.5 md:px-0 pb-24 md:pb-16 max-w-[1280px] w-full mx-auto space-y-5">
+        {/* Intestazione Mobile Contestuale */}
+        <div className="flex md:hidden items-center justify-between gap-2 pt-1">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold text-[#a73a00] uppercase tracking-widest">
+              {locationInfo?.shortName ||
+                (activeLocation === 'gazzada' ? 'Gazzada Schianno' : 'Varese')}
+            </span>
+            <h1 className="font-serif text-xl font-bold text-[#0a474b]">
+              Organico &amp; Competenze
+            </h1>
           </div>
 
           <div className="flex items-center gap-2">
-            {hasUnsavedChanges && activeSubView === 'skills-contracts' && (
+            {hasUnsavedChanges && activeSubView === 'staff' && (
               <button
                 onClick={handleSaveAllQuickChanges}
-                className="bg-nicora-orange hover:bg-nicora-orange-hover text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-sm flex items-center gap-1.5 active:scale-95 transition-all"
+                className="bg-nicora-orange hover:bg-nicora-orange-hover text-white font-extrabold text-xs px-3 py-2 rounded-xl shadow-xs flex items-center gap-1 active:scale-95 transition-all"
+              >
+                <Check size={14} />
+                <span>Salva</span>
+              </button>
+            )}
+            <button
+              onClick={openCreateModal}
+              className="bg-[#002f32] hover:bg-black text-white font-bold text-xs px-3 py-2 rounded-xl shadow-xs flex items-center gap-1.5 active:scale-95 transition-all"
+            >
+              <UserPlus size={14} />
+              <span>Nuovo</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Header Desktop Ufficiale (Stile Stitch) */}
+        <div className="hidden md:flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-2">
+          <div className="flex flex-col gap-2.5">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="px-3.5 py-1 rounded-full bg-nicora-orange-light text-nicora-orange font-bold text-xs uppercase tracking-wider border border-nicora-orange-border">
+                {locationInfo?.name || 'Nicora Garden'}
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 font-semibold text-xs border border-emerald-200 shadow-2xs">
+                <Users size={14} className="text-emerald-600" />
+                <span>{activeEmployees.length} Collaboratori Attivi</span>
+              </span>
+              <span className="hidden sm:inline-flex items-center gap-1 text-nicora-muted text-xs">
+                <MapPin size={14} className="text-nicora-teal" />
+                <span>{locationAddress}</span>
+              </span>
+            </div>
+
+            <h1 className="font-serif text-3xl lg:text-4xl text-nicora-title font-medium tracking-tight">
+              Personale &amp; Competenze
+            </h1>
+            <p className="text-sm text-nicora-muted">
+              Gestione unificata di anagrafica, ore settimanali da contratto, matrice competenze per reparto e report mensile.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2.5 self-start lg:self-auto">
+            {hasUnsavedChanges && activeSubView === 'staff' && (
+              <button
+                onClick={handleSaveAllQuickChanges}
+                className="bg-nicora-orange hover:bg-nicora-orange-hover text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-sm flex items-center gap-1.5 active:scale-95 transition-all min-h-[42px]"
               >
                 <Check size={16} />
                 <span>Salva Modifiche</span>
@@ -366,7 +427,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
 
             <button
               onClick={openCreateModal}
-              className="bg-neutral-900 hover:bg-black text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-xs flex items-center gap-1.5 active:scale-95 transition-all min-h-[42px]"
+              className="bg-nicora-teal hover:bg-nicora-teal-hover text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-xs flex items-center gap-1.5 active:scale-95 transition-all min-h-[42px]"
             >
               <UserPlus size={16} />
               <span>Nuovo Collaboratore</span>
@@ -374,57 +435,18 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
           </div>
         </div>
 
-        {/* Metriche Organico & Ore Contratto */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
-          <div className="bg-neutral-50 p-3 rounded-2xl border border-neutral-100 text-center">
-            <span className="text-[10px] uppercase font-bold text-neutral-400 block">Collaboratori Attivi</span>
-            <span className="text-xl font-black text-neutral-800">{activeEmployees.length}</span>
-          </div>
-
-          <div className="bg-emerald-50/70 p-3 rounded-2xl border border-emerald-100 text-center">
-            <span className="text-[10px] uppercase font-bold text-emerald-700 block">Full-Time (40h)</span>
-            <span className="text-xl font-black text-emerald-800">
-              {activeEmployees.filter((e) => (editableStaff[e.id]?.contractHours || e.contractHours || 40) >= 38).length}
-            </span>
-          </div>
-
-          <div className="bg-sky-50/70 p-3 rounded-2xl border border-sky-100 text-center">
-            <span className="text-[10px] uppercase font-bold text-sky-700 block">Part-Time (&lt;38h)</span>
-            <span className="text-xl font-black text-sky-800">
-              {activeEmployees.filter((e) => (editableStaff[e.id]?.contractHours || e.contractHours || 40) < 38).length}
-            </span>
-          </div>
-
-          <div className="bg-amber-50/70 p-3 rounded-2xl border border-amber-200/80 text-center">
-            <span className="text-[10px] uppercase font-bold text-amber-700 block">Monte Ore Settimana</span>
-            <span className="text-xl font-black text-amber-900">{totalWeeklyStoreHours}h</span>
-          </div>
-        </div>
-
-        {/* Selettore Sub-View: Competenze & Contratti VS Anagrafica Organico VS Report Ore Mese */}
-        <div className="flex items-center gap-2 pt-1 border-t border-neutral-100 flex-wrap">
+        {/* Selettore Sotto-Vista Pulito (2 sole tab: Organico & Competenze vs Report Ore & Export Mese) */}
+        <div className="bg-nicora-card rounded-2xl p-2 border border-nicora-sage-border shadow-clean flex items-center gap-2 flex-wrap">
           <button
-            onClick={() => setActiveSubView('skills-contracts')}
+            onClick={() => setActiveSubView('staff')}
             className={`flex-1 sm:flex-initial py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all ${
-              activeSubView === 'skills-contracts'
-                ? 'bg-nicora-teal text-white shadow-xs'
-                : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-            }`}
-          >
-            <Award size={15} />
-            <span>Matrice Competenze (1–10) & Ore Contratto</span>
-          </button>
-
-          <button
-            onClick={() => setActiveSubView('roster')}
-            className={`flex-1 sm:flex-initial py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all ${
-              activeSubView === 'roster'
+              activeSubView === 'staff'
                 ? 'bg-nicora-teal text-white shadow-xs'
                 : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
             }`}
           >
             <Users size={15} />
-            <span>Anagrafica & PIN ({activeEmployees.length})</span>
+            <span>Organico, Competenze &amp; Contratto ({activeEmployees.length})</span>
           </button>
 
           <button
@@ -436,568 +458,480 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
             }`}
           >
             <BarChart3 size={15} />
-            <span>Report Ore & Export Mese</span>
+            <span>Report Ore &amp; Export Mese</span>
           </button>
         </div>
-      </div>
 
-      {/* Banner Rapido Export Paghe (visibile quando non si è nella sotto-vista Report) */}
-      {activeSubView !== 'monthly-report' && (
-        <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-sky-50 border border-teal-200/80 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-teal-600 text-white flex items-center justify-center font-black shadow-xs flex-shrink-0">
-              <FileSpreadsheet size={18} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-xs text-teal-950">
-                  Export Mensile Consulente Paghe ({monthlySummary.monthLabel})
-                </span>
-                <span className="bg-teal-100 text-teal-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                  Excel / CSV
+        {/* Barra di Ricerca e Filtro Attivi / Archiviati */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          {activeSubView === 'staff' ? (
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 flex-1">
+              <div className="flex bg-neutral-100 p-1 rounded-xl w-full sm:w-auto shrink-0">
+                <button
+                  onClick={() => setTabFilter('active')}
+                  className={`flex-1 sm:flex-initial py-1.5 px-3.5 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
+                    tabFilter === 'active'
+                      ? 'bg-white text-nicora-teal shadow-xs'
+                      : 'text-neutral-500 hover:text-neutral-800'
+                  }`}
+                >
+                  <UserCheck size={13} />
+                  <span>Attivi ({activeEmployees.length})</span>
+                </button>
+                <button
+                  onClick={() => setTabFilter('archived')}
+                  className={`flex-1 sm:flex-initial py-1.5 px-3.5 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
+                    tabFilter === 'archived'
+                      ? 'bg-white text-neutral-900 shadow-xs'
+                      : 'text-neutral-500 hover:text-neutral-800'
+                  }`}
+                >
+                  <Archive size={13} />
+                  <span>Archiviati ({archivedEmployees.length})</span>
+                </button>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 flex items-center gap-2 text-xs text-amber-900 flex-1">
+                <Info size={16} className="text-nicora-orange flex-shrink-0" />
+                <span className="text-[11px] leading-tight">
+                  <strong>Regole Nicora:</strong> Tutti lavorano <strong>5 giorni/settimana</strong>. Le ore di contratto settimanali vengono ripartite sui 5 turni garantendo la copertura dei reparti.
                 </span>
               </div>
-              <p className="text-[11px] text-neutral-500 mt-0.5">
-                Totale <strong>{monthlySummary.totalWorkedHours}h</strong> lavorate registrate a {locationName} • <strong>{monthlySummary.totalLeaveDays}gg</strong> ferie/malattia
-              </p>
             </div>
-          </div>
+          ) : (
+            <div className="text-xs text-neutral-500 font-medium">
+              Filtra il riepilogo mensile per nominativo o reparto primario:
+            </div>
+          )}
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => exportMonthlyReportCSV(monthlySummary, locationName)}
-              className="flex-1 sm:flex-initial px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-all active:scale-95"
-              title="Scarica file CSV con BOM UTF-8 per Excel"
-            >
-              <Download size={14} />
-              <span>Scarica CSV Excel</span>
-            </button>
-            <button
-              onClick={() => setActiveSubView('monthly-report')}
-              className="flex-1 sm:flex-initial px-3.5 py-2 bg-white border border-teal-300 hover:bg-teal-50 text-teal-800 font-extrabold text-xs rounded-xl transition-all"
-            >
-              <span>Visualizza Report</span>
-            </button>
+          <div className="relative w-full sm:w-72 shrink-0">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Cerca collaboratore per nome o reparto..."
+              className="w-full bg-white border border-nicora-sage-border rounded-xl pl-8 pr-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-nicora-teal focus:outline-none shadow-clean"
+            />
+            <Search size={14} className="absolute left-2.5 top-2.5 text-neutral-400 pointer-events-none" />
           </div>
         </div>
-      )}
 
-      {/* Toolbar & Ricerca */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-        {activeSubView === 'roster' && (
-          <div className="flex bg-neutral-100 p-1 rounded-xl w-full sm:w-auto">
-            <button
-              onClick={() => setTabFilter('active')}
-              className={`flex-1 sm:flex-initial py-1.5 px-3.5 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
-                tabFilter === 'active'
-                  ? 'bg-white text-nicora-teal shadow-xs'
-                  : 'text-neutral-500 hover:text-neutral-800'
-              }`}
-            >
-              <UserCheck size={13} />
-              <span>Attivi ({activeEmployees.length})</span>
-            </button>
-            <button
-              onClick={() => setTabFilter('archived')}
-              className={`flex-1 sm:flex-initial py-1.5 px-3.5 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
-                tabFilter === 'archived'
-                  ? 'bg-white text-neutral-900 shadow-xs'
-                  : 'text-neutral-500 hover:text-neutral-800'
-              }`}
-            >
-              <Archive size={13} />
-              <span>Archiviati ({archivedEmployees.length})</span>
-            </button>
-          </div>
-        )}
+        {/* --- VISTA 1 UNIFICATA: ORGANICO, ANAGRAFICA, ORE CONTRATTO & COMPETENZE (1-10) --- */}
+        {activeSubView === 'staff' && (
+          <div className="space-y-3">
+            {displayedEmployees.length === 0 ? (
+              <div className="bg-white rounded-2xl p-8 text-center text-neutral-400 border border-nicora-sage-border text-xs">
+                <Users size={32} className="mx-auto mb-2 text-neutral-300" />
+                Nessun collaboratore trovato in questa categoria.
+              </div>
+            ) : (
+              displayedEmployees.map((emp) => {
+                const isArchived = emp.isActive === false;
+                const deptStyle = DEPARTMENT_COLORS[emp.role] || DEPARTMENT_COLORS['Cassa'];
+                const currentData = editableStaff[emp.id] || {
+                  skills: emp.skills,
+                  contractHours: emp.contractHours || 40,
+                };
+                const currentScores = currentData.skills;
+                const currentHours = currentData.contractHours;
 
-        {activeSubView === 'skills-contracts' && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 flex items-center gap-2 text-xs text-amber-900 flex-1">
-            <Info size={16} className="text-nicora-orange flex-shrink-0" />
-            <span className="text-[11px] leading-tight">
-              <strong>Regole Nicora:</strong> Tutti lavorano <strong>5 giorni/settimana</strong>. Le ore di contratto settimanali (es. 40h, 30h, 24h, 20h) vengono ripartite sui 5 turni garantendo la copertura dei 5 reparti.
-            </span>
-          </div>
-        )}
-
-        <div className="relative w-full sm:w-72">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cerca collaboratore per nome o reparto..."
-            className="w-full bg-white border border-nicora-sage-border rounded-xl pl-8 pr-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-nicora-teal focus:outline-none shadow-clean"
-          />
-          <Search size={14} className="absolute left-2.5 top-2.5 text-neutral-400 pointer-events-none" />
-        </div>
-      </div>
-
-      {/* --- VISTA 1: MATRICE COMPETENZE (1-10) & ORE CONTRATTO --- */}
-      {activeSubView === 'skills-contracts' && (
-        <div className="space-y-3">
-          {displayedEmployees.map((emp) => {
-            const currentData = editableStaff[emp.id] || {
-              skills: emp.skills,
-              contractHours: emp.contractHours || 40,
-            };
-            const currentScores = currentData.skills;
-            const currentHours = currentData.contractHours;
-            const isFullTime = currentHours >= 38;
-
-            return (
-              <div
-                key={emp.id}
-                className="bg-white rounded-2xl p-4 sm:p-5 border border-nicora-sage-border shadow-clean space-y-3.5 transition-all hover:border-nicora-teal-border/70"
-              >
-                {/* Header Collaboratore & Selettore Rapido Ore Contratto */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-neutral-100">
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-10 h-10 rounded-xl bg-nicora-teal-light text-nicora-teal font-black text-xs flex items-center justify-center border border-nicora-teal-border/40">
-                      {emp.avatar}
-                    </span>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-extrabold text-sm sm:text-base text-nicora-title">
-                          {emp.name}
+                return (
+                  <div
+                    key={emp.id}
+                    className={`bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-clean space-y-3.5 ${
+                      isArchived
+                        ? 'opacity-75 bg-neutral-50/70 border-dashed border-neutral-300'
+                        : 'border-nicora-sage-border hover:border-nicora-teal-border/70'
+                    }`}
+                  >
+                    {/* Riga 1: Dati Anagrafici, Contatti e Azioni Anagrafica/Archiviazione */}
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-neutral-100">
+                      <div className="flex items-start sm:items-center gap-3">
+                        <span className="w-11 h-11 rounded-2xl bg-nicora-teal-light text-nicora-teal font-black text-xs flex items-center justify-center border border-nicora-teal-border/40 flex-shrink-0">
+                          {emp.avatar}
                         </span>
-                        {emp.isManager && (
-                          <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                            <ShieldCheck size={10} /> Direzione
-                          </span>
-                        )}
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h4 className="font-extrabold text-sm sm:text-base text-nicora-title">
+                              {emp.name}
+                            </h4>
+                            <span
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${deptStyle.badge}`}
+                            >
+                              {emp.role}
+                            </span>
+                            {emp.isManager && (
+                              <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                                <ShieldCheck size={10} /> Direzione
+                              </span>
+                            )}
+                            {emp.isMobile && (
+                              <span className="text-[10px] bg-sky-100 text-sky-800 font-bold px-2 py-0.5 rounded-full">
+                                Jolly Mobile
+                              </span>
+                            )}
+                            {isArchived && (
+                              <span className="bg-neutral-200 text-neutral-700 text-[10px] font-black px-2 py-0.5 rounded-full">
+                                Archiviato
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-3 text-[11px] text-neutral-500">
+                            {emp.email && (
+                              <span className="flex items-center gap-1 text-neutral-600">
+                                <Mail size={12} className="text-neutral-400" />
+                                {emp.email}
+                              </span>
+                            )}
+                            {emp.phone && (
+                              <span className="flex items-center gap-1 text-neutral-600">
+                                <Phone size={12} className="text-neutral-400" />
+                                {emp.phone}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <span className="text-xs text-neutral-400">
-                        Reparto Primario: <strong className="text-neutral-700">{emp.role}</strong>
-                      </span>
-                    </div>
-                  </div>
 
-                  {/* Controller Ore da Contratto Settimanali */}
-                  <div className="flex items-center gap-2 bg-neutral-50 px-3 py-1.5 rounded-2xl border border-neutral-200">
-                    <Clock size={15} className="text-nicora-teal flex-shrink-0" />
-                    <span className="text-xs font-bold text-neutral-700">Contratto:</span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {/* Controller Ore da Contratto Settimanali */}
+                        <div className="flex items-center gap-2 bg-neutral-50 px-3 py-1.5 rounded-2xl border border-neutral-200">
+                          <Clock size={14} className="text-nicora-teal flex-shrink-0" />
+                          <span className="text-xs font-bold text-neutral-700">Contratto:</span>
 
-                    {/* Preset rapidi */}
-                    <div className="flex items-center gap-1">
-                      {[40, 30, 24, 20].map((h) => (
-                        <button
-                          key={h}
-                          type="button"
-                          onClick={() => handleContractHoursChange(emp.id, h)}
-                          className={`px-2 py-1 rounded-lg text-xs font-black transition-all ${
-                            currentHours === h
-                              ? 'bg-nicora-teal text-white shadow-xs'
-                              : 'bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-100'
-                          }`}
-                        >
-                          {h}h
-                        </button>
-                      ))}
-                    </div>
+                          {/* Preset rapidi */}
+                          <div className="flex items-center gap-1">
+                            {[40, 30, 24, 20].map((h) => (
+                              <button
+                                key={h}
+                                type="button"
+                                onClick={() => handleContractHoursChange(emp.id, h)}
+                                className={`px-2 py-1 rounded-lg text-xs font-black transition-all ${
+                                  currentHours === h
+                                    ? 'bg-nicora-teal text-white shadow-xs'
+                                    : 'bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-100'
+                                }`}
+                              >
+                                {h}h
+                              </button>
+                            ))}
+                          </div>
 
-                    {/* Stepper +/- */}
-                    <div className="flex items-center gap-1 pl-1 border-l border-neutral-200">
-                      <button
-                        type="button"
-                        onClick={() => handleContractHoursChange(emp.id, currentHours - 2)}
-                        className="w-6 h-6 rounded-md bg-white border border-neutral-300 text-neutral-700 font-bold text-xs flex items-center justify-center hover:bg-neutral-100 active:scale-90"
-                        title="Diminuisci ore settimanali"
-                      >
-                        -
-                      </button>
-                      <span className="text-xs font-extrabold text-neutral-800 w-8 text-center">
-                        {currentHours}h
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleContractHoursChange(emp.id, currentHours + 2)}
-                        className="w-6 h-6 rounded-md bg-white border border-neutral-300 text-neutral-700 font-bold text-xs flex items-center justify-center hover:bg-neutral-100 active:scale-90"
-                        title="Aumenta ore settimanali"
-                      >
-                        +
-                      </button>
-                    </div>
-
-                    <span
-                      className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                        isFullTime
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : 'bg-sky-100 text-sky-800'
-                      }`}
-                    >
-                      {isFullTime ? 'Full' : 'Part'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Griglia Competenze 1–10 sui 5 Reparti */}
-                <div>
-                  <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider block mb-1.5">
-                    Punteggio Competenze (1 = Base, 10 = Specialista Master):
-                  </span>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-2 text-center">
-                    {getLocationDepartments(emp.locationId, true).map((dept) => {
-                      const score = currentScores[dept] ?? 5;
-                      const deptShort =
-                        dept === 'Serra Calda'
-                          ? 'S. Calda'
-                          : dept === 'Serra Fredda'
-                          ? 'S. Fredda'
-                          : dept === 'Area Tecnica'
-                          ? 'Area Tec.'
-                          : dept;
-
-                      return (
-                        <div
-                          key={dept}
-                          className="bg-neutral-50 rounded-xl p-2 border border-neutral-200 flex flex-col items-center justify-between"
-                        >
-                          <span
-                            className="text-[11px] font-extrabold text-neutral-700 truncate w-full"
-                            title={dept}
-                          >
-                            {deptShort}
-                          </span>
-
-                          <div className="my-1.5 flex items-center justify-center gap-1.5">
+                          {/* Stepper +/- */}
+                          <div className="flex items-center gap-1 pl-1 border-l border-neutral-200">
                             <button
                               type="button"
-                              onClick={() => handleScoreChange(emp.id, dept, score - 1)}
-                              className="w-6 h-6 rounded-lg bg-white border border-neutral-300 hover:bg-neutral-100 text-xs font-bold text-neutral-700 flex items-center justify-center active:scale-90 shadow-xs"
+                              onClick={() => handleContractHoursChange(emp.id, currentHours - 2)}
+                              className="w-6 h-6 rounded-md bg-white border border-neutral-300 text-neutral-700 font-bold text-xs flex items-center justify-center hover:bg-neutral-100 active:scale-90"
+                              title="Diminuisci ore settimanali"
                             >
                               -
                             </button>
-
-                            <span
-                              className={`w-7 h-7 rounded-lg border flex items-center justify-center text-xs shadow-xs ${getScoreBadgeClass(
-                                score
-                              )}`}
-                            >
-                              {score}
+                            <span className="text-xs font-extrabold text-neutral-800 w-8 text-center">
+                              {currentHours}h
                             </span>
-
                             <button
                               type="button"
-                              onClick={() => handleScoreChange(emp.id, dept, score + 1)}
-                              className="w-6 h-6 rounded-lg bg-white border border-neutral-300 hover:bg-neutral-100 text-xs font-bold text-neutral-700 flex items-center justify-center active:scale-90 shadow-xs"
+                              onClick={() => handleContractHoursChange(emp.id, currentHours + 2)}
+                              className="w-6 h-6 rounded-md bg-white border border-neutral-300 text-neutral-700 font-bold text-xs flex items-center justify-center hover:bg-neutral-100 active:scale-90"
+                              title="Aumenta ore settimanali"
                             >
                               +
                             </button>
                           </div>
                         </div>
-                      );
-                    })}
+
+                        {/* Pulsanti Modifica Anagrafica e Archiviazione */}
+                        <div className="flex items-center gap-1.5 ml-auto sm:ml-0">
+                          <button
+                            onClick={() => openEditModal(emp)}
+                            className="px-3 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors min-h-[38px]"
+                          >
+                            <Edit3 size={13} />
+                            <span>Modifica Anagrafica</span>
+                          </button>
+
+                          {isArchived ? (
+                            <button
+                              onClick={() => onArchiveEmployee(emp.id, true)}
+                              className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs rounded-xl border border-emerald-200 flex items-center justify-center gap-1 transition-colors min-h-[38px]"
+                              title="Riattiva questo collaboratore per la pianificazione turni"
+                            >
+                              <RefreshCw size={13} />
+                              <span>Riattiva</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => onArchiveEmployee(emp.id, false)}
+                              className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border border-rose-200 flex items-center justify-center gap-1 transition-colors min-h-[38px]"
+                              title="Archivia cessato (preserva lo storico turni)"
+                            >
+                              <UserX size={13} />
+                              <span>Archivia</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Riga 2: Griglia Competenze 1–10 sui Reparti */}
+                    <div>
+                      <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider block mb-1.5">
+                        Punteggio Competenze Reparto (1 = Base, 10 = Specialista Master):
+                      </span>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-2 text-center">
+                        {getLocationDepartments(emp.locationId, true).map((dept) => {
+                          const score = currentScores[dept] ?? 5;
+                          const deptShort =
+                            dept === 'Serra Calda'
+                              ? 'S. Calda'
+                              : dept === 'Serra Fredda'
+                              ? 'S. Fredda'
+                              : dept === 'Area Tecnica'
+                              ? 'Area Tec.'
+                              : dept;
+
+                          return (
+                            <div
+                              key={dept}
+                              className="bg-neutral-50 rounded-xl p-2 border border-neutral-200 flex flex-col items-center justify-between"
+                            >
+                              <span
+                                className="text-[11px] font-extrabold text-neutral-700 truncate w-full"
+                                title={dept}
+                              >
+                                {deptShort}
+                              </span>
+
+                              <div className="my-1.5 flex items-center justify-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => handleScoreChange(emp.id, dept, score - 1)}
+                                  className="w-6 h-6 rounded-lg bg-white border border-neutral-300 hover:bg-neutral-100 text-xs font-bold text-neutral-700 flex items-center justify-center active:scale-90 shadow-xs"
+                                >
+                                  -
+                                </button>
+
+                                <span
+                                  className={`w-7 h-7 rounded-lg border flex items-center justify-center text-xs shadow-xs ${getScoreBadgeClass(
+                                    score
+                                  )}`}
+                                >
+                                  {score}
+                                </span>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleScoreChange(emp.id, dept, score + 1)}
+                                  className="w-6 h-6 rounded-lg bg-white border border-neutral-300 hover:bg-neutral-100 text-xs font-bold text-neutral-700 flex items-center justify-center active:scale-90 shadow-xs"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
+                );
+              })
+            )}
+          </div>
+        )}
+
+        {/* --- VISTA 2: REPORT ORE MESE & EXPORT PAGHE --- */}
+        {activeSubView === 'monthly-report' && (
+          <div className="space-y-4">
+            {/* Barra Controlli Mese & Azioni di Esportazione */}
+            <div className="bg-white rounded-3xl p-4 sm:p-6 border border-nicora-sage-border shadow-clean space-y-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                {/* Selettore Mese Navigabile */}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handlePrevMonth}
+                    className="p-2 sm:px-3 sm:py-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-bold text-xs flex items-center gap-1 transition-all active:scale-95 min-h-[40px]"
+                    title="Mese precedente"
+                  >
+                    <ChevronLeft size={16} />
+                    <span className="hidden sm:inline">Mese Prec.</span>
+                  </button>
+
+                  <div className="flex items-center gap-2 bg-nicora-teal-light border border-nicora-teal-border/40 px-3.5 py-2 rounded-xl min-h-[40px]">
+                    <Calendar size={16} className="text-nicora-teal flex-shrink-0" />
+                    <span className="font-black text-sm text-nicora-title tracking-tight">
+                      {monthlySummary.monthLabel}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleNextMonth}
+                    className="p-2 sm:px-3 sm:py-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-bold text-xs flex items-center gap-1 transition-all active:scale-95 min-h-[40px]"
+                    title="Mese successivo"
+                  >
+                    <span className="hidden sm:inline">Mese Succ.</span>
+                    <ChevronRight size={16} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleCurrentMonth}
+                    className="text-[11px] font-bold text-neutral-500 hover:text-nicora-teal underline ml-1 cursor-pointer"
+                  >
+                    Oggi
+                  </button>
+                </div>
+
+                {/* Pulsanti Export Rapidi */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => exportMonthlyReportCSV(monthlySummary, locationName)}
+                    className="flex-1 sm:flex-initial bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 min-h-[40px]"
+                    title="Esporta foglio calcolo compatibile Excel con UTF-8 BOM"
+                  >
+                    <FileSpreadsheet size={16} />
+                    <span>Scarica CSV Excel</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => printMonthlyReport(monthlySummary, locationName)}
+                    className="flex-1 sm:flex-initial bg-neutral-800 hover:bg-black text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 min-h-[40px]"
+                    title="Stampa o salva in PDF formato A4 orizzontale"
+                  >
+                    <Printer size={16} />
+                    <span>Stampa / PDF A4</span>
+                  </button>
                 </div>
               </div>
-            );
-          })}
-        </div>
-      )}
 
-      {/* --- VISTA 2: ANAGRAFICA, PIN & NUOVI ASSUNTI --- */}
-      {activeSubView === 'roster' && (
-        <div className="space-y-3">
-          {displayedEmployees.length === 0 ? (
-            <div className="bg-white rounded-2xl p-8 text-center text-neutral-400 border border-nicora-sage-border text-xs">
-              <Users size={32} className="mx-auto mb-2 text-neutral-300" />
-              Nessun collaboratore trovato in questa categoria.
-            </div>
-          ) : (
-            displayedEmployees.map((emp) => {
-              const isArchived = emp.isActive === false;
-              const deptStyle = DEPARTMENT_COLORS[emp.role] || DEPARTMENT_COLORS['Cassa'];
-
-              return (
-                <div
-                  key={emp.id}
-                  className={`bg-white rounded-2xl p-4 border transition-all shadow-clean ${
-                    isArchived
-                      ? 'opacity-75 bg-neutral-50/70 border-dashed border-neutral-300'
-                      : 'border-nicora-sage-border'
-                  }`}
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    {/* Info Principali */}
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-neutral-100 border border-neutral-200 flex items-center justify-center font-black text-sm text-neutral-700 flex-shrink-0 shadow-xs">
-                        {emp.avatar}
-                      </div>
-
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-extrabold text-sm sm:text-base text-nicora-title">
-                            {emp.name}
-                          </h4>
-                          {emp.isManager && (
-                            <span className="bg-purple-100 text-purple-800 text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                              <ShieldCheck size={10} /> Direzione
-                            </span>
-                          )}
-                          {isArchived && (
-                            <span className="bg-neutral-200 text-neutral-700 text-[10px] font-black px-2 py-0.5 rounded-full">
-                              Archiviato
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-1.5 mt-1 text-xs">
-                          <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${deptStyle.badge}`}
-                          >
-                            {emp.role}
-                          </span>
-                          <span className="text-neutral-400">•</span>
-                          <span className="text-neutral-700 font-bold text-[11px]">
-                            {emp.contractHours || 40}h / settimana
-                          </span>
-                          <span className="text-neutral-400">•</span>
-                          <span className="text-neutral-600 font-medium text-[11px] flex items-center gap-1">
-                            <KeyRound size={11} className="text-amber-600" />
-                            <span>PIN: •••• ({emp.password || '1234'})</span>
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Azioni Modifica / Archiviazione */}
-                    <div className="flex items-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-neutral-100">
-                      <button
-                        onClick={() => openEditModal(emp)}
-                        className="flex-1 sm:flex-initial px-3 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-bold text-xs rounded-xl flex items-center justify-center gap-1 transition-colors min-h-[40px]"
-                      >
-                        <Edit3 size={13} />
-                        <span>Modifica Anagrafica</span>
-                      </button>
-
-                      {isArchived ? (
-                        <button
-                          onClick={() => onArchiveEmployee(emp.id, true)}
-                          className="flex-1 sm:flex-initial px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs rounded-xl border border-emerald-200 flex items-center justify-center gap-1 transition-colors min-h-[40px]"
-                          title="Riattiva questo collaboratore per la pianificazione turni"
-                        >
-                          <RefreshCw size={13} />
-                          <span>Riattiva</span>
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => onArchiveEmployee(emp.id, false)}
-                          className="flex-1 sm:flex-initial px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border border-rose-200 flex items-center justify-center gap-1 transition-colors min-h-[40px]"
-                          title="Archivia cessato (preserva lo storico turni)"
-                        >
-                          <UserX size={13} />
-                          <span>Archivia</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Recapiti e Competenze sintetiche */}
-                  <div className="mt-3 pt-2.5 border-t border-neutral-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-neutral-500">
-                    <div className="flex flex-wrap items-center gap-3">
-                      {emp.email && (
-                        <span className="flex items-center gap-1 text-neutral-600 truncate">
-                          <Mail size={12} className="text-neutral-400" />
-                          {emp.email}
-                        </span>
-                      )}
-                      {emp.phone && (
-                        <span className="flex items-center gap-1 text-neutral-600">
-                          <Phone size={12} className="text-neutral-400" />
-                          {emp.phone}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
-                      {getLocationDepartments(emp.locationId, true).map((d) => {
-                        const score = emp.skills?.[d] ?? 5;
-                        return (
-                          <span
-                            key={d}
-                            className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
-                              score >= 8
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : score >= 5
-                                ? 'bg-neutral-100 text-neutral-700'
-                                : 'bg-rose-50 text-rose-600'
-                            }`}
-                            title={`Competenza ${d}: ${score}/10`}
-                          >
-                            {d.slice(0, 3)}: {score}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      )}
-
-      {/* --- VISTA 3: REPORT ORE MESE & EXPORT PAGHE --- */}
-      {activeSubView === 'monthly-report' && (
-        <div className="space-y-4">
-          {/* Barra Controlli Mese & Azioni di Esportazione */}
-          <div className="bg-white rounded-3xl p-4 sm:p-6 border border-nicora-sage-border shadow-clean space-y-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              
-              {/* Selettore Mese Navigabile */}
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handlePrevMonth}
-                  className="p-2 sm:px-3 sm:py-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-bold text-xs flex items-center gap-1 transition-all active:scale-95 min-h-[40px]"
-                  title="Mese precedente"
-                >
-                  <ChevronLeft size={16} />
-                  <span className="hidden sm:inline">Mese Prec.</span>
-                </button>
-
-                <div className="flex items-center gap-2 bg-nicora-teal-light border border-nicora-teal-border/40 px-3.5 py-2 rounded-xl min-h-[40px]">
-                  <Calendar size={16} className="text-nicora-teal flex-shrink-0" />
-                  <span className="font-black text-sm text-nicora-title tracking-tight">
-                    {monthlySummary.monthLabel}
+              {/* KPI Cards di Sintesi del Mese */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-2 border-t border-neutral-100">
+                <div className="bg-emerald-50/60 p-3 rounded-2xl border border-emerald-100">
+                  <span className="text-[10px] uppercase font-bold text-emerald-700 block">
+                    Ore Lavorate Totali
+                  </span>
+                  <span className="text-xl font-black text-emerald-900">
+                    {monthlySummary.totalWorkedHours}h
+                  </span>
+                  <span className="text-[10px] text-emerald-600 block mt-0.5">
+                    {monthlySummary.totalPresenceDays} presenze effettive
                   </span>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleNextMonth}
-                  className="p-2 sm:px-3 sm:py-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-bold text-xs flex items-center gap-1 transition-all active:scale-95 min-h-[40px]"
-                  title="Mese successivo"
-                >
-                  <span className="hidden sm:inline">Mese Succ.</span>
-                  <ChevronRight size={16} />
-                </button>
+                <div className="bg-rose-50/60 p-3 rounded-2xl border border-rose-100">
+                  <span className="text-[10px] uppercase font-bold text-rose-700 block">
+                    Presidio Cassa
+                  </span>
+                  <span className="text-xl font-black text-rose-900">
+                    {monthlySummary.departmentTotals.Cassa ?? 0}h
+                  </span>
+                  <span className="text-[10px] text-rose-600 block mt-0.5">
+                    {monthlySummary.totalWorkedHours > 0
+                      ? `${Math.round(
+                          ((monthlySummary.departmentTotals.Cassa ?? 0) /
+                            monthlySummary.totalWorkedHours) *
+                            100
+                        )}% del totale`
+                      : '-'}
+                  </span>
+                </div>
 
-                <button
-                  type="button"
-                  onClick={handleCurrentMonth}
-                  className="text-[11px] font-bold text-neutral-500 hover:text-nicora-teal underline ml-1 cursor-pointer"
-                >
-                  Oggi
-                </button>
-              </div>
+                <div className="bg-pink-50/60 p-3 rounded-2xl border border-pink-100">
+                  <span className="text-[10px] uppercase font-bold text-pink-700 block">
+                    Fioreria &amp; Decor
+                  </span>
+                  <span className="text-xl font-black text-pink-900">
+                    {Math.round(
+                      ((monthlySummary.departmentTotals.Fioreria ?? 0) +
+                        (monthlySummary.departmentTotals.Decor ?? 0)) *
+                        10
+                    ) / 10}
+                    h
+                  </span>
+                  <span className="text-[10px] text-pink-600 block mt-0.5">
+                    Fio: {monthlySummary.departmentTotals.Fioreria ?? 0}h • Dec:{' '}
+                    {monthlySummary.departmentTotals.Decor ?? 0}h
+                  </span>
+                </div>
 
-              {/* Pulsanti Export Rapidi */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => exportMonthlyReportCSV(monthlySummary, locationName)}
-                  className="flex-1 sm:flex-initial bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 min-h-[40px]"
-                  title="Esporta foglio calcolo compatibile Excel con UTF-8 BOM"
-                >
-                  <FileSpreadsheet size={16} />
-                  <span>Scarica CSV Excel</span>
-                </button>
+                <div className="bg-sky-50/60 p-3 rounded-2xl border border-sky-100">
+                  <span className="text-[10px] uppercase font-bold text-sky-700 block">
+                    Serre (C+F)
+                  </span>
+                  <span className="text-xl font-black text-sky-900">
+                    {Math.round(
+                      ((monthlySummary.departmentTotals['Serra Calda'] ?? 0) +
+                        (monthlySummary.departmentTotals['Serra Fredda'] ?? 0)) *
+                        10
+                    ) / 10}
+                    h
+                  </span>
+                  <span className="text-[10px] text-sky-600 block mt-0.5">
+                    Calda: {monthlySummary.departmentTotals['Serra Calda'] ?? 0}h • Fredda:{' '}
+                    {monthlySummary.departmentTotals['Serra Fredda'] ?? 0}h
+                  </span>
+                </div>
 
-                <button
-                  type="button"
-                  onClick={() => printMonthlyReport(monthlySummary, locationName)}
-                  className="flex-1 sm:flex-initial bg-neutral-800 hover:bg-black text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 min-h-[40px]"
-                  title="Stampa o salva in PDF formato A4 orizzontale"
-                >
-                  <Printer size={16} />
-                  <span>Stampa / PDF A4</span>
-                </button>
-              </div>
-            </div>
-
-            {/* KPI Cards di Sintesi del Mese */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-2 border-t border-neutral-100">
-              <div className="bg-emerald-50/60 p-3 rounded-2xl border border-emerald-100">
-                <span className="text-[10px] uppercase font-bold text-emerald-700 block">Ore Lavorate Totali</span>
-                <span className="text-xl font-black text-emerald-900">{monthlySummary.totalWorkedHours}h</span>
-                <span className="text-[10px] text-emerald-600 block mt-0.5">{monthlySummary.totalPresenceDays} presenze effettive</span>
-              </div>
-
-              <div className="bg-rose-50/60 p-3 rounded-2xl border border-rose-100">
-                <span className="text-[10px] uppercase font-bold text-rose-700 block">Presidio Cassa</span>
-                <span className="text-xl font-black text-rose-900">{(monthlySummary.departmentTotals.Cassa ?? 0)}h</span>
-                <span className="text-[10px] text-rose-600 block mt-0.5">
-                  {monthlySummary.totalWorkedHours > 0 ? `${Math.round(((monthlySummary.departmentTotals.Cassa ?? 0) / monthlySummary.totalWorkedHours) * 100)}% del totale` : '-'}
-                </span>
-              </div>
-
-              <div className="bg-pink-50/60 p-3 rounded-2xl border border-pink-100">
-                <span className="text-[10px] uppercase font-bold text-pink-700 block">Fioreria & Decor</span>
-                <span className="text-xl font-black text-pink-900">
-                  {Math.round(((monthlySummary.departmentTotals.Fioreria ?? 0) + (monthlySummary.departmentTotals.Decor ?? 0)) * 10) / 10}h
-                </span>
-                <span className="text-[10px] text-pink-600 block mt-0.5">
-                  Fio: {(monthlySummary.departmentTotals.Fioreria ?? 0)}h • Dec: {(monthlySummary.departmentTotals.Decor ?? 0)}h
-                </span>
-              </div>
-
-              <div className="bg-sky-50/60 p-3 rounded-2xl border border-sky-100">
-                <span className="text-[10px] uppercase font-bold text-sky-700 block">Serre (C+F)</span>
-                <span className="text-xl font-black text-sky-900">
-                  {Math.round(((monthlySummary.departmentTotals['Serra Calda'] ?? 0) + (monthlySummary.departmentTotals['Serra Fredda'] ?? 0)) * 10) / 10}h
-                </span>
-                <span className="text-[10px] text-sky-600 block mt-0.5">
-                  Calda: {(monthlySummary.departmentTotals['Serra Calda'] ?? 0)}h • Fredda: {(monthlySummary.departmentTotals['Serra Fredda'] ?? 0)}h
-                </span>
-              </div>
-
-              <div className="col-span-2 sm:col-span-1 bg-purple-50/60 p-3 rounded-2xl border border-purple-100">
-                <span className="text-[10px] uppercase font-bold text-purple-700 block">Ferie & Malattie</span>
-                <span className="text-xl font-black text-purple-900">
-                  {monthlySummary.totalLeaveDays + monthlySummary.totalSickDays} gg
-                </span>
-                <span className="text-[10px] text-purple-600 block mt-0.5">
-                  {monthlySummary.totalLeaveHours}h figurative
-                </span>
+                <div className="col-span-2 sm:col-span-1 bg-purple-50/60 p-3 rounded-2xl border border-purple-100">
+                  <span className="text-[10px] uppercase font-bold text-purple-700 block">
+                    Ferie &amp; Malattie
+                  </span>
+                  <span className="text-xl font-black text-purple-900">
+                    {monthlySummary.totalLeaveDays + monthlySummary.totalSickDays} gg
+                  </span>
+                  <span className="text-[10px] text-purple-600 block mt-0.5">
+                    {monthlySummary.totalLeaveHours}h figurative
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Dettaglio Collaboratori per il Mese */}
-          {monthlySummary.totalWorkedHours === 0 && monthlySummary.totalLeaveDays === 0 ? (
-            <div className="bg-white rounded-3xl p-8 text-center text-neutral-400 border border-nicora-sage-border shadow-clean space-y-2">
-              <Calendar size={36} className="mx-auto text-neutral-300" />
-              <p className="font-extrabold text-sm text-neutral-700">
-                Nessun turno registrato per {monthlySummary.monthLabel} a {locationName}
-              </p>
-              <p className="text-xs text-neutral-500 max-w-md mx-auto">
-                Genera o pianifica i turni dal tab <strong>Pianificatore</strong> per questo mese per visualizzare automaticamente la ripartizione per reparto e il consuntivo ore per il consulente del lavoro.
-              </p>
-            </div>
-          ) : (
-            <>
-              {/* TABELLA DESKTOP */}
-              <div className="hidden lg:block bg-white rounded-3xl border border-nicora-sage-border shadow-clean overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead>
-                      <tr className="bg-neutral-50/90 border-b border-neutral-200 text-[11px] font-extrabold text-neutral-600 uppercase tracking-wider">
-                        <th className="py-3.5 px-4">Collaboratore</th>
-                        <th className="py-3.5 px-3">Ruolo / Contr.</th>
-                        <th className="py-3.5 px-3 text-center">Presenze / Riposi</th>
-                        <th className="py-3.5 px-3 text-center">Cassa</th>
-                        <th className="py-3.5 px-3 text-center">Fioreria</th>
-                        <th className="py-3.5 px-3 text-center">Decor</th>
-                        <th className="py-3.5 px-3 text-center">S. Calda</th>
-                        <th className="py-3.5 px-3 text-center">S. Fredda</th>
-                        <th className="py-3.5 px-3 text-right">Ore Lav.</th>
-                        <th className="py-3.5 px-3 text-right">Ferie/Mal.</th>
-                        <th className="py-3.5 px-3 text-right">Rendicontate</th>
-                        <th className="py-3.5 px-4 text-center">Saldo</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-neutral-100 font-medium">
-                      {monthlySummary.employeeSummaries
-                        .filter(
-                          (s) =>
-                            s.employee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            s.employee.role.toLowerCase().includes(searchQuery.toLowerCase())
-                        )
-                        .map((s) => {
-                          const isFullTime = (s.employee.contractHours || 40) >= 38;
-
-                          return (
+            {/* Dettaglio Collaboratori per il Mese */}
+            {monthlySummary.totalWorkedHours === 0 && monthlySummary.totalLeaveDays === 0 ? (
+              <div className="bg-white rounded-3xl p-8 text-center text-neutral-400 border border-nicora-sage-border shadow-clean space-y-2">
+                <Calendar size={36} className="mx-auto text-neutral-300" />
+                <p className="font-extrabold text-sm text-neutral-700">
+                  Nessun turno registrato per {monthlySummary.monthLabel} a {locationName}
+                </p>
+                <p className="text-xs text-neutral-500 max-w-md mx-auto">
+                  Genera o pianifica i turni dal tab <strong>Pianificatore</strong> per questo mese per visualizzare automaticamente la ripartizione per reparto e il consuntivo ore per il consulente del lavoro.
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* TABELLA DESKTOP */}
+                <div className="hidden lg:block bg-white rounded-3xl border border-nicora-sage-border shadow-clean overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-neutral-50/90 border-b border-neutral-200 text-[11px] font-extrabold text-neutral-600 uppercase tracking-wider">
+                          <th className="py-3.5 px-4">Collaboratore</th>
+                          <th className="py-3.5 px-3">Ruolo / Contr.</th>
+                          <th className="py-3.5 px-3 text-center">Presenze / Riposi</th>
+                          <th className="py-3.5 px-3 text-center">Cassa</th>
+                          <th className="py-3.5 px-3 text-center">Fioreria</th>
+                          <th className="py-3.5 px-3 text-center">Decor</th>
+                          <th className="py-3.5 px-3 text-center">S. Calda</th>
+                          <th className="py-3.5 px-3 text-center">S. Fredda</th>
+                          <th className="py-3.5 px-3 text-right">Ore Lav.</th>
+                          <th className="py-3.5 px-3 text-right">Ferie/Mal.</th>
+                          <th className="py-3.5 px-3 text-right">Rendicontate</th>
+                          <th className="py-3.5 px-4 text-center">Saldo</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-neutral-100 font-medium">
+                        {monthlySummary.employeeSummaries
+                          .filter(
+                            (s) =>
+                              s.employee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                              s.employee.role.toLowerCase().includes(searchQuery.toLowerCase())
+                          )
+                          .map((s) => (
                             <tr
                               key={s.employee.id}
                               className="hover:bg-neutral-50/80 transition-colors"
@@ -1012,21 +946,27 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                                       {s.employee.name}
                                     </span>
                                     {s.employee.isActive === false && (
-                                      <span className="text-[9px] text-neutral-400 block">Archiviato</span>
+                                      <span className="text-[9px] text-neutral-400 block">
+                                        Archiviato
+                                      </span>
                                     )}
                                   </div>
                                 </div>
                               </td>
 
                               <td className="py-3 px-3">
-                                <span className="font-semibold text-neutral-700 block">{s.employee.role}</span>
+                                <span className="font-semibold text-neutral-700 block">
+                                  {s.employee.role}
+                                </span>
                                 <span className="text-[10px] text-neutral-400">
-                                  {s.employee.contractHours || 40}h/sett ({isFullTime ? 'Full' : 'Part'})
+                                  {s.employee.contractHours || 40}h/sett
                                 </span>
                               </td>
 
                               <td className="py-3 px-3 text-center text-[11px]">
-                                <span className="font-bold text-emerald-700">{s.daysCount.presence}p</span>
+                                <span className="font-bold text-emerald-700">
+                                  {s.daysCount.presence}p
+                                </span>
                                 <span className="text-neutral-400 mx-1">•</span>
                                 <span className="text-neutral-500">{s.daysCount.rest}r</span>
                                 {(s.daysCount.leave > 0 || s.daysCount.sick > 0) && (
@@ -1090,7 +1030,9 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                               </td>
 
                               <td className="py-3 px-3 text-right">
-                                <span className="font-extrabold text-nicora-teal">{s.workedHours}h</span>
+                                <span className="font-extrabold text-nicora-teal">
+                                  {s.workedHours}h
+                                </span>
                               </td>
 
                               <td className="py-3 px-3 text-right">
@@ -1121,41 +1063,53 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                                 </span>
                               </td>
                             </tr>
-                          );
-                        })}
-                    </tbody>
-                    <tfoot>
-                      <tr className="bg-neutral-100 border-t-2 border-nicora-teal font-black text-neutral-900 text-xs">
-                        <td className="py-3 px-4" colSpan={3}>
-                          TOTALE PUNTO VENDITA ({monthlySummary.totalPresenceDays} presenze)
-                        </td>
-                        <td className="py-3 px-3 text-center text-rose-800">{(monthlySummary.departmentTotals.Cassa ?? 0)}h</td>
-                        <td className="py-3 px-3 text-center text-pink-800">{(monthlySummary.departmentTotals.Fioreria ?? 0)}h</td>
-                        <td className="py-3 px-3 text-center text-purple-800">{(monthlySummary.departmentTotals.Decor ?? 0)}h</td>
-                        <td className="py-3 px-3 text-center text-emerald-800">{(monthlySummary.departmentTotals['Serra Calda'] ?? 0)}h</td>
-                        <td className="py-3 px-3 text-center text-sky-800">{(monthlySummary.departmentTotals['Serra Fredda'] ?? 0)}h</td>
-                        <td className="py-3 px-3 text-right text-nicora-teal text-sm">{monthlySummary.totalWorkedHours}h</td>
-                        <td className="py-3 px-3 text-right text-purple-800">{monthlySummary.totalLeaveHours}h</td>
-                        <td className="py-3 px-3 text-right text-black text-sm">{monthlySummary.totalAccountedHours}h</td>
-                        <td className="py-3 px-4 text-center">-</td>
-                      </tr>
-                    </tfoot>
-                  </table>
+                          ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="bg-neutral-100 border-t-2 border-nicora-teal font-black text-neutral-900 text-xs">
+                          <td className="py-3 px-4" colSpan={3}>
+                            TOTALE PUNTO VENDITA ({monthlySummary.totalPresenceDays} presenze)
+                          </td>
+                          <td className="py-3 px-3 text-center text-rose-800">
+                            {monthlySummary.departmentTotals.Cassa ?? 0}h
+                          </td>
+                          <td className="py-3 px-3 text-center text-pink-800">
+                            {monthlySummary.departmentTotals.Fioreria ?? 0}h
+                          </td>
+                          <td className="py-3 px-3 text-center text-purple-800">
+                            {monthlySummary.departmentTotals.Decor ?? 0}h
+                          </td>
+                          <td className="py-3 px-3 text-center text-emerald-800">
+                            {monthlySummary.departmentTotals['Serra Calda'] ?? 0}h
+                          </td>
+                          <td className="py-3 px-3 text-center text-sky-800">
+                            {monthlySummary.departmentTotals['Serra Fredda'] ?? 0}h
+                          </td>
+                          <td className="py-3 px-3 text-right text-nicora-teal text-sm">
+                            {monthlySummary.totalWorkedHours}h
+                          </td>
+                          <td className="py-3 px-3 text-right text-purple-800">
+                            {monthlySummary.totalLeaveHours}h
+                          </td>
+                          <td className="py-3 px-3 text-right text-black text-sm">
+                            {monthlySummary.totalAccountedHours}h
+                          </td>
+                          <td className="py-3 px-4 text-center">-</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
                 </div>
-              </div>
 
-              {/* SCHEDE MOBILE-FIRST */}
-              <div className="lg:hidden space-y-3">
-                {monthlySummary.employeeSummaries
-                  .filter(
-                    (s) =>
-                      s.employee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                      s.employee.role.toLowerCase().includes(searchQuery.toLowerCase())
-                  )
-                  .map((s) => {
-                    const isFullTime = (s.employee.contractHours || 40) >= 38;
-
-                    return (
+                {/* SCHEDE MOBILE-FIRST */}
+                <div className="lg:hidden space-y-3">
+                  {monthlySummary.employeeSummaries
+                    .filter(
+                      (s) =>
+                        s.employee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        s.employee.role.toLowerCase().includes(searchQuery.toLowerCase())
+                    )
+                    .map((s) => (
                       <div
                         key={s.employee.id}
                         className="bg-white rounded-2xl p-4 border border-nicora-sage-border shadow-clean space-y-3"
@@ -1170,7 +1124,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                                 {s.employee.name}
                               </h4>
                               <span className="text-[11px] text-neutral-400">
-                                {s.employee.role} • <strong>{s.employee.contractHours || 40}h</strong> ({isFullTime ? 'Full' : 'Part'})
+                                {s.employee.role} • <strong>{s.employee.contractHours || 40}h</strong>
                               </span>
                             </div>
                           </div>
@@ -1192,19 +1146,27 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                         <div className="grid grid-cols-4 gap-1.5 text-center text-[10px]">
                           <div className="bg-emerald-50 p-1.5 rounded-lg border border-emerald-100">
                             <span className="text-emerald-700 font-bold block">Presenze</span>
-                            <span className="font-black text-emerald-900 text-xs">{s.daysCount.presence}gg</span>
+                            <span className="font-black text-emerald-900 text-xs">
+                              {s.daysCount.presence}gg
+                            </span>
                           </div>
                           <div className="bg-neutral-50 p-1.5 rounded-lg border border-neutral-200">
                             <span className="text-neutral-500 font-bold block">Riposi</span>
-                            <span className="font-black text-neutral-800 text-xs">{s.daysCount.rest}gg</span>
+                            <span className="font-black text-neutral-800 text-xs">
+                              {s.daysCount.rest}gg
+                            </span>
                           </div>
                           <div className="bg-purple-50 p-1.5 rounded-lg border border-purple-100">
                             <span className="text-purple-700 font-bold block">Ferie</span>
-                            <span className="font-black text-purple-900 text-xs">{s.daysCount.leave}gg</span>
+                            <span className="font-black text-purple-900 text-xs">
+                              {s.daysCount.leave}gg
+                            </span>
                           </div>
                           <div className="bg-rose-50 p-1.5 rounded-lg border border-rose-100">
                             <span className="text-rose-700 font-bold block">Malattie</span>
-                            <span className="font-black text-rose-900 text-xs">{s.daysCount.sick}gg</span>
+                            <span className="font-black text-rose-900 text-xs">
+                              {s.daysCount.sick}gg
+                            </span>
                           </div>
                         </div>
 
@@ -1227,7 +1189,9 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                               );
                             })}
                             {s.workedHours === 0 && (
-                              <span className="text-neutral-400 text-xs italic">Nessun turno registrato</span>
+                              <span className="text-neutral-400 text-xs italic">
+                                Nessun turno registrato
+                              </span>
                             )}
                           </div>
                         </div>
@@ -1235,239 +1199,247 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                         {/* Footer Totali Collaboratore */}
                         <div className="pt-2 border-t border-neutral-100 flex items-center justify-between text-xs font-bold text-neutral-700">
                           <div>
-                            Ore Lavorate: <strong className="text-nicora-teal">{s.workedHours}h</strong>
-                            {s.leaveHours > 0 && <span className="text-purple-700 ml-1">(+{s.leaveHours}h ferie)</span>}
+                            Ore Lavorate:{' '}
+                            <strong className="text-nicora-teal">{s.workedHours}h</strong>
+                            {s.leaveHours > 0 && (
+                              <span className="text-purple-700 ml-1">
+                                (+{s.leaveHours}h ferie)
+                              </span>
+                            )}
                           </div>
                           <div>
-                            Rendicontate: <strong className="text-neutral-900">{s.totalAccountedHours}h</strong>
+                            Rendicontate:{' '}
+                            <strong className="text-neutral-900">{s.totalAccountedHours}h</strong>
                           </div>
                         </div>
                       </div>
-                    );
-                  })}
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* --- MODALE NUOVO / MODIFICA ANAGRAFICA --- */}
-      {isNewModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-150">
-          <div className="w-full max-w-lg bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-200 max-h-[92vh] flex flex-col">
-            <div className="bg-nicora-teal text-white p-4 sm:p-5 flex items-center justify-between flex-shrink-0">
-              <div className="flex items-center gap-2">
-                <Users size={20} className="text-nicora-orange" />
-                <h3 className="font-extrabold text-base sm:text-lg">
-                  {editingEmployee ? `Modifica: ${editingEmployee.name}` : 'Nuovo Assunto / Collaboratore'}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsNewModalOpen(false)}
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleFormSubmit} className="p-4 sm:p-5 overflow-y-auto space-y-4 text-xs">
-              <div>
-                <label className="block font-bold text-neutral-800 mb-1">
-                  Nome e Cognome / Riferimento:
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Es. Elena Rossi o Elena R."
-                  className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-nicora-teal min-h-[44px]"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-neutral-800 mb-1.5 flex items-center gap-1.5">
-                  <MapPin size={13} className="text-nicora-teal" />
-                  <span>Sede di Riferimento:</span>
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, locationId: 'gazzada' })}
-                    className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-xs font-bold transition-all ${
-                      formData.locationId === 'gazzada'
-                        ? 'bg-nicora-teal text-white border-nicora-teal shadow-sm'
-                        : 'bg-neutral-50 text-neutral-600 border-neutral-200 hover:bg-neutral-100'
-                    }`}
-                  >
-                    <span>🌱 Gazzada Schianno</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, locationId: 'varese' })}
-                    className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-xs font-bold transition-all ${
-                      formData.locationId === 'varese'
-                        ? 'bg-nicora-teal text-white border-nicora-teal shadow-sm'
-                        : 'bg-neutral-50 text-neutral-600 border-neutral-200 hover:bg-neutral-100'
-                    }`}
-                  >
-                    <span>🪴 Varese Centro</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-neutral-800 mb-1">Reparto Primario:</label>
-                  <select
-                    value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value as Department })}
-                    className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-nicora-teal min-h-[44px]"
-                  >
-                    {getLocationDepartments(formData.locationId, true).map((d) => (
-                      <option key={d} value={d}>
-                        {d}
-                      </option>
                     ))}
-                  </select>
                 </div>
+              </>
+            )}
+          </div>
+        )}
 
+        {/* --- MODALE NUOVO / MODIFICA ANAGRAFICA (Senza PIN visibile/modificabile dal datore di lavoro) --- */}
+        {isNewModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-150">
+            <div className="w-full max-w-lg bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-200 max-h-[92vh] flex flex-col">
+              <div className="bg-nicora-teal text-white p-4 sm:p-5 flex items-center justify-between flex-shrink-0">
+                <div className="flex items-center gap-2">
+                  <Users size={20} className="text-nicora-orange" />
+                  <h3 className="font-extrabold text-base sm:text-lg">
+                    {editingEmployee
+                      ? `Modifica: ${editingEmployee.name}`
+                      : 'Nuovo Assunto / Collaboratore'}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsNewModalOpen(false)}
+                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form
+                onSubmit={handleFormSubmit}
+                className="p-4 sm:p-5 overflow-y-auto space-y-4 text-xs"
+              >
                 <div>
-                  <label className="block font-bold text-neutral-800 mb-1">Ore Contratto Settimanali:</label>
+                  <label className="block font-bold text-neutral-800 mb-1">
+                    Nome e Cognome / Riferimento:
+                  </label>
                   <input
-                    type="number"
-                    min={10}
-                    max={50}
-                    value={formData.contractHours}
-                    onChange={(e) => setFormData({ ...formData, contractHours: Number(e.target.value) })}
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Es. Elena Rossi o Elena R."
                     className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-nicora-teal min-h-[44px]"
                     required
                   />
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-neutral-800 mb-1 flex items-center gap-1">
-                    <KeyRound size={12} className="text-amber-600" />
-                    <span>PIN Accesso (4 cifre):</span>
+                  <label className="block font-bold text-neutral-800 mb-1.5 flex items-center gap-1.5">
+                    <MapPin size={13} className="text-nicora-teal" />
+                    <span>Sede di Riferimento:</span>
                   </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, locationId: 'gazzada' })}
+                      className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-xs font-bold transition-all ${
+                        formData.locationId === 'gazzada'
+                          ? 'bg-nicora-teal text-white border-nicora-teal shadow-sm'
+                          : 'bg-neutral-50 text-neutral-600 border-neutral-200 hover:bg-neutral-100'
+                      }`}
+                    >
+                      <span>🌱 Gazzada Schianno</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, locationId: 'varese' })}
+                      className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-xs font-bold transition-all ${
+                        formData.locationId === 'varese'
+                          ? 'bg-nicora-teal text-white border-nicora-teal shadow-sm'
+                          : 'bg-neutral-50 text-neutral-600 border-neutral-200 hover:bg-neutral-100'
+                      }`}
+                    >
+                      <span>🪴 Varese Centro</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-neutral-800 mb-1">
+                      Reparto Primario:
+                    </label>
+                    <select
+                      value={formData.role}
+                      onChange={(e) =>
+                        setFormData({ ...formData, role: e.target.value as Department })
+                      }
+                      className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-nicora-teal min-h-[44px]"
+                    >
+                      {getLocationDepartments(formData.locationId, true).map((d) => (
+                        <option key={d} value={d}>
+                          {d}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-neutral-800 mb-1">
+                      Ore Contratto Settimanali:
+                    </label>
+                    <input
+                      type="number"
+                      min={10}
+                      max={50}
+                      value={formData.contractHours}
+                      onChange={(e) =>
+                        setFormData({ ...formData, contractHours: Number(e.target.value) })
+                      }
+                      className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-nicora-teal min-h-[44px]"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-neutral-800 mb-1">
+                      Email Aziendale:
+                    </label>
+                    <input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      placeholder="nome.cognome@nicoragarden.it"
+                      className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-nicora-teal min-h-[44px]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-neutral-800 mb-1">
+                      Recapito Telefonico:
+                    </label>
+                    <input
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      placeholder="+39 340 ..."
+                      className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-nicora-teal min-h-[44px]"
+                    />
+                  </div>
+                </div>
+
+                {/* Matrice Competenze */}
+                <div className="bg-neutral-50 p-3 rounded-2xl border border-neutral-200 space-y-2.5">
+                  <label className="block font-extrabold text-neutral-800 text-xs flex items-center gap-1.5">
+                    <Award size={14} className="text-amber-500" />
+                    <span>Competenze per Reparto (1–10):</span>
+                  </label>
+
+                  <div className="space-y-2">
+                    {getLocationDepartments(formData.locationId, true).map((dept) => {
+                      const score = formData.skills[dept] ?? 5;
+                      return (
+                        <div key={dept} className="flex items-center justify-between gap-3 text-xs">
+                          <span className="font-bold text-neutral-700 w-28 truncate">{dept}</span>
+                          <input
+                            type="range"
+                            min={1}
+                            max={10}
+                            value={score}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                skills: { ...formData.skills, [dept]: Number(e.target.value) },
+                              })
+                            }
+                            className="flex-1 accent-nicora-teal"
+                          />
+                          <span className="font-black text-xs text-nicora-teal w-6 text-right">
+                            {score}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
                   <input
-                    type="text"
-                    maxLength={6}
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    placeholder="1234"
-                    className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl px-3 py-2 text-sm font-bold tracking-widest focus:ring-2 focus:ring-nicora-teal min-h-[44px]"
-                    required
+                    type="checkbox"
+                    id="isManager"
+                    checked={formData.isManager}
+                    onChange={(e) => setFormData({ ...formData, isManager: e.target.checked })}
+                    className="w-4 h-4 rounded text-nicora-teal accent-nicora-teal"
                   />
+                  <label htmlFor="isManager" className="font-bold text-neutral-800 cursor-pointer">
+                    Autorizza come Direzione / Manager (accesso a modifiche turni e approvazioni)
+                  </label>
                 </div>
 
-                <div>
-                  <label className="block font-bold text-neutral-800 mb-1">Recapito Telefonico:</label>
+                <div className="flex items-center gap-2 pt-1 bg-amber-50 p-2.5 rounded-xl border border-amber-200">
                   <input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="+39 340 ..."
-                    className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-nicora-teal min-h-[44px]"
+                    type="checkbox"
+                    id="isMobile"
+                    checked={formData.isMobile}
+                    onChange={(e) => setFormData({ ...formData, isMobile: e.target.checked })}
+                    className="w-4 h-4 rounded text-amber-600 accent-amber-600"
                   />
+                  <label htmlFor="isMobile" className="font-bold text-amber-900 cursor-pointer">
+                    Collaboratore Mobile / Jolly (disponibile per trasferte nell&apos;altra sede in caso di deficit)
+                  </label>
                 </div>
-              </div>
 
-              <div>
-                <label className="block font-bold text-neutral-800 mb-1">Email Aziendale:</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="nome.cognome@nicoragarden.it"
-                  className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-nicora-teal min-h-[44px]"
-                />
-              </div>
-
-              {/* Matrice Competenze */}
-              <div className="bg-neutral-50 p-3 rounded-2xl border border-neutral-200 space-y-2.5">
-                <label className="block font-extrabold text-neutral-800 text-xs flex items-center gap-1.5">
-                  <Award size={14} className="text-amber-500" />
-                  <span>Competenze per Reparto (1–10):</span>
-                </label>
-
-                <div className="space-y-2">
-                  {getLocationDepartments(formData.locationId, true).map((dept) => {
-                    const score = formData.skills[dept] ?? 5;
-                    return (
-                      <div key={dept} className="flex items-center justify-between gap-3 text-xs">
-                        <span className="font-bold text-neutral-700 w-28 truncate">{dept}</span>
-                        <input
-                          type="range"
-                          min={1}
-                          max={10}
-                          value={score}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              skills: { ...formData.skills, [dept]: Number(e.target.value) },
-                            })
-                          }
-                          className="flex-1 accent-nicora-teal"
-                        />
-                        <span className="font-black text-xs text-nicora-teal w-6 text-right">{score}</span>
-                      </div>
-                    );
-                  })}
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsNewModalOpen(false)}
+                    className="flex-1 py-3 bg-neutral-100 text-neutral-700 font-bold rounded-xl hover:bg-neutral-200 transition-colors min-h-[44px]"
+                  >
+                    Annulla
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-3 bg-nicora-orange hover:bg-nicora-orange-hover text-white font-extrabold rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-[0.98] min-h-[44px]"
+                  >
+                    <Check size={16} />
+                    <span>{editingEmployee ? 'Salva Modifiche' : 'Crea Collaboratore'}</span>
+                  </button>
                 </div>
-              </div>
-
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="checkbox"
-                  id="isManager"
-                  checked={formData.isManager}
-                  onChange={(e) => setFormData({ ...formData, isManager: e.target.checked })}
-                  className="w-4 h-4 rounded text-nicora-teal accent-nicora-teal"
-                />
-                <label htmlFor="isManager" className="font-bold text-neutral-800 cursor-pointer">
-                  Autorizza come Direzione / Manager (accesso a modifiche turni e approvazioni)
-                </label>
-              </div>
-
-              <div className="flex items-center gap-2 pt-1 bg-amber-50 p-2.5 rounded-xl border border-amber-200">
-                <input
-                  type="checkbox"
-                  id="isMobile"
-                  checked={formData.isMobile}
-                  onChange={(e) => setFormData({ ...formData, isMobile: e.target.checked })}
-                  className="w-4 h-4 rounded text-amber-600 accent-amber-600"
-                />
-                <label htmlFor="isMobile" className="font-bold text-amber-900 cursor-pointer">
-                  Collaboratore Mobile / Jolly (disponibile per trasferte nell'altra sede in caso di deficit)
-                </label>
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsNewModalOpen(false)}
-                  className="flex-1 py-3 bg-neutral-100 text-neutral-700 font-bold rounded-xl hover:bg-neutral-200 transition-colors min-h-[44px]"
-                >
-                  Annulla
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-3 bg-nicora-orange hover:bg-nicora-orange-hover text-white font-extrabold rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-transform active:scale-[0.98] min-h-[44px]"
-                >
-                  <Check size={16} />
-                  <span>{editingEmployee ? 'Salva Modifiche' : 'Crea Collaboratore'}</span>
-                </button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
-
-    </div>
+        )}
+      </div>
+    </>
   );
 };
 export default StaffPersonnel;
