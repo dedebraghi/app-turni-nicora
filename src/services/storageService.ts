@@ -9,6 +9,7 @@ const STORAGE_KEYS = {
   REQUESTS: 'nicora_v4_requests',
   SESSION: 'nicora_v4_session',
   MODE: 'nicora_v4_schedule_mode',
+  DRAFTS: 'nicora_v1_generated_drafts',
 };
 
 export const generateInitialShifts = (): Shift[] => {
@@ -157,5 +158,60 @@ export const restoreFromBackupJson = (jsonString: string): boolean => {
   } catch (e) {
     console.error('Errore ripristino backup:', e);
     return false;
+  }
+};
+
+/**
+ * Gestione dello stato di generazione bozze per sede e mese.
+ * La chiave è nel formato: `${locationId}_${year}-${String(month).padStart(2, '0')}` (es. 'gazzada_2026-09')
+ */
+export const getGeneratedDraftsMap = (): Record<string, boolean> => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.DRAFTS);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {
+    console.error('Errore caricamento bozze generate:', e);
+  }
+  return {};
+};
+
+export const hasDraftGenerated = (locationId: string, year: number, month: number): boolean => {
+  const map = getGeneratedDraftsMap();
+  const key = `${locationId}_${year}-${String(month).padStart(2, '0')}`;
+  return !!map[key];
+};
+
+export const recordDraftGenerated = (locationId: string, year: number, month: number): void => {
+  try {
+    const map = getGeneratedDraftsMap();
+    const key = `${locationId}_${year}-${String(month).padStart(2, '0')}`;
+    map[key] = true;
+    localStorage.setItem(STORAGE_KEYS.DRAFTS, JSON.stringify(map));
+  } catch (e) {
+    console.error('Errore salvataggio stato bozza generata:', e);
+  }
+};
+
+export const resetDraftGenerated = (locationId?: string, year?: number, month?: number): void => {
+  try {
+    if (!locationId) {
+      localStorage.removeItem(STORAGE_KEYS.DRAFTS);
+      return;
+    }
+    const map = getGeneratedDraftsMap();
+    if (year !== undefined && month !== undefined) {
+      const key = `${locationId}_${year}-${String(month).padStart(2, '0')}`;
+      delete map[key];
+    } else {
+      // Rimuovi tutte le bozze della sede indicata
+      Object.keys(map).forEach((k) => {
+        if (k.startsWith(`${locationId}_`)) {
+          delete map[k];
+        }
+      });
+    }
+    localStorage.setItem(STORAGE_KEYS.DRAFTS, JSON.stringify(map));
+  } catch (e) {
+    console.error('Errore reset stato bozze generate:', e);
   }
 };

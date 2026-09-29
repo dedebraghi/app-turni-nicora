@@ -11,6 +11,7 @@ import {
   WeekCoverageAnalysis,
 } from '../../engine/schedulerEngine';
 import { StaffSubstitutionWizard } from './StaffSubstitutionWizard';
+import { hasDraftGenerated } from '../../services/storageService';
 import { MobileHeader } from '../layout/MobileHeader';
 import {
   AlertTriangle,
@@ -174,8 +175,14 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
     allStoreEmployees || employees
   );
 
-  // Filtra i gap rimuovendo solo quelli specificamente ignorati
-  const activeGaps = weekAnalysis.weekGaps.filter((g) => !ignoredGapIds.includes(g.id));
+  // Filtra i gap rimuovendo quelli ignorati e mostrando solo se esiste una bozza registrata per quel mese
+  const activeGaps = weekAnalysis.weekGaps.filter((g) => {
+    if (ignoredGapIds.includes(g.id)) return false;
+    const parts = g.dateStr.split('-');
+    const gYear = parseInt(parts[0], 10);
+    const gMonth = parseInt(parts[1], 10);
+    return hasDraftGenerated(activeLocation, gYear, gMonth);
+  });
   const hasActiveCritical = activeGaps.some((g) => g.severity === 'critical');
   const hasActivePartial = activeGaps.some((g) => g.severity === 'partial');
   const currentGap = activeGaps[0];

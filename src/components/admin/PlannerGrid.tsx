@@ -15,6 +15,7 @@ import {
   WeekCoverageAnalysis,
 } from '../../engine/schedulerEngine';
 import { StaffSubstitutionWizard } from './StaffSubstitutionWizard';
+import { hasDraftGenerated } from '../../services/storageService';
 import {
   AlertTriangle,
   Award,
@@ -247,7 +248,13 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
             activeLocation || location.id,
             employees
           );
-          const activeGaps = weekAnalysis.weekGaps.filter((g) => !ignoredGapIds.includes(g.id));
+          const activeGaps = weekAnalysis.weekGaps.filter((g) => {
+            if (ignoredGapIds.includes(g.id)) return false;
+            const parts = g.dateStr.split('-');
+            const gYear = parseInt(parts[0], 10);
+            const gMonth = parseInt(parts[1], 10);
+            return hasDraftGenerated(activeLocation || location.id, gYear, gMonth);
+          });
           if (activeGaps.length === 0) return null;
 
           const currentGap = activeGaps[0];
@@ -775,16 +782,6 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
         </div>
       )}
 
-      {/* Note Legali e Contratto Nicora Garden */}
-      <div className="bg-neutral-50 rounded-2xl p-3 border border-nicora-border text-[11px] text-neutral-500 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-        <span>
-          💡 <strong>Regola Turni:</strong> 5 giorni lavorativi su 7 per dipendente • Riposo garantito 2 giorni.
-        </span>
-        <span>
-          Presidio Cassa contrassegnato in <strong className="text-rose-600">rosso</strong> (priorità assoluta).
-        </span>
-      </div>
-
       {/* Modale Assistente Sostituzione Presidi Passo-Passo (Desktop) */}
       <StaffSubstitutionWizard
         isOpen={isWizardOpen}
@@ -796,7 +793,13 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
             'standard',
             activeLocation || location.id,
             employees
-          ).weekGaps.filter((g) => !ignoredGapIds.includes(g.id))
+          ).weekGaps.filter((g) => {
+            if (ignoredGapIds.includes(g.id)) return false;
+            const parts = g.dateStr.split('-');
+            const gYear = parseInt(parts[0], 10);
+            const gMonth = parseInt(parts[1], 10);
+            return hasDraftGenerated(activeLocation || location.id, gYear, gMonth);
+          })
         }
         employees={employees}
         shifts={storeShifts}

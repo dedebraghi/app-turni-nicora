@@ -29,6 +29,7 @@ import {
   saveStoredRequests,
   saveStoredSession,
   saveStoredShifts,
+  resetDraftGenerated,
 } from './services/storageService';
 import {
   archiveCloudEmployee,
@@ -270,6 +271,7 @@ export const App: React.FC = () => {
 
     setShifts(next);
     saveStoredShifts(next);
+    resetDraftGenerated(targetLocationId);
     setIsClearModalOpen(false);
   };
 

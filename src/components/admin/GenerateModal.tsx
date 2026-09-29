@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Employee, LocationId, ScheduleMode, Shift, ShiftRequest } from '../../domain/types';
 import { formatLocalDate, generateMonthlySchedule } from '../../engine/schedulerEngine';
+import { recordDraftGenerated } from '../../services/storageService';
 import {
   AlertTriangle,
   Calendar,
@@ -86,6 +87,7 @@ export const GenerateModal: React.FC<GenerateModalProps> = ({
       overwriteExisting,
     });
 
+    recordDraftGenerated(locationId, selectedYear, selectedMonth);
     setResultStats(result.stats);
     onApplyShifts(result.shifts);
   };
