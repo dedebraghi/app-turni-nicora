@@ -45,7 +45,7 @@ interface PlannerGridProps {
   onEditShift: (shift: Shift) => void;
   onOpenGenerateModal: () => void;
   onOpenSkillsModal: () => void;
-  onClearShifts?: (locationId: LocationId, year?: number, month?: number) => void;
+  onOpenClearModal?: () => void;
   onOpenEmergencyModal: (shift?: Shift) => void;
   onOpenExportModal: () => void;
   onApplyShift?: (shift: Shift) => void;
@@ -67,7 +67,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
   onEditShift,
   onOpenGenerateModal,
   onOpenSkillsModal,
-  onClearShifts,
+  onOpenClearModal,
   onOpenEmergencyModal,
   onOpenExportModal,
   onApplyShift,
@@ -222,17 +222,13 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
               </button>
             )}
 
-            {/* Svuota Turni Sede */}
-            {isManagerMode && onClearShifts && storeShifts.length > 0 && (
+            {/* Svuota Turni Sede (Apre ClearShiftsModal) */}
+            {isManagerMode && onOpenClearModal && storeShifts.length > 0 && (
               <button
                 type="button"
-                onClick={() => {
-                  if (window.confirm(`Sei sicuro di voler azzerare i turni da oggi in poi per ${location.name}? Lo storico dei giorni passati rimarrà protetto e intatto.`)) {
-                    onClearShifts(location.id);
-                  }
-                }}
-                className="bg-white hover:bg-rose-50 text-neutral-600 hover:text-rose-700 font-semibold text-xs px-3.5 py-2 rounded-xl border border-neutral-200 hover:border-rose-300 flex items-center gap-1.5 active:scale-95 transition-all shadow-xs"
-                title="Azzera e svuota tutti i turni della sede"
+                onClick={onOpenClearModal}
+                className="bg-white hover:bg-rose-50 text-neutral-600 hover:text-rose-700 font-semibold text-xs px-3.5 py-2 rounded-xl border border-neutral-200 hover:border-rose-300 flex items-center gap-1.5 active:scale-95 transition-all shadow-xs cursor-pointer"
+                title="Gestione svuotamento turni (futuri o storico completo)"
               >
                 <Trash2 size={14} className="text-neutral-400 group-hover:text-rose-600" />
                 <span>Svuota Turni</span>
@@ -391,7 +387,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
             isManagerMode={isManagerMode}
             onEditShift={onEditShift}
             onOpenGenerateModal={onOpenGenerateModal}
-            onClearShifts={onClearShifts}
+            onOpenClearModal={onOpenClearModal}
             onOpenExportModal={onOpenExportModal}
             onOpenEmergencyModal={onOpenEmergencyModal}
             onApplyShift={onApplyShift}

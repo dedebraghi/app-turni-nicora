@@ -22,7 +22,6 @@ interface GenerateModalProps {
   requests: ShiftRequest[];
   existingShifts?: Shift[];
   onApplyShifts: (newShifts: Shift[]) => void;
-  onClearShifts?: (locationId: LocationId, year: number, month: number) => void;
 }
 
 const MONTH_NAMES = [
@@ -48,7 +47,6 @@ export const GenerateModal: React.FC<GenerateModalProps> = ({
   requests,
   existingShifts = [],
   onApplyShifts,
-  onClearShifts,
 }) => {
   const now = new Date();
   const currentMonthNum = now.getMonth() + 1; // 1 - 12
@@ -341,32 +339,6 @@ export const GenerateModal: React.FC<GenerateModalProps> = ({
                 <div className="w-10 h-6 bg-neutral-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-nicora-teal"></div>
               </label>
             </div>
-
-            {existingMonthShiftsCount > 0 && onClearShifts && (
-              <div className="pt-2 border-t border-neutral-200 flex items-center justify-between">
-                <span className="text-[10px] text-neutral-500">
-                  {isCurrentMonthSelected && pastProtectedCount > 0
-                    ? `Svuota da oggi in poi (${pastProtectedCount} passati protetti):`
-                    : 'Vuoi partire da una griglia vuota?'}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const confirmMsg = isCurrentMonthSelected && pastProtectedCount > 0
-                      ? `Sei sicuro di voler azzerare i turni futuri di ${selectedMonthName} ${selectedYear} per ${locationId === 'gazzada' ? 'Gazzada' : 'Varese'}? I ${pastProtectedCount} turni dei giorni passati rimarranno protetti e intatti.`
-                      : `Sei sicuro di voler azzerare tutti i turni di ${selectedMonthName} ${selectedYear} per ${locationId === 'gazzada' ? 'Gazzada' : 'Varese'}?`;
-                    if (window.confirm(confirmMsg)) {
-                      onClearShifts(locationId, selectedYear, selectedMonth);
-                      setResultStats(null);
-                    }
-                  }}
-                  className="text-rose-600 hover:text-rose-800 text-xs font-bold flex items-center gap-1 hover:underline"
-                >
-                  <Trash2 size={12} />
-                  <span>Svuota turni {selectedMonthName}</span>
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Vincoli e Regole Nicora Applicate */}

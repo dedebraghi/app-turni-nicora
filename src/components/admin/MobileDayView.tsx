@@ -50,7 +50,7 @@ interface MobileDayViewProps {
   onEditShift: (shift: Shift) => void;
   onOpenGenerateModal?: () => void;
   onOpenExportModal?: () => void;
-  onClearShifts?: (locationId: LocationId, year?: number, month?: number) => void;
+  onOpenClearModal?: () => void;
   onOpenEmergencyModal?: (shift?: Shift) => void;
   onApplyShift?: (newShift: Shift) => void;
   currentEmployee?: Employee;
@@ -138,7 +138,7 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
   onEditShift,
   onOpenGenerateModal,
   onOpenExportModal,
-  onClearShifts,
+  onOpenClearModal,
   onOpenEmergencyModal,
   onApplyShift,
   currentEmployee,
@@ -347,20 +347,16 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
           )}
         </div>
 
-        {/* --- SVUOTA TURNI SU MOBILE (se presenti) --- */}
-        {isManagerMode && onClearShifts && storeShiftsCount > 0 && (
-          <div className="flex justify-end">
+        {/* --- SVUOTA TURNI SU MOBILE (sotto i due bottoni) --- */}
+        {isManagerMode && onOpenClearModal && storeShiftsCount > 0 && (
+          <div className="flex justify-end pt-1">
             <button
               type="button"
-              onClick={() => {
-                if (window.confirm(`Sei sicuro di voler azzerare i turni da oggi in poi per ${location.name}? Lo storico dei giorni passati rimarrà protetto e intatto.`)) {
-                  onClearShifts(location.id);
-                }
-              }}
-              className="text-neutral-500 hover:text-rose-700 text-[11px] font-medium flex items-center gap-1.5 py-1 px-2.5 rounded-lg hover:bg-rose-50 transition-colors"
+              onClick={onOpenClearModal}
+              className="text-neutral-500 hover:text-rose-700 text-xs font-medium flex items-center gap-1.5 py-1 px-2.5 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
             >
               <Trash2 size={13} className="text-neutral-400 group-hover:text-rose-600" />
-              <span>Svuota turni futuri ({location.name})</span>
+              <span>Svuota turni...</span>
             </button>
           </div>
         )}

@@ -8,6 +8,7 @@ import { PlannerGrid } from './components/admin/PlannerGrid';
 import { SkillsMatrix } from './components/admin/SkillsMatrix';
 import { StaffPersonnel } from './components/admin/StaffPersonnel';
 import { GenerateModal } from './components/admin/GenerateModal';
+import { ClearShiftsModal } from './components/admin/ClearShiftsModal';
 import { EmergencyModal } from './components/admin/EmergencyModal';
 import { PrintExportModal } from './components/admin/PrintExportModal';
 import { EditShiftModal } from './components/common/EditShiftModal';
@@ -66,6 +67,7 @@ export const App: React.FC = () => {
   const [isSkillsModalOpen, setIsSkillsModalOpen] = useState(false);
   const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isClearModalOpen, setIsClearModalOpen] = useState(false);
   const [emergencyTargetShift, setEmergencyTargetShift] = useState<Shift | null>(null);
 
   const todayStr = formatLocalDate(new Date());
@@ -228,17 +230,15 @@ export const App: React.FC = () => {
     });
   };
 
-  const handleClearShifts = async (targetLocationId: LocationId, year?: number, month?: number) => {
+  const handleClearShifts = async (targetLocationId: LocationId, mode: 'future' | 'all') => {
     const todayStr = formatLocalDate(new Date());
     let next: Shift[];
     let clearedCount = 0;
     let preservedCount = 0;
 
-    if (year && month) {
-      const monthPrefix = `${year}-${month.toString().padStart(2, '0')}`;
+    if (mode === 'future') {
       next = shifts.filter((s) => {
         if (s.locationId !== targetLocationId) return true;
-        if (!s.date.startsWith(monthPrefix)) return true;
         if (s.date < todayStr) {
           preservedCount++;
           return true; // Preserva i giorni passati!
@@ -246,40 +246,31 @@ export const App: React.FC = () => {
         clearedCount++;
         return false; // Cancella solo da oggi in avanti
       });
-
-      const monthStartDate = `${year}-${month.toString().padStart(2, '0')}-01`;
-      const lastDay = new Date(year, month, 0).getDate();
-      const monthEndDate = `${year}-${month.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
-      
-      const effectiveStartDate = todayStr > monthStartDate ? todayStr : monthStartDate;
-      if (effectiveStartDate <= monthEndDate) {
-        await deleteCloudShifts(targetLocationId, effectiveStartDate, monthEndDate);
-      }
-    } else {
-      next = shifts.filter((s) => {
-        if (s.locationId !== targetLocationId) return true;
-        if (s.date < todayStr) {
-          preservedCount++;
-          return true; // Preserva lo storico passato!
-        }
-        clearedCount++;
-        return false;
-      });
       await deleteCloudShifts(targetLocationId, todayStr);
+
+      setToast({
+        id: `toast-clear-future-${Date.now()}`,
+        title: 'Turni Futuri Rimossi',
+        message: `${clearedCount} turni da oggi in poi rimossi. ${preservedCount} turni passati preservati intatti.`,
+        type: 'info',
+      });
+    } else {
+      // mode === 'all': svuota TUTTO il database (incluso lo storico)
+      clearedCount = shifts.filter((s) => s.locationId === targetLocationId).length;
+      next = shifts.filter((s) => s.locationId !== targetLocationId);
+      await deleteCloudShifts(targetLocationId);
+
+      setToast({
+        id: `toast-clear-all-${Date.now()}`,
+        title: 'Database Azzerato',
+        message: `Tutti i ${clearedCount} turni (incluso lo storico) per ${targetLocationId === 'gazzada' ? 'Gazzada' : 'Varese'} sono stati eliminati definitivamente.`,
+        type: 'info',
+      });
     }
+
     setShifts(next);
     saveStoredShifts(next);
-
-    const message = preservedCount > 0
-      ? `${clearedCount} turni futuri azzerati. ${preservedCount} turni passati preservati intatti.`
-      : `I turni per ${targetLocationId === 'gazzada' ? 'Gazzada' : 'Varese'} sono stati azzerati.`;
-
-    setToast({
-      id: `toast-clear-${Date.now()}`,
-      title: 'Turni Svuotati',
-      message,
-      type: 'info',
-    });
+    setIsClearModalOpen(false);
   };
 
   const handleApplySingleShift = (shiftToApply: Shift) => {
@@ -618,7 +609,7 @@ export const App: React.FC = () => {
             onSaveEmployee={handleSaveEmployee}
             onEditShift={(shift) => setEditingShift(shift)}
             onOpenGenerateModal={() => setIsGenerateModalOpen(true)}
-            onClearShifts={handleClearShifts}
+            onOpenClearModal={() => setIsClearModalOpen(true)}
             onOpenSkillsModal={() => setIsSkillsModalOpen(true)}
             onOpenEmergencyModal={(shift) => {
               setEmergencyTargetShift(shift || null);
@@ -690,7 +681,16 @@ export const App: React.FC = () => {
         requests={requests}
         existingShifts={shifts}
         onApplyShifts={handleApplyGeneratedShifts}
-        onClearShifts={handleClearShifts}
+      />
+
+      {/* Modale Svuotamento Turni con Opzione Sicura e Danger Zone */}
+      <ClearShiftsModal
+        isOpen={isClearModalOpen}
+        onClose={() => setIsClearModalOpen(false)}
+        locationId={activeLocation}
+        locationName={activeLocation === 'gazzada' ? 'Gazzada Schianno' : 'Varese'}
+        shifts={shifts}
+        onConfirmClear={handleClearShifts}
       />
 
       {/* Modale Competenze 1-10 (Overlay rapido) */}
