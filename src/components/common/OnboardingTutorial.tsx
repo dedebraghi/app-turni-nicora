@@ -112,11 +112,13 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({
   const renderMiniNavBar = (activeTab: 'today' | 'my-shifts' | 'planner' | 'requests' | 'personnel') => {
     const navItems = [
       { id: 'today', label: isDesktop ? 'Oggi in Sede' : 'Oggi', icon: Clock },
-      { id: 'my-shifts', label: 'I Miei Turni', icon: CalendarDays },
+      ...(userRole !== 'admin'
+        ? [{ id: 'my-shifts' as const, label: 'I Miei Turni', icon: CalendarDays }]
+        : []),
       { id: 'planner', label: isDesktop ? 'Tabellone' : 'Tabellone', icon: LayoutGrid },
       { id: 'requests', label: isDesktop ? 'Richieste & Ferie' : 'Richieste', icon: Mail },
       ...(userRole === 'admin'
-        ? [{ id: 'personnel', label: isDesktop ? 'Personale' : 'Personale', icon: Contact }]
+        ? [{ id: 'personnel' as const, label: isDesktop ? 'Personale' : 'Personale', icon: Contact }]
         : []),
     ];
 
@@ -317,6 +319,58 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({
   // SLIDES PER RESPONSABILI (ADMIN / MANAGER) - 6 SLIDE COMPLETE
   // ----------------------------------------------------------------------
   const adminSlides: SlideConfig[] = [
+    {
+      tabName: 'Oggi',
+      tabIcon: Clock,
+      activeNavTab: 'today',
+      title: isDesktop ? 'Presenze e presidi in tempo reale' : 'Chi è presente oggi in sede',
+      description: isDesktop
+        ? 'Nella scheda "Oggi in Sede" monitori in tempo reale tutti i collaboratori in servizio nella data odierna, verificando all\'istante chi è al lavoro, chi è di riposo o in ferie e il presidio continuo della Cassa.'
+        : 'Nella scheda "Oggi" monitori in tempo reale tutti i colleghi al lavoro oggi nella sede selezionata, controllando i reparti attivi e la copertura della cassa.',
+      renderGraphic: () => (
+        <div className="flex flex-col items-center w-full">
+          <div className="w-full max-w-[280px] bg-white border border-emerald-200/80 rounded-2xl p-3 shadow-xs space-y-2 text-left">
+            <div className="flex items-center justify-between pb-1.5 border-b border-gray-100">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full">
+                Oggi in Sede
+              </span>
+              <span className="text-[10px] font-bold text-emerald-700 flex items-center gap-1">
+                <CheckCircle2 size={11} /> Cassa Coperta
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full bg-nicora-teal text-white flex items-center justify-center text-xs font-bold font-serif">
+                  S
+                </div>
+                <div className="text-left">
+                  <span className="text-xs font-bold text-neutral-900 block leading-tight">Sabrina</span>
+                  <span className="text-[10px] text-neutral-500">Cassa • 08:30 – 19:30</span>
+                </div>
+              </div>
+              <span className="text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                In servizio
+              </span>
+            </div>
+            <div className="flex items-center justify-between pt-1 border-t border-gray-100">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full bg-neutral-200 text-neutral-600 flex items-center justify-center text-xs font-bold font-serif">
+                  E
+                </div>
+                <div className="text-left">
+                  <span className="text-xs font-bold text-neutral-900 block leading-tight">Eleonora</span>
+                  <span className="text-[10px] text-neutral-500">Riposo</span>
+                </div>
+              </div>
+              <span className="text-[9px] font-semibold text-neutral-500 bg-neutral-100 px-2 py-0.5 rounded-full">
+                Riposo
+              </span>
+            </div>
+          </div>
+          {renderMiniNavBar('today')}
+        </div>
+      ),
+    },
     {
       tabName: 'Tabellone',
       tabIcon: LayoutGrid,

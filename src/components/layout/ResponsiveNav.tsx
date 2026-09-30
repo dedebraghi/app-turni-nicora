@@ -28,12 +28,16 @@ export const ResponsiveNav: React.FC<ResponsiveNavProps> = ({
       mobileLabel: 'Oggi',
       icon: Clock,
     },
-    {
-      id: 'my-shifts',
-      label: 'I Miei Turni',
-      mobileLabel: 'I Miei Turni',
-      icon: CalendarDays,
-    },
+    ...(!isManagerMode
+      ? [
+          {
+            id: 'my-shifts' as ActiveTab,
+            label: 'I Miei Turni',
+            mobileLabel: 'I Miei Turni',
+            icon: CalendarDays,
+          },
+        ]
+      : []),
     {
       id: 'planner',
       label: isManagerMode ? 'Tabellone Pianificatore' : 'Settimana Completa',

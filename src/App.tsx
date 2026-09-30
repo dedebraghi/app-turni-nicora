@@ -226,6 +226,9 @@ export const App: React.FC = () => {
     if (!isManagerMode && (activeTab === 'personnel' || activeTab === 'skills' || activeTab === 'staff')) {
       setActiveTab('today');
     }
+    if (isManagerMode && activeTab === 'my-shifts') {
+      setActiveTab('today');
+    }
   }, [isManagerMode, activeTab]);
 
   const handleLoginSuccess = (newSession: UserSession, userLocation: LocationId) => {
@@ -234,6 +237,9 @@ export const App: React.FC = () => {
     const isMgr = newSession.role === 'manager';
     setIsManagerMode(isMgr);
     if (!isMgr && (activeTab === 'personnel' || activeTab === 'skills' || activeTab === 'staff')) {
+      setActiveTab('today');
+    }
+    if (isMgr && activeTab === 'my-shifts') {
       setActiveTab('today');
     }
   };
@@ -395,6 +401,7 @@ export const App: React.FC = () => {
         (s) => !(s.employeeId === shiftToApply.employeeId && s.date === shiftToApply.date)
       );
       const next = [...filtered, shiftToApply];
+      saveStoredShifts(next);
       saveCloudShifts(next);
       return next;
     });
