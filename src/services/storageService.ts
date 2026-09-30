@@ -6,10 +6,10 @@ const STORAGE_KEYS = {
   LOCATION: 'nicora_v4_location',
   EMPLOYEES: 'nicora_v4_employees',
   SHIFTS: 'nicora_v5_shifts',
-  REQUESTS: 'nicora_v4_requests',
+  REQUESTS: 'nicora_v5_requests',
   SESSION: 'nicora_v4_session',
   MODE: 'nicora_v4_schedule_mode',
-  DRAFTS: 'nicora_v1_generated_drafts',
+  DRAFTS: 'nicora_v2_generated_drafts',
 };
 
 export const generateInitialShifts = (): Shift[] => {

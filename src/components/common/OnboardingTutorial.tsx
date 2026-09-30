@@ -13,6 +13,13 @@ import {
   AlertTriangle,
   ArrowRight,
   Users,
+  Contact,
+  Shield,
+  Sliders,
+  ArrowLeftRight,
+  FileSpreadsheet,
+  Cpu,
+  Lock,
 } from 'lucide-react';
 
 interface SlideConfig {
@@ -94,24 +101,25 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({
       { id: 'my-shifts', label: 'I Miei Turni', icon: CalendarDays },
       { id: 'planner', label: 'Tabellone', icon: LayoutGrid },
       { id: 'requests', label: 'Richieste', icon: Mail },
+      ...(userRole === 'admin' ? [{ id: 'personnel', label: 'Personale', icon: Contact }] : []),
     ];
 
     return (
-      <div className="w-full max-w-[280px] bg-white border border-nicora-sage-border rounded-xl p-1.5 flex items-center justify-around shadow-xs mt-3">
+      <div className="w-full max-w-[310px] bg-white border border-nicora-sage-border rounded-xl p-1.5 flex items-center justify-around shadow-xs mt-3">
         {navItems.map((item) => {
           const isActive = item.id === activeTab;
           const Icon = item.icon;
           return (
             <div
               key={item.id}
-              className={`flex flex-col items-center px-2 py-1 rounded-lg transition-all ${
+              className={`flex flex-col items-center px-1.5 py-1 rounded-lg transition-all ${
                 isActive
                   ? 'bg-nicora-teal text-white shadow-xs scale-105'
                   : 'text-neutral-400'
               }`}
             >
               <Icon size={14} className={isActive ? 'text-white' : 'text-neutral-400'} />
-              <span className={`text-[9px] font-semibold mt-0.5 ${isActive ? 'text-white' : 'text-neutral-500'}`}>
+              <span className={`text-[8.5px] font-semibold mt-0.5 ${isActive ? 'text-white' : 'text-neutral-500'}`}>
                 {item.label}
               </span>
             </div>
@@ -230,7 +238,7 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({
   ];
 
   // ----------------------------------------------------------------------
-  // SLIDES PER RESPONSABILI (ADMIN / MANAGER) - ANCHE DA SMARTPHONE
+  // SLIDES PER RESPONSABILI (ADMIN / MANAGER) - 6 SLIDE COMPLETE
   // ----------------------------------------------------------------------
   const adminSlides: SlideConfig[] = [
     {
@@ -239,7 +247,7 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({
       activeNavTab: 'planner',
       title: 'Griglia turni e coperture da mobile',
       description:
-        'Tocca la scheda "Tabellone" in basso per scorrere i giorni della settimana, verificare la copertura dei reparti e individuare subito gli orari vuoti.',
+        'Tocca la scheda "Tabellone" in basso per scorrere i giorni della settimana, verificare la copertura dei reparti e individuare subito eventuali orari o mansioni scoperte.',
       renderGraphic: () => (
         <div className="flex flex-col items-center w-full">
           <div className="w-full max-w-[280px] bg-white border border-gray-200/80 rounded-2xl p-3 shadow-xs text-left">
@@ -270,26 +278,36 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({
     },
     {
       tabName: 'Tabellone',
-      tabIcon: Sparkles,
+      tabIcon: Cpu,
       activeNavTab: 'planner',
-      title: 'Generazione automatica e bilanciata',
+      title: 'Come funziona l\'algoritmo "Genera Bozza"',
       description:
-        'Dal "Tabellone" premi "Genera Turni": il motore calcola la settimana garantendo i riposi obbligatori di legge, i vincoli contrattuali e i fabbisogni del vivaio.',
+        'Il motore calcola i turni ripartendo le ore di contratto su 5 giorni a settimana, preserva 2 giorni di riposo, garantisce 11h tra turni e assegna ogni reparto in base al punteggio competenze (1-10).',
       renderGraphic: () => (
         <div className="flex flex-col items-center w-full">
-          <div className="w-full max-w-[280px] bg-white border border-emerald-200 rounded-2xl p-3 shadow-xs">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-nicora-teal text-white flex items-center justify-center shadow-xs">
-                <Sparkles size={18} />
+          <div className="w-full max-w-[280px] bg-white border border-emerald-200 rounded-2xl p-3 shadow-xs text-left">
+            <div className="flex items-center gap-2 pb-2 border-b border-emerald-100">
+              <div className="w-7 h-7 rounded-lg bg-nicora-teal text-white flex items-center justify-center">
+                <Cpu size={14} />
               </div>
-              <div className="text-left flex-1 min-w-0">
-                <span className="text-xs font-bold text-neutral-900 block truncate">Generazione Intelligente</span>
-                <span className="text-[10px] text-emerald-700 font-medium">Contratti e riposi rispettati</span>
+              <div className="leading-tight">
+                <span className="text-[11px] font-bold text-neutral-900 block">Algoritmo di Calcolo</span>
+                <span className="text-[9px] text-emerald-700 font-semibold">Regole contrattuali & riposi</span>
               </div>
             </div>
-            <div className="mt-2.5 pt-2 border-t border-gray-100 flex items-center justify-between text-[10px] text-neutral-600">
-              <span>Fabbisogno reparti: 100%</span>
-              <span className="font-bold text-emerald-700">Pronto per la pubblicazione</span>
+            <div className="pt-2 space-y-1.5 text-[10px]">
+              <div className="flex items-center justify-between text-neutral-700">
+                <span>• Ripartizione oraria:</span>
+                <span className="font-bold text-neutral-900">5 gg / settimana</span>
+              </div>
+              <div className="flex items-center justify-between text-neutral-700">
+                <span>• Rispetto vincolo riposo:</span>
+                <span className="font-bold text-emerald-700">11 ore minime</span>
+              </div>
+              <div className="flex items-center justify-between text-neutral-700">
+                <span>• Priorità competenze:</span>
+                <span className="font-bold text-nicora-teal">Punteggi 1–10</span>
+              </div>
             </div>
           </div>
           {renderMiniNavBar('planner')}
@@ -302,7 +320,7 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({
       activeNavTab: 'planner',
       title: 'Gestione imprevisti e sostituzioni',
       description:
-        'In caso di malattia o assenza improvvisa, tocca il turno nel "Tabellone": il sistema ti suggerisce all\'istante i collaboratori idonei e disponibili.',
+        'In caso di malattia o assenza improvvisa, tocca il turno nel "Tabellone": il sistema ti suggerisce all\'istante i collaboratori idonei e disponibili, privilegiando chi è a riposo senza creare vuoti altrove.',
       renderGraphic: () => (
         <div className="flex flex-col items-center w-full">
           <div className="w-full max-w-[280px] bg-white border border-rose-200 rounded-2xl p-3 shadow-xs text-left">
@@ -320,6 +338,89 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({
               <span className="text-[10px] font-semibold text-emerald-700 bg-white px-2 py-1 rounded-lg border border-emerald-200 shadow-2xs">
                 Assegna
               </span>
+            </div>
+          </div>
+          {renderMiniNavBar('planner')}
+        </div>
+      ),
+    },
+    {
+      tabName: 'Personale',
+      tabIcon: Contact,
+      activeNavTab: 'personnel',
+      title: 'Scheda Personale & Competenze',
+      description:
+        'Tocca la scheda "Personale" per gestire l\'organico, modificare al volo le ore di contratto (40h, 30h, 24h, 20h) e tarare i punteggi da 1 a 10 per reparto usati dall\'algoritmo per bilanciare i turni.',
+      renderGraphic: () => (
+        <div className="flex flex-col items-center w-full">
+          <div className="w-full max-w-[280px] bg-white border border-gray-200 rounded-2xl p-3 shadow-xs text-left">
+            <div className="flex items-center justify-between pb-1.5 border-b border-gray-100">
+              <span className="text-xs font-bold text-neutral-900">Stefania (Cassa)</span>
+              <span className="text-[9px] font-bold text-nicora-teal bg-emerald-50 px-2 py-0.5 rounded-full">
+                40h / sett
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-1.5 pt-2 text-center text-[10px]">
+              <div className="bg-emerald-50 text-emerald-800 font-bold p-1 rounded-lg">
+                Cassa 10
+              </div>
+              <div className="bg-amber-50 text-amber-800 font-bold p-1 rounded-lg">
+                Fioreria 6
+              </div>
+              <div className="bg-neutral-50 text-neutral-700 font-bold p-1 rounded-lg">
+                Decor 7
+              </div>
+            </div>
+          </div>
+          {renderMiniNavBar('personnel')}
+        </div>
+      ),
+    },
+    {
+      tabName: 'Richieste',
+      tabIcon: ArrowLeftRight,
+      activeNavTab: 'requests',
+      title: 'Richieste e scambi turno tra colleghi',
+      description:
+        'Nella scheda "Richieste" approvi ferie e permessi. Per gli scambi turno, i due collaboratori si accordano prima tra loro; una volta concordato, la richiesta arriva alla Direzione per la convalida finale.',
+      renderGraphic: () => (
+        <div className="flex flex-col items-center w-full">
+          <div className="w-full max-w-[280px] bg-white border border-gray-200 rounded-2xl p-2.5 shadow-xs text-left">
+            <div className="flex items-center justify-between pb-1 border-b border-gray-100">
+              <span className="text-[11px] font-bold text-neutral-800 flex items-center gap-1">
+                <ArrowLeftRight size={12} className="text-nicora-orange" /> Scambio Turno
+              </span>
+              <span className="text-[8.5px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full">
+                Concordato tra colleghi
+              </span>
+            </div>
+            <p className="text-[10px] text-neutral-600 mt-1.5">
+              <strong>Sabrina ⇄ Eleonora:</strong> scambio turno Mercoledì 15 con Giovedì 16. In attesa del tuo tocco per approvare.
+            </p>
+          </div>
+          {renderMiniNavBar('requests')}
+        </div>
+      ),
+    },
+    {
+      tabName: 'Esclusive Admin',
+      tabIcon: Shield,
+      activeNavTab: 'planner',
+      title: 'Tutte le funzioni riservate alla Direzione',
+      description:
+        'Solo tu come responsabile vedi: il pulsante "Genera Bozza", la cancellazione e override manuale dei turni, l\'export PDF stampabile A4, la matrice competenze e la tab "Personale".',
+      renderGraphic: () => (
+        <div className="flex flex-col items-center w-full">
+          <div className="w-full max-w-[280px] bg-gradient-to-br from-nicora-teal-dark to-nicora-teal text-white rounded-2xl p-3 shadow-xs text-left">
+            <div className="flex items-center gap-1.5 pb-1.5 border-b border-white/20">
+              <Shield size={14} className="text-amber-300" />
+              <span className="text-[11px] font-bold">Privilegi Esclusivi Responsabile</span>
+            </div>
+            <div className="pt-2 grid grid-cols-2 gap-1.5 text-[9.5px]">
+              <span className="bg-white/10 px-2 py-1 rounded-lg">⚡ Genera & Pubblica</span>
+              <span className="bg-white/10 px-2 py-1 rounded-lg">📄 Stampa A4 / PDF</span>
+              <span className="bg-white/10 px-2 py-1 rounded-lg">👥 Gestione Organico</span>
+              <span className="bg-white/10 px-2 py-1 rounded-lg">✏️ Override Turni</span>
             </div>
           </div>
           {renderMiniNavBar('planner')}

@@ -476,51 +476,6 @@ export const INITIAL_EMPLOYEES: Employee[] = [
   },
 ];
 
-export const INITIAL_REQUESTS: ShiftRequest[] = [
-  {
-    id: 'req-1',
-    requesterId: 'emp-gz-7', // Denis
-    locationId: 'gazzada',
-    type: 'swap',
-    targetEmployeeId: 'emp-gz-9', // Ivano
-    shiftDate: new Date().toISOString().split('T')[0],
-    targetShiftDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-    reason: 'Visita medica programmata al mattino',
-    status: 'pending_colleague',
-    createdAt: 'Oggi alle 08:15',
-  },
-  {
-    id: 'req-2',
-    requesterId: 'emp-gz-2', // Eleonora
-    locationId: 'gazzada',
-    type: 'leave',
-    shiftDate: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
-    reason: 'Ferie estive / riposo programmato',
-    status: 'approved',
-    createdAt: 'Ieri alle 17:30',
-    managerNote: 'Ferie approvate dalla Direzione',
-  },
-  {
-    id: 'req-3',
-    requesterId: 'emp-va-2', // Katja
-    locationId: 'varese',
-    type: 'leave',
-    shiftDate: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
-    reason: 'Permesso speciale fiera floreale',
-    status: 'pending',
-    createdAt: 'Ieri alle 10:00',
-  },
-  {
-    id: 'req-4',
-    requesterId: 'emp-gz-1', // Sabrina
-    locationId: 'gazzada',
-    type: 'swap',
-    targetEmployeeId: 'emp-gz-2', // Eleonora
-    shiftDate: new Date(Date.now() + 86400000 * 4).toISOString().split('T')[0],
-    targetShiftDate: new Date(Date.now() + 86400000 * 5).toISOString().split('T')[0],
-    reason: 'Scambio concordato per impegno familiare',
-    status: 'pending', // Accettato da Eleonora, ora al vaglio del responsabile
-    createdAt: 'Oggi alle 09:30',
-    colleagueNote: 'Accettato da Eleonora. In attesa di approvazione della Direzione.',
-  },
-];
+// Richieste iniziali vuote alla consegna del database
+export const INITIAL_REQUESTS: ShiftRequest[] = [];
+

@@ -267,6 +267,25 @@ export const fetchCloudRequests = async (): Promise<ShiftRequest[]> => {
 
     if (error) throw error;
     if (data && data.length > 0) {
+      // Pulizia automatica delle vecchie richieste mock demo (req-1, req-2, req-3, req-4) per consegna pulita del database
+      const hasMockDemoRequests = data.some((r: any) =>
+        r.id === 'req-1' || r.id === 'req-2' || r.id === 'req-3' || r.id === 'req-4'
+      );
+      if (hasMockDemoRequests) {
+        console.info('[Supabase] Eliminazione vecchie richieste demo mock dal database per consegna pulita...');
+        await supabase
+          .from('shift_requests')
+          .delete()
+          .in('id', ['req-1', 'req-2', 'req-3', 'req-4']);
+        const { data: cleanData } = await supabase
+          .from('shift_requests')
+          .select('*')
+          .order('created_at', { ascending: false });
+        const mapped = (cleanData || []).map(mapDbToRequest);
+        saveStoredRequests(mapped);
+        return mapped;
+      }
+
       const mapped = data.map(mapDbToRequest);
       saveStoredRequests(mapped);
       return mapped;

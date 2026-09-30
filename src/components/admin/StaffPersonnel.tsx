@@ -468,13 +468,13 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
         </div>
 
         {/* Barra di Ricerca e Filtro Attivi / Archiviati */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+        <div className="flex flex-col gap-2.5">
           {activeSubView === 'staff' ? (
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 flex-1">
-              <div className="flex bg-neutral-100 p-1 rounded-xl w-full sm:w-auto shrink-0">
+            <div className="flex flex-col md:flex-row md:items-center gap-2.5 w-full">
+              <div className="flex bg-neutral-100 p-1 rounded-xl w-full md:w-auto shrink-0">
                 <button
                   onClick={() => setTabFilter('active')}
-                  className={`flex-1 sm:flex-initial py-1.5 px-3.5 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
+                  className={`flex-1 md:flex-initial py-1.5 px-3.5 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
                     tabFilter === 'active'
                       ? 'bg-white text-nicora-teal shadow-xs'
                       : 'text-neutral-500 hover:text-neutral-800'
@@ -485,7 +485,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                 </button>
                 <button
                   onClick={() => setTabFilter('archived')}
-                  className={`flex-1 sm:flex-initial py-1.5 px-3.5 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
+                  className={`flex-1 md:flex-initial py-1.5 px-3.5 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
                     tabFilter === 'archived'
                       ? 'bg-white text-neutral-900 shadow-xs'
                       : 'text-neutral-500 hover:text-neutral-800'
@@ -496,9 +496,9 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                 </button>
               </div>
 
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 flex items-center gap-2 text-xs text-amber-900 flex-1">
-                <Info size={16} className="text-nicora-orange flex-shrink-0" />
-                <span className="text-[11px] leading-tight">
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 flex items-start sm:items-center gap-2 text-xs text-amber-900 w-full min-w-0">
+                <Info size={16} className="text-nicora-orange flex-shrink-0 mt-0.5 sm:mt-0" />
+                <span className="text-[11px] leading-tight break-words">
                   <strong>Regole Nicora:</strong> Tutti lavorano <strong>5 giorni/settimana</strong>. Le ore di contratto settimanali vengono ripartite sui 5 turni garantendo la copertura dei reparti.
                 </span>
               </div>
@@ -509,7 +509,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
             </div>
           )}
 
-          <div className="relative w-full sm:w-72 shrink-0">
+          <div className="relative w-full">
             <input
               type="text"
               value={searchQuery}
@@ -599,11 +599,13 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 w-full lg:w-auto">
                         {/* Controller Ore da Contratto Settimanali */}
-                        <div className="flex items-center gap-2 bg-neutral-50 px-3 py-1.5 rounded-2xl border border-neutral-200">
-                          <Clock size={14} className="text-nicora-teal flex-shrink-0" />
-                          <span className="text-xs font-bold text-neutral-700">Contratto:</span>
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 bg-neutral-50 px-2.5 sm:px-3 py-1.5 rounded-2xl border border-neutral-200 w-full sm:w-auto">
+                          <div className="flex items-center gap-1.5 mr-1">
+                            <Clock size={14} className="text-nicora-teal flex-shrink-0" />
+                            <span className="text-[11px] sm:text-xs font-bold text-neutral-700">Contratto:</span>
+                          </div>
 
                           {/* Preset rapidi */}
                           <div className="flex items-center gap-1">
@@ -624,7 +626,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                           </div>
 
                           {/* Stepper +/- */}
-                          <div className="flex items-center gap-1 pl-1 border-l border-neutral-200">
+                          <div className="flex items-center gap-1 pl-1 border-l border-neutral-200 ml-auto sm:ml-0">
                             <button
                               type="button"
                               onClick={() => handleContractHoursChange(emp.id, currentHours - 2)}
@@ -633,7 +635,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                             >
                               -
                             </button>
-                            <span className="text-xs font-extrabold text-neutral-800 w-8 text-center">
+                            <span className="text-xs font-extrabold text-neutral-800 w-7 text-center">
                               {currentHours}h
                             </span>
                             <button
@@ -648,10 +650,10 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                         </div>
 
                         {/* Pulsanti Modifica Anagrafica e Archiviazione */}
-                        <div className="flex items-center gap-1.5 ml-auto sm:ml-0">
+                        <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
                           <button
                             onClick={() => openEditModal(emp)}
-                            className="px-3 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors min-h-[38px]"
+                            className="flex-1 sm:flex-initial px-3 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors min-h-[38px]"
                           >
                             <Edit3 size={13} />
                             <span>Modifica Anagrafica</span>
