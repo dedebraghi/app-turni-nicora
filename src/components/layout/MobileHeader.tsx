@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Employee, LocationId } from '../../domain/types';
 import { NicoraLogo } from '../NicoraLogo';
+import { InstallPWAButton } from '../InstallPWAButton';
 import { 
   AlertCircle, 
   Check, 
+  HelpCircle,
   KeyRound, 
   LogOut, 
   X 
@@ -18,6 +20,7 @@ export interface MobileHeaderProps {
   vareseStaffCount?: number;
   onLogout?: () => void;
   onSaveEmployee?: (emp: Employee) => void;
+  onOpenTutorial?: () => void;
 }
 
 export const MobileHeader: React.FC<MobileHeaderProps> = ({
@@ -29,6 +32,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
   vareseStaffCount = 16,
   onLogout,
   onSaveEmployee,
+  onOpenTutorial,
 }) => {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
@@ -176,6 +180,20 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
                     </div>
 
                     <div className="pt-2 flex flex-col gap-1.5">
+                      {onOpenTutorial && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsProfileMenuOpen(false);
+                            onOpenTutorial();
+                          }}
+                          className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-[#e6f0eb] hover:bg-[#d8e8e0] text-[#0a474b] text-xs font-semibold transition-colors cursor-pointer"
+                        >
+                          <HelpCircle size={14} className="text-[#0a474b]" />
+                          <span>Guida rapida all'app</span>
+                        </button>
+                      )}
+
                       {/* Opzione Modifica PIN / Password sopra a Esci */}
                       {onSaveEmployee && (
                         <button
@@ -210,8 +228,8 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
             </div>
           </div>
 
-          {/* Riga 2: Switch Sedi compatto */}
-          <div className="flex items-center">
+          {/* Riga 2: Switch Sedi compatto + Pulsante Installa App Mobile */}
+          <div className="flex items-center justify-between gap-2">
             <div className="inline-flex items-center p-0.5 rounded-full bg-[#e1eae5]">
               <button
                 type="button"
@@ -236,6 +254,9 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
                 Varese {vareseStaffCount}
               </button>
             </div>
+
+            {/* Tasto Installa App ben visibile in mobile con tutte le funzionalità per Android e iOS */}
+            <InstallPWAButton variant="compact" />
           </div>
         </div>
       </header>

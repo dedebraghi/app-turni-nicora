@@ -492,15 +492,17 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4 animate-tutorial-backdrop"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
       {/* Sfondo cliccabile per uscire velocemente */}
       <div className="fixed inset-0 -z-10" onClick={handleDismiss} />
 
-      {/* Sheet Container: Bottom Sheet su smartphone, card centrata su desktop */}
-      <div className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-nicora-sage-border overflow-hidden flex flex-col pb-safe animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
+      {/* Sheet Container: Bottom Sheet su smartphone, card centrata su desktop con animazione fluida */}
+      <div className={`w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-nicora-sage-border overflow-hidden flex flex-col pb-safe ${
+        isDesktop ? 'animate-tutorial-desktop' : 'animate-tutorial-mobile'
+      }`}>
         
         {/* Banner superiore esplicito di Benvenuto & Tutorial */}
         <div className="bg-gradient-to-r from-nicora-teal-dark via-nicora-teal to-nicora-teal-dark text-white px-5 py-2.5 flex items-center justify-between shadow-xs">
@@ -535,8 +537,8 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({
           </button>
         </div>
 
-        {/* Area Contenuto Slide */}
-        <div className="px-5 pt-5 pb-3 text-center flex flex-col items-center justify-center">
+        {/* Area Contenuto Slide con transizione tra passaggi */}
+        <div key={currentStep} className="px-5 pt-5 pb-3 text-center flex flex-col items-center justify-center animate-slide-swap">
           {/* Micro-anteprima grafica realistica */}
           <div className="w-full flex justify-center py-2 mb-3 bg-neutral-50/70 border border-neutral-100 rounded-2xl">
             {activeSlide.renderGraphic()}
