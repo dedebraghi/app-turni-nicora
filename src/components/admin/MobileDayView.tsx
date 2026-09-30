@@ -464,6 +464,13 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
                 (s) => s.department === 'Cassa' || s.areaNote?.toLowerCase().includes('cassa')
               );
 
+              const parts = day.dateStr.split('-');
+              const dYear = parseInt(parts[0], 10);
+              const dMonth = parseInt(parts[1], 10);
+              const hasDraft = hasDraftGenerated(activeLocation, dYear, dMonth);
+              const isPastDay = day.dateStr < (weekDays.find((d) => d.isToday)?.dateStr || '');
+              const shouldSkipDotAlert = isPastDay && !hasDraft;
+
               return (
                 <button
                   key={day.dateStr}
@@ -503,9 +510,11 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
                           ? isSelected
                             ? 'bg-emerald-300'
                             : 'bg-emerald-500'
+                          : shouldSkipDotAlert
+                          ? 'bg-neutral-300'
                           : 'bg-rose-500 animate-pulse'
                       }`}
-                      title={curCassa ? 'Cassa coperta' : 'Cassa scoperta!'}
+                      title={curCassa ? 'Cassa coperta' : shouldSkipDotAlert ? 'Giorno passato' : 'Cassa scoperta!'}
                     />
                     {day.isMerchandiseArrival && (
                       <span className="text-[8px]" title="Arrivo Merci">

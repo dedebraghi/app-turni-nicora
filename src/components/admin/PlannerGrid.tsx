@@ -135,6 +135,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
   });
 
   // Calcolo statistiche giornaliere per la sede corrente
+  const todayStr = formatLocalDate(new Date());
   const dayStats = weekDays.map((d) => {
     const dayShifts = storeShifts.filter((s) => s.locationId === location.id && s.date === d.dateStr);
     const working = dayShifts.filter(
@@ -143,13 +144,22 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
     const cassaShifts = working.filter(
       (s) => s.department === 'Cassa' || s.areaNote?.toLowerCase().includes('cassa')
     );
-    const isCassaCovered = cassaShifts.length > 0;
+
+    const parts = d.dateStr.split('-');
+    const dYear = parseInt(parts[0], 10);
+    const dMonth = parseInt(parts[1], 10);
+    const hasDraft = hasDraftGenerated(activeLocation || location.id, dYear, dMonth);
+    const isPastDay = d.dateStr < todayStr;
+    const shouldSkipAlerts = isPastDay && !hasDraft;
+
+    const isCassaCovered = shouldSkipAlerts ? true : cassaShifts.length > 0;
 
     return {
       dateStr: d.dateStr,
       workingCount: working.length,
       cassaCount: cassaShifts.length,
       isCassaCovered,
+      shouldSkipAlerts,
     };
   });
 
@@ -535,9 +545,10 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                     <span className="block text-xs font-black">Copertura Reparti</span>
                     <span className="text-[9px] text-neutral-500 font-normal">Chi presidia ciascun reparto</span>
                   </th>
-                  {weekDays.map((day) => {
+                  {weekDays.map((day, idx) => {
                     const coverage = calculateDayCoverage(day.dateStr, storeShifts, employees, location.id);
                     const activeLocationDepts = getLocationDepartments(location.id, true);
+                    const shouldSkip = dayStats[idx]?.shouldSkipAlerts;
                     return (
                       <th key={`cov-${day.dateStr}`} className="py-2 px-2 border-r border-nicora-sage-border align-top font-normal bg-neutral-50/80">
                         <div className="space-y-1.5">
@@ -551,13 +562,15 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                 className={`p-1.5 rounded-xl text-[10px] leading-tight flex flex-col border shadow-xs ${
                                   isCovered
                                     ? 'bg-white border-neutral-200 text-neutral-800'
+                                    : shouldSkip
+                                    ? 'bg-neutral-100 border-neutral-200 text-neutral-500'
                                     : 'bg-rose-100 border-rose-300 text-rose-900 font-bold'
                                 }`}
                               >
                                 <div className="flex justify-between items-center font-black text-nicora-title">
                                   <span>{deptShort}</span>
-                                  <span className={isCovered ? 'text-nicora-teal font-extrabold' : 'text-rose-600'}>
-                                    {isCovered ? `(${staffList.length})` : '⚠️ Vuoto'}
+                                  <span className={isCovered ? 'text-nicora-teal font-extrabold' : shouldSkip ? 'text-neutral-400 font-medium' : 'text-rose-600'}>
+                                    {isCovered ? `(${staffList.length})` : shouldSkip ? '-' : '⚠️ Vuoto'}
                                   </span>
                                 </div>
                                 {isCovered ? (
@@ -569,7 +582,9 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                     ))}
                                   </div>
                                 ) : (
-                                  <div className="text-[8.5px] text-rose-700 font-extrabold uppercase mt-0.5">Nessun Presidio</div>
+                                  <div className={`text-[8.5px] font-extrabold uppercase mt-0.5 ${shouldSkip ? 'text-neutral-400 font-normal' : 'text-rose-700'}`}>
+                                    {shouldSkip ? 'Non pianificato' : 'Nessun Presidio'}
+                                  </div>
                                 )}
                               </div>
                             );
@@ -778,10 +793,11 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                   </div>
                   <span className="text-[10px] text-neutral-500 font-medium">Copertura e Competenze</span>
                 </td>
-                {weekDays.map((day) => {
+                {weekDays.map((day, idx) => {
                   const cov = calculateDayCoverage(day.dateStr, storeShifts, employees, location.id);
                   const activeLocationDepts = getLocationDepartments(location.id, true);
-                  const isOk = cov.uncoveredDepartments.length === 0;
+                  const shouldSkip = dayStats[idx]?.shouldSkipAlerts;
+                  const isOk = shouldSkip ? true : cov.uncoveredDepartments.length === 0;
 
                   return (
                     <td
@@ -792,8 +808,8 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                     >
                       {isOk ? (
                         <div className="space-y-0.5">
-                          <span className="text-[10px] font-black text-emerald-800 bg-emerald-100 px-1.5 py-0.2 rounded-md block">
-                            ✓ {activeLocationDepts.length}/{activeLocationDepts.length} Coperti
+                          <span className={`text-[10px] font-black px-1.5 py-0.2 rounded-md block ${shouldSkip ? 'text-neutral-600 bg-neutral-100' : 'text-emerald-800 bg-emerald-100'}`}>
+                            {shouldSkip ? 'Giorno passato' : `✓ ${activeLocationDepts.length}/${activeLocationDepts.length} Coperti`}
                           </span>
                           {location.id === 'gazzada' ? (
                             <div className="text-[9px] text-neutral-600 font-bold leading-tight">
