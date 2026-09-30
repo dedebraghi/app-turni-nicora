@@ -893,6 +893,7 @@ export const App: React.FC = () => {
         employees={employees}
         onSaveEmployee={handleSaveEmployee}
         onOpenTutorial={() => setIsTutorialManualOpen(true)}
+        onRefreshShifts={handleRefreshShifts}
       />
 
       {/* Navigazione Responsive (Desktop Top Bar / Mobile Bottom Nav) */}

@@ -591,7 +591,7 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
           </div>
 
           {/* Elenco bottoni cliccabili per reparti con conteggio attivo */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
+          <div className="flex items-center gap-1.5 overflow-x-auto pt-1 pb-2 px-0.5 scrollbar-none text-xs">
             <button
               onClick={() => setSelectedDeptFilter('all')}
               className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
@@ -721,12 +721,23 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
                           )}
                         </div>
 
-                        {/* Reparto e Ruolo con Icona tematica */}
+                        {/* Reparto e Ruolo con Icona tematica / Riposo */}
                         <div className="flex items-center gap-1 text-neutral-500 text-[11px] mt-0.5 truncate">
-                          <theme.icon size={13} className={theme.textAvatar} />
-                          <span className="font-semibold text-neutral-700 truncate">
-                            {shift?.areaNote || effectiveDept}
-                          </span>
+                          {isOff ? (
+                            <>
+                              <Coffee size={13} className="text-neutral-500 shrink-0" />
+                              <span className="font-semibold text-neutral-600 truncate">
+                                Riposo
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <theme.icon size={13} className={theme.textAvatar} />
+                              <span className="font-semibold text-neutral-700 truncate">
+                                {shift?.areaNote || effectiveDept}
+                              </span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>

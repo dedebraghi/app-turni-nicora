@@ -3,7 +3,7 @@ import { NicoraLogo } from '../NicoraLogo';
 import { InstallPWAButton } from '../InstallPWAButton';
 import { LOCATIONS } from '../../domain/mockData';
 import { Employee, LocationId, UserSession } from '../../domain/types';
-import { AlertCircle, Check, ChevronDown, HelpCircle, KeyRound, LogOut, MapPin, X } from 'lucide-react';
+import { AlertCircle, Check, ChevronDown, HelpCircle, KeyRound, LogOut, MapPin, RefreshCw, X } from 'lucide-react';
 
 interface AppHeaderProps {
   session: UserSession;
@@ -15,6 +15,7 @@ interface AppHeaderProps {
   employees?: Employee[];
   onSaveEmployee?: (emp: Employee) => void;
   onOpenTutorial?: () => void;
+  onRefreshShifts?: () => Promise<void> | void;
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
@@ -25,9 +26,21 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   employees = [],
   onSaveEmployee,
   onOpenTutorial,
+  onRefreshShifts,
 }) => {
   const isManagerAccount = session.role === 'manager';
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    if (!onRefreshShifts || isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await onRefreshShifts();
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 500);
+    }
+  };
 
   // Stato Modale Cambio PIN / Password
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
@@ -155,7 +168,19 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           </div>
 
           {/* Right Action Tools & User Profile Dropdown */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
+            {onRefreshShifts && (
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="w-8 h-8 rounded-full bg-black/20 hover:bg-black/30 active:scale-95 text-white flex items-center justify-center transition-all border border-white/10 backdrop-blur-xs disabled:opacity-60 cursor-pointer shadow-xs"
+                title="Sincronizza e aggiorna i turni dal server"
+              >
+                <RefreshCw size={14} className={isRefreshing ? 'animate-spin text-nicora-orange' : 'text-emerald-200'} />
+              </button>
+            )}
+
             <InstallPWAButton />
 
             {/* User Profile Button with Dropdown */}

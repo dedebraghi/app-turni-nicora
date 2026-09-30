@@ -94,6 +94,7 @@ export const MyScheduleMobile: React.FC<MyScheduleMobileProps> = ({
         vareseStaffCount={vareseStaffCount}
         onLogout={onLogout}
         onSaveEmployee={onSaveEmployee}
+        onRefreshShifts={onRefreshShifts}
       />
 
       {/* ========================================================
@@ -123,19 +124,6 @@ export const MyScheduleMobile: React.FC<MyScheduleMobileProps> = ({
                   </p>
                 </div>
               </div>
-
-              {onRefreshShifts && (
-                <button
-                  type="button"
-                  onClick={handleRefresh}
-                  disabled={isRefreshing}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white text-xs font-semibold transition-all border border-white/20 backdrop-blur-xs disabled:opacity-60 cursor-pointer shadow-xs shrink-0"
-                  title="Elimina la cache e riscarica i turni aggiornati dal server"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-nicora-orange' : 'text-emerald-200'}`} />
-                  <span>{isRefreshing ? 'Aggiorno...' : 'Aggiorna'}</span>
-                </button>
-              )}
             </div>
 
             {/* Metric Pods Grid 3 items on mobile (Turni, Riposi, Assenze) */}

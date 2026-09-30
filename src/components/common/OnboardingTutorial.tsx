@@ -20,6 +20,8 @@ import {
   FileSpreadsheet,
   Cpu,
   Lock,
+  RefreshCw,
+  Send,
 } from 'lucide-react';
 
 interface SlideConfig {
@@ -278,6 +280,37 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({
         </div>
       ),
     },
+    {
+      tabName: 'Sincronizzazione',
+      tabIcon: RefreshCw,
+      activeNavTab: 'my-shifts',
+      title: 'Tasto "Aggiorna" nell\'Header',
+      description: isDesktop
+        ? 'In alto a destra nell\'header trovi l\'icona circolare di aggiornamento. Premila per svuotare la memoria temporanea e sincronizzare istantaneamente i turni più recenti pubblicati dalla Direzione, senza dover fare il logout.'
+        : 'In alto nell\'header trovi l\'icona circolare di aggiornamento. Toccala per svuotare la memoria temporanea e scaricare i turni aggiornati dal server, senza dover rifare l\'accesso.',
+      renderGraphic: () => (
+        <div className="flex flex-col items-center w-full">
+          <div className="w-full max-w-[280px] bg-gradient-to-r from-nicora-teal-dark to-nicora-teal text-white rounded-2xl p-3 shadow-xs">
+            <div className="flex items-center justify-between pb-2 border-b border-white/20">
+              <span className="text-[11px] font-serif font-bold text-white">Barra Superiore</span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center ring-2 ring-nicora-orange animate-pulse">
+                  <RefreshCw size={13} className="text-white" />
+                </div>
+                <div className="w-7 h-7 rounded-full bg-nicora-orange text-white text-[10px] font-bold flex items-center justify-center">
+                  NC
+                </div>
+              </div>
+            </div>
+            <div className="pt-2 text-[10px] text-emerald-100 flex items-center gap-1.5">
+              <Sparkles size={12} className="text-amber-300 shrink-0" />
+              <span>Un tocco sull&apos;icona riscarica all&apos;istante i turni ufficiali dal cloud</span>
+            </div>
+          </div>
+          {renderMiniNavBar('my-shifts')}
+        </div>
+      ),
+    },
   ];
 
   // ----------------------------------------------------------------------
@@ -352,6 +385,37 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({
                 <span>• Priorità competenze:</span>
                 <span className="font-bold text-nicora-teal">Punteggi 1–10</span>
               </div>
+            </div>
+          </div>
+          {renderMiniNavBar('planner')}
+        </div>
+      ),
+    },
+    {
+      tabName: 'Tabellone',
+      tabIcon: Send,
+      activeNavTab: 'planner',
+      title: 'Bozza e Pubblicazione allo Staff',
+      description: isDesktop
+        ? 'Quando generi i turni del mese, rimangono in bozza privata visibile solo alla Direzione per consentirti verifiche e modifiche. Quando il piano è pronto, premi "Pubblica Turni allo Staff" per renderli ufficiali sui profili dei collaboratori.'
+        : 'Quando generi i turni, restano in bozza privata per consentirti modifiche con calma. Quando sei pronto, premi "Pubblica" per renderli ufficiali per tutti i collaboratori.',
+      renderGraphic: () => (
+        <div className="flex flex-col items-center w-full">
+          <div className="w-full max-w-[280px] bg-white border border-amber-300 rounded-2xl p-3 shadow-xs text-left">
+            <div className="flex items-center justify-between pb-1.5 border-b border-amber-100">
+              <span className="text-[10px] font-bold text-amber-900 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 flex items-center gap-1">
+                <Clock size={10} className="text-amber-600" /> Bozza non pubblicata
+              </span>
+              <span className="text-[9px] text-neutral-400 font-medium">Solo Direzione</span>
+            </div>
+            <p className="text-[10px] text-neutral-600 mt-1.5 leading-snug">
+              I collaboratori continuano a vedere solo i turni precedenti confermati. Zero lag e nessuna notifica prematura sui loro smartphone.
+            </p>
+            <div className="mt-2.5 pt-2 border-t border-neutral-100 flex items-center justify-between">
+              <span className="text-[10px] text-emerald-700 font-bold">Turni pronti?</span>
+              <span className="bg-emerald-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-2xs">
+                <Send size={10} /> Pubblica allo Staff
+              </span>
             </div>
           </div>
           {renderMiniNavBar('planner')}

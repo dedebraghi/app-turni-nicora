@@ -126,19 +126,6 @@ export const MyScheduleDesktop: React.FC<MyScheduleDesktopProps> = ({
               <span className="font-serif text-xl font-bold text-white leading-tight">{leaveShifts.length}</span>
             </div>
           </div>
-
-          {onRefreshShifts && (
-            <button
-              type="button"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 active:scale-95 text-white text-xs font-semibold transition-all border border-white/20 backdrop-blur-xs disabled:opacity-60 cursor-pointer shadow-xs shrink-0"
-              title="Elimina la cache e risincronizza i turni aggiornati dal server"
-            >
-              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-nicora-orange' : 'text-emerald-200'}`} />
-              <span>{isRefreshing ? 'Sincronizzazione...' : 'Aggiorna turni'}</span>
-            </button>
-          )}
         </div>
       </div>
 

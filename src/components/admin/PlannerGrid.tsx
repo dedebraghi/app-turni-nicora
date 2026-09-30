@@ -466,8 +466,8 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
         })()}
 
         {/* Filter & Search Bar Desktop */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-          <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+          <div className="flex items-center gap-2 flex-wrap py-1">
             <div className="relative sm:w-64">
               <input
                 type="text"
@@ -788,9 +788,14 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                           } ${day.isToday ? 'bg-nicora-orange-light/10' : ''}`}
                         >
                           {isOff ? (
-                            <div className="py-1 px-1 rounded-lg bg-neutral-100 text-neutral-500 text-[10px] font-medium flex items-center justify-center gap-1">
-                              <Coffee size={10} />
-                              <span>Riposo</span>
+                            <div className="py-1 px-1 rounded-lg bg-neutral-100 text-neutral-500 text-[10px] font-medium flex flex-col items-center justify-center gap-0.5">
+                              <div className="flex items-center gap-1 font-semibold text-neutral-600">
+                                <Coffee size={10} />
+                                <span>Riposo</span>
+                              </div>
+                              <span className="text-[9px] text-neutral-400 block leading-none">
+                                Riposo
+                              </span>
                             </div>
                           ) : isFerie ? (
                             <div className="py-1 px-1 rounded-lg bg-purple-100 text-purple-700 text-[10px] font-bold">

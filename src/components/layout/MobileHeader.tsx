@@ -8,6 +8,7 @@ import {
   HelpCircle,
   KeyRound, 
   LogOut, 
+  RefreshCw,
   X 
 } from 'lucide-react';
 
@@ -21,6 +22,7 @@ export interface MobileHeaderProps {
   onLogout?: () => void;
   onSaveEmployee?: (emp: Employee) => void;
   onOpenTutorial?: () => void;
+  onRefreshShifts?: () => Promise<void> | void;
 }
 
 export const MobileHeader: React.FC<MobileHeaderProps> = ({
@@ -33,8 +35,20 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
   onLogout,
   onSaveEmployee,
   onOpenTutorial,
+  onRefreshShifts,
 }) => {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    if (!onRefreshShifts || isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await onRefreshShifts();
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 500);
+    }
+  };
 
   // Stato Modale Cambio PIN
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
@@ -129,61 +143,75 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
               </div>
             </div>
 
-            {/* Profilo Utente con dropdown di logout e cambio PIN/Password */}
-            <div className="relative flex-shrink-0">
-              <button
-                type="button"
-                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                className="flex items-center gap-2 text-left focus:outline-none active:opacity-80 transition-opacity"
-                title="Profilo e opzioni sessione"
-              >
-                <div className="flex flex-col items-end text-right">
-                  <span className="text-xs font-bold text-neutral-900 leading-tight">
-                    {employee?.name || 'Sabrina'}
-                  </span>
-                  <span className="text-[10px] text-neutral-500 leading-none">
-                    {isManagerAccount ? 'Responsabile' : employee?.role ? `Rep. ${employee.role}` : 'Rep. Cassa'}
-                  </span>
-                </div>
-                <div className="w-8 h-8 rounded-full bg-[#002f32] flex items-center justify-center text-white font-serif font-bold text-xs shadow-xs ring-2 ring-transparent active:ring-[#a73a00]">
-                  {employee?.name?.charAt(0) || 'S'}
-                </div>
-              </button>
+            {/* Tasto Aggiorna & Profilo Utente */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {onRefreshShifts && (
+                <button
+                  type="button"
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 active:scale-95 text-[#0a474b] flex items-center justify-center transition-all border border-[#e2e8e4] disabled:opacity-60 cursor-pointer shadow-2xs"
+                  title="Sincronizza e aggiorna i turni dal server"
+                >
+                  <RefreshCw size={14} className={isRefreshing ? 'animate-spin text-nicora-orange' : 'text-[#0a474b]'} />
+                </button>
+              )}
 
-              {/* Menu Profilo Dropdown Popup */}
-              {isProfileMenuOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40 bg-black/20"
-                    onClick={() => setIsProfileMenuOpen(false)}
-                  />
-                  <div className="absolute right-0 top-11 z-50 w-56 rounded-2xl bg-white p-3.5 shadow-modal border border-[#e2e8e4] animate-in fade-in zoom-in-95 duration-150">
-                    <div className="flex items-center gap-2.5 pb-2.5 border-b border-neutral-100">
-                      <div className="w-9 h-9 rounded-full bg-[#002f32] text-white flex items-center justify-center font-serif font-bold text-sm">
-                        {employee?.name?.charAt(0) || 'S'}
-                      </div>
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-xs font-bold text-neutral-900 truncate">
-                          {employee?.name || 'Sabrina'}
-                        </span>
-                        <span className="text-[10px] text-neutral-500">
-                          {isManagerAccount
-                            ? 'Direzione / Responsabile'
-                            : employee?.role
-                            ? `Reparto ${employee.role}`
-                            : 'Collaboratore'}
-                        </span>
-                        <span className="text-[9px] text-[#a73a00] font-semibold uppercase mt-0.5">
-                          {activeLocation === 'gazzada' ? 'Sede Gazzada' : 'Sede Varese'}
-                        </span>
-                      </div>
-                    </div>
+              {/* Profilo Utente con dropdown di logout e cambio PIN/Password */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                  className="flex items-center gap-2 text-left focus:outline-none active:opacity-80 transition-opacity"
+                  title="Profilo e opzioni sessione"
+                >
+                  <div className="flex flex-col items-end text-right">
+                    <span className="text-xs font-bold text-neutral-900 leading-tight">
+                      {employee?.name || 'Sabrina'}
+                    </span>
+                    <span className="text-[10px] text-neutral-500 leading-none">
+                      {isManagerAccount ? 'Responsabile' : employee?.role ? `Rep. ${employee.role}` : 'Rep. Cassa'}
+                    </span>
+                  </div>
+                  <div className="w-8 h-8 rounded-full bg-[#002f32] flex items-center justify-center text-white font-serif font-bold text-xs shadow-xs ring-2 ring-transparent active:ring-[#a73a00]">
+                    {employee?.name?.charAt(0) || 'S'}
+                  </div>
+                </button>
 
-                    <div className="pt-2 flex flex-col gap-1.5">
-                      {onOpenTutorial && (
-                        <button
-                          type="button"
-                          onClick={() => {
+                {/* Menu Profilo Dropdown Popup */}
+                {isProfileMenuOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40 bg-black/20"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                    />
+                    <div className="absolute right-0 top-11 z-50 w-56 rounded-2xl bg-white p-3.5 shadow-modal border border-[#e2e8e4] animate-in fade-in zoom-in-95 duration-150">
+                      <div className="flex items-center gap-2.5 pb-2.5 border-b border-neutral-100">
+                        <div className="w-9 h-9 rounded-full bg-[#002f32] text-white flex items-center justify-center font-serif font-bold text-sm">
+                          {employee?.name?.charAt(0) || 'S'}
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-xs font-bold text-neutral-900 truncate">
+                            {employee?.name || 'Sabrina'}
+                          </span>
+                          <span className="text-[10px] text-neutral-500">
+                            {isManagerAccount
+                              ? 'Direzione / Responsabile'
+                              : employee?.role
+                              ? `Reparto ${employee.role}`
+                              : 'Collaboratore'}
+                          </span>
+                          <span className="text-[9px] text-[#a73a00] font-semibold uppercase mt-0.5">
+                            {activeLocation === 'gazzada' ? 'Sede Gazzada' : 'Sede Varese'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 flex flex-col gap-1.5">
+                        {onOpenTutorial && (
+                          <button
+                            type="button"
+                            onClick={() => {
                             setIsProfileMenuOpen(false);
                             onOpenTutorial();
                           }}
@@ -225,6 +253,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
                   </div>
                 </>
               )}
+              </div>
             </div>
           </div>
 
