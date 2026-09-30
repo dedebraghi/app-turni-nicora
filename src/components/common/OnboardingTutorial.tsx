@@ -94,15 +94,55 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({
     if (onClose) onClose();
   };
 
-  // Mini-barra di navigazione simulata per far capire la posizione nello schermo
+  // Rilevamento viewport desktop vs mobile per adattare grafica e spiegazioni
+  const [isDesktop, setIsDesktop] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth >= 768;
+  });
+
+  useEffect(() => {
+    const handleResize = () => setIsDesktop(window.innerWidth >= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Mini-barra di navigazione simulata: Desktop (barra orizzontale in alto) vs Mobile (dock in basso)
   const renderMiniNavBar = (activeTab: 'today' | 'my-shifts' | 'planner' | 'requests' | 'personnel') => {
     const navItems = [
-      { id: 'today', label: 'Oggi', icon: Clock },
+      { id: 'today', label: isDesktop ? 'Oggi in Sede' : 'Oggi', icon: Clock },
       { id: 'my-shifts', label: 'I Miei Turni', icon: CalendarDays },
-      { id: 'planner', label: 'Tabellone', icon: LayoutGrid },
-      { id: 'requests', label: 'Richieste', icon: Mail },
-      ...(userRole === 'admin' ? [{ id: 'personnel', label: 'Personale', icon: Contact }] : []),
+      { id: 'planner', label: isDesktop ? 'Tabellone' : 'Tabellone', icon: LayoutGrid },
+      { id: 'requests', label: isDesktop ? 'Richieste & Ferie' : 'Richieste', icon: Mail },
+      ...(userRole === 'admin'
+        ? [{ id: 'personnel', label: isDesktop ? 'Personale' : 'Personale', icon: Contact }]
+        : []),
     ];
+
+    if (isDesktop) {
+      return (
+        <div className="w-full max-w-[340px] bg-neutral-100/90 border border-nicora-sage-border rounded-xl p-1.5 flex items-center justify-between shadow-2xs mt-2.5">
+          <div className="flex items-center gap-1 w-full justify-around">
+            {navItems.map((item) => {
+              const isActive = item.id === activeTab;
+              const Icon = item.icon;
+              return (
+                <div
+                  key={item.id}
+                  className={`flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold transition-all ${
+                    isActive
+                      ? 'bg-nicora-teal text-white shadow-xs'
+                      : 'text-neutral-500 bg-white/70'
+                  }`}
+                >
+                  <Icon size={12} className={isActive ? 'text-amber-300' : 'text-neutral-400'} />
+                  <span>{item.label}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="w-full max-w-[310px] bg-white border border-nicora-sage-border rounded-xl p-1.5 flex items-center justify-around shadow-xs mt-3">
@@ -138,8 +178,9 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({
       tabIcon: CalendarDays,
       activeNavTab: 'my-shifts',
       title: 'Tutti i tuoi orari settimanali',
-      description:
-        'Tocca la scheda "I Miei Turni" in basso per consultare il tuo orario preciso, gli stacchi pranzo e le ore pianificate della settimana.',
+      description: isDesktop
+        ? 'Clicca sulla scheda "I Miei Turni" nella barra di navigazione in alto per consultare il tuo orario preciso, gli stacchi pranzo e le ore pianificate della settimana.'
+        : 'Tocca la scheda "I Miei Turni" in basso per consultare il tuo orario preciso, gli stacchi pranzo e le ore pianificate della settimana.',
       renderGraphic: () => (
         <div className="flex flex-col items-center w-full">
           <div className="w-full max-w-[280px] bg-white border border-emerald-200/80 rounded-2xl p-3 shadow-xs">
@@ -170,8 +211,9 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({
       tabIcon: Clock,
       activeNavTab: 'today',
       title: 'Chi lavora con te oggi',
-      description:
-        'Nella scheda "Oggi" in basso trovi in tempo reale i colleghi in servizio nel vivaio e nel tuo reparto, così saprai sempre su chi contare.',
+      description: isDesktop
+        ? 'Nella scheda "Oggi in Sede" in alto trovi in tempo reale i colleghi in servizio nel vivaio e nel tuo reparto, così saprai sempre su chi contare.'
+        : 'Nella scheda "Oggi" in basso trovi in tempo reale i colleghi in servizio nel vivaio e nel tuo reparto, così saprai sempre su chi contare.',
       renderGraphic: () => (
         <div className="flex flex-col items-center w-full">
           <div className="w-full max-w-[280px] bg-white border border-gray-200/80 rounded-2xl p-3 shadow-xs space-y-2">
@@ -212,9 +254,10 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({
       tabName: 'Richieste',
       tabIcon: Mail,
       activeNavTab: 'requests',
-      title: 'Ferie e permessi in pochi tap',
-      description:
-        'Usa la scheda "Richieste" per indicare i giorni in cui hai bisogno di un permesso o di ferie. Riceverai un riscontro appena il responsabile le valuta.',
+      title: 'Ferie e permessi in pochi click',
+      description: isDesktop
+        ? 'Usa la scheda "Richieste & Ferie" in alto per indicare i giorni in cui hai bisogno di un permesso o di ferie. Riceverai un riscontro appena la Direzione le valuta.'
+        : 'Usa la scheda "Richieste" in basso per indicare i giorni in cui hai bisogno di un permesso o di ferie. Riceverai un riscontro appena il responsabile le valuta.',
       renderGraphic: () => (
         <div className="flex flex-col items-center w-full">
           <div className="w-full max-w-[280px] bg-white border border-gray-200/80 rounded-2xl p-3 shadow-xs">
@@ -245,9 +288,10 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({
       tabName: 'Tabellone',
       tabIcon: LayoutGrid,
       activeNavTab: 'planner',
-      title: 'Griglia turni e coperture da mobile',
-      description:
-        'Tocca la scheda "Tabellone" in basso per scorrere i giorni della settimana, verificare la copertura dei reparti e individuare subito eventuali orari o mansioni scoperte.',
+      title: isDesktop ? 'Griglia turni e coperture settimanali' : 'Griglia turni e coperture da mobile',
+      description: isDesktop
+        ? 'Clicca sulla scheda "Tabellone Pianificatore" nella barra in alto per navigare le settimane, controllare la copertura oraria dei reparti e individuare subito gli orari vuoti.'
+        : 'Tocca la scheda "Tabellone" in basso per scorrere i giorni della settimana, verificare la copertura dei reparti e individuare subito eventuali orari o mansioni scoperte.',
       renderGraphic: () => (
         <div className="flex flex-col items-center w-full">
           <div className="w-full max-w-[280px] bg-white border border-gray-200/80 rounded-2xl p-3 shadow-xs text-left">
@@ -349,8 +393,9 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({
       tabIcon: Contact,
       activeNavTab: 'personnel',
       title: 'Scheda Personale & Competenze',
-      description:
-        'Tocca la scheda "Personale" per gestire l\'organico, modificare al volo le ore di contratto (40h, 30h, 24h, 20h) e tarare i punteggi da 1 a 10 per reparto usati dall\'algoritmo per bilanciare i turni.',
+      description: isDesktop
+        ? 'Dalla scheda "Personale & Competenze" in alto gestisci l\'organico, modifichi al volo le ore di contratto (40h, 30h, 24h, 20h) e tari i punteggi 1-10 per reparto usati dall\'algoritmo per bilanciare i turni.'
+        : 'Tocca la scheda "Personale" per gestire l\'organico, modificare al volo le ore di contratto (40h, 30h, 24h, 20h) e tarare i punteggi da 1 a 10 per reparto usati dall\'algoritmo per bilanciare i turni.',
       renderGraphic: () => (
         <div className="flex flex-col items-center w-full">
           <div className="w-full max-w-[280px] bg-white border border-gray-200 rounded-2xl p-3 shadow-xs text-left">
@@ -381,8 +426,9 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({
       tabIcon: ArrowLeftRight,
       activeNavTab: 'requests',
       title: 'Richieste e scambi turno tra colleghi',
-      description:
-        'Nella scheda "Richieste" approvi ferie e permessi. Per gli scambi turno, i due collaboratori si accordano prima tra loro; una volta concordato, la richiesta arriva alla Direzione per la convalida finale.',
+      description: isDesktop
+        ? 'Nella scheda "Richieste & Ferie" in alto approvi ferie e permessi. Per gli scambi turno, i colleghi si accordano prima tra loro; una volta concordato, la richiesta arriva alla Direzione per la convalida finale.'
+        : 'Nella scheda "Richieste" approvi ferie e permessi. Per gli scambi turno, i due collaboratori si accordano prima tra loro; una volta concordato, la richiesta arriva alla Direzione per la convalida finale.',
       renderGraphic: () => (
         <div className="flex flex-col items-center w-full">
           <div className="w-full max-w-[280px] bg-white border border-gray-200 rounded-2xl p-2.5 shadow-xs text-left">
@@ -456,22 +502,35 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({
       {/* Sheet Container: Bottom Sheet su smartphone, card centrata su desktop */}
       <div className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-nicora-sage-border overflow-hidden flex flex-col pb-safe animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
         
+        {/* Banner superiore esplicito di Benvenuto & Tutorial */}
+        <div className="bg-gradient-to-r from-nicora-teal-dark via-nicora-teal to-nicora-teal-dark text-white px-5 py-2.5 flex items-center justify-between shadow-xs">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider text-emerald-100">
+              Benvenuto • Guida Rapida all'App
+            </span>
+          </div>
+          <span className="text-[10px] font-semibold text-white/70">
+            Passo {currentStep + 1} di {slides.length}
+          </span>
+        </div>
+
         {/* Intestazione Sheet con Badge Scheda e Tasto Salta touch-friendly */}
-        <div className="flex items-center justify-between px-5 pt-4 pb-2 border-b border-neutral-100 bg-neutral-50/60">
+        <div className="flex items-center justify-between px-5 pt-3.5 pb-2 border-b border-neutral-100 bg-neutral-50/60">
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-nicora-teal-light text-nicora-teal-dark border border-nicora-teal-border/40">
             <TabIcon size={13} className="text-nicora-teal" />
             <span className="text-[11px] font-bold tracking-wide">
-              Scheda: "{activeSlide.tabName}"
+              {isDesktop ? 'Scheda in alto:' : 'Scheda in basso:'} "{activeSlide.tabName}"
             </span>
           </div>
 
           <button
             type="button"
             onClick={handleDismiss}
-            className="flex items-center gap-1 text-neutral-500 hover:text-neutral-800 text-xs font-semibold px-2.5 py-1.5 rounded-lg hover:bg-neutral-100 transition-colors cursor-pointer"
+            className="flex items-center gap-1 text-neutral-500 hover:text-neutral-800 text-xs font-semibold px-2.5 py-1 rounded-lg hover:bg-neutral-100 transition-colors cursor-pointer"
             aria-label="Salta tutorial"
           >
-            <span>Salta</span>
+            <span>Salta guida</span>
             <X size={14} />
           </button>
         </div>
