@@ -458,6 +458,40 @@ export const verifyEmployeePin = async (
   return false;
 };
 
+/**
+ * Carica da Supabase l'elenco dei mesi (location + anno + mese) per cui esistono turni salvati nel cloud.
+ * Questi mesi sono considerati "pubblicati" perché handlePublishMonth li ha inviati a Supabase.
+ * Usato per sincronizzare lo stato di pubblicazione cross-device.
+ */
+export const fetchCloudPublishedMonths = async (): Promise<Set<string>> => {
+  const result = new Set<string>();
+
+  if (!isSupabaseConfigured || !supabase) {
+    return result;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('shifts')
+      .select('location_id, date');
+
+    if (error) throw error;
+    if (data) {
+      for (const row of data) {
+        const parts = (row.date as string).split('-');
+        if (parts.length >= 2) {
+          const key = `${row.location_id}_${parts[0]}-${parts[1]}`;
+          result.add(key);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[Supabase] Errore caricamento mesi pubblicati dal cloud:', err);
+  }
+
+  return result;
+};
+
 // ==========================================
 // CANALI REALTIME UNIFICATI (GAZZADA & VARESE)
 // ==========================================

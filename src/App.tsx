@@ -35,6 +35,7 @@ import {
   isMonthPublished,
   recordMonthPublished,
   recordMonthUnpublished,
+  syncPublishedMonthsFromCloud,
 } from './services/storageService';
 import {
   archiveCloudEmployee,
@@ -42,6 +43,7 @@ import {
   fetchCloudEmployees,
   fetchCloudRequests,
   fetchCloudShifts,
+  fetchCloudPublishedMonths,
   saveCloudEmployee,
   saveCloudRequest,
   deleteCloudShifts,
@@ -88,15 +90,18 @@ export const App: React.FC = () => {
     let isMounted = true;
     const initCloud = async () => {
       try {
-        const [cloudEmps, cloudShifts, cloudReqs] = await Promise.all([
+        const [cloudEmps, cloudShifts, cloudReqs, cloudPubMonths] = await Promise.all([
           fetchCloudEmployees(),
           fetchCloudShifts(),
           fetchCloudRequests(),
+          fetchCloudPublishedMonths(),
         ]);
         if (isMounted) {
           if (cloudEmps && cloudEmps.length > 0) setEmployees(cloudEmps);
           if (cloudShifts && cloudShifts.length > 0) setShifts(cloudShifts.filter((s) => s.employeeId !== 'emp-gz-4'));
           if (cloudReqs && cloudReqs.length > 0) setRequests(cloudReqs);
+          // Sincronizza lo stato di pubblicazione: i mesi con turni su Supabase sono visibili su qualsiasi dispositivo
+          if (cloudPubMonths.size > 0) syncPublishedMonthsFromCloud(cloudPubMonths);
         }
       } catch (err) {
         console.warn('[Cloud] Inizializzazione fallback:', err);
@@ -330,10 +335,15 @@ export const App: React.FC = () => {
   const handleRefreshShifts = async () => {
     try {
       clearStoredShifts();
-      const fresh = await fetchCloudShifts();
+      const [fresh, cloudPubMonths] = await Promise.all([
+        fetchCloudShifts(),
+        fetchCloudPublishedMonths(),
+      ]);
       if (fresh && fresh.length > 0) {
         setShifts(fresh.filter((s) => s.employeeId !== 'emp-gz-4'));
       }
+      // Sincronizza anche lo stato di pubblicazione dal cloud
+      if (cloudPubMonths.size > 0) syncPublishedMonthsFromCloud(cloudPubMonths);
       setToast({
         id: `toast-ref-${Date.now()}`,
         title: 'Turni Aggiornati ✨',
