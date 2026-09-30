@@ -139,9 +139,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           <div className="flex items-center gap-1 bg-black/25 p-1 rounded-full border border-white/10 shadow-inner">
             {LOCATIONS.map((loc) => {
               const isActive = loc.id === activeLocation;
-              const dynamicStaffCount = employees.length > 0
-                ? employees.filter((e) => e.locationId === loc.id && e.isActive !== false && !e.isOwner).length
-                : loc.defaultStaffCount;
 
               return (
                 <button
@@ -155,13 +152,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                 >
                   <MapPin size={12} className={isActive ? 'text-white' : 'text-white/60'} />
                   <span>{loc.shortName}</span>
-                  <span
-                    className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold ${
-                      isActive ? 'bg-black/30 text-white' : 'bg-white/15 text-white/70'
-                    }`}
-                  >
-                    {dynamicStaffCount}
-                  </span>
                 </button>
               );
             })}

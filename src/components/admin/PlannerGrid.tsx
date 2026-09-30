@@ -304,20 +304,6 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
               <span>Stampa & WhatsApp</span>
             </button>
 
-            {/* Pubblica Turni allo Staff (se è presente una bozza non ancora pubblicata) */}
-            {isManagerMode && hasUnpublishedDraftInView && onPublishMonth && (
-              <button
-                type="button"
-                onClick={handlePublish}
-                disabled={isPublishing}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer disabled:opacity-60"
-                title="Rendi ufficiali i turni del mese corrente e sincronizzali con tutto lo staff"
-              >
-                <Send size={14} className={isPublishing ? 'animate-pulse' : ''} />
-                <span>{isPublishing ? 'Pubblicazione...' : 'Pubblica Turni allo Staff'}</span>
-              </button>
-            )}
-
             {/* Genera Bozza */}
             {isManagerMode && (
               <button

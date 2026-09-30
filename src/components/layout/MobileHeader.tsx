@@ -269,7 +269,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
                     : 'text-neutral-600 hover:text-neutral-900'
                 }`}
               >
-                Gazzada {gazzadaStaffCount}
+                Gazzada
               </button>
               <button
                 type="button"
@@ -280,7 +280,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
                     : 'text-neutral-600 hover:text-neutral-900'
                 }`}
               >
-                Varese {vareseStaffCount}
+                Varese
               </button>
             </div>
 
