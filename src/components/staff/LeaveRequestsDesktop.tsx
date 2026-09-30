@@ -46,6 +46,7 @@ export const LeaveRequestsDesktop: React.FC<LeaveRequestsDesktopProps> = ({
   const [requestType, setRequestType] = useState<ShiftRequestType>('leave');
   
   const myEmployee = currentEmployee || employees.find((e) => e.id === currentEmployeeId);
+  const isManagerUser = Boolean(isManagerMode || myEmployee?.isOwner || myEmployee?.isManager);
 
   const [shiftDate, setShiftDate] = useState<string>(() =>
     new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0]
@@ -294,10 +295,12 @@ export const LeaveRequestsDesktop: React.FC<LeaveRequestsDesktopProps> = ({
           </div>
 
           <h1 className="font-serif text-3xl lg:text-4xl text-nicora-title font-medium tracking-tight">
-            Gestione Richieste &amp; Ferie
+            {isManagerUser ? 'Approvazione Richieste & Ferie' : 'Gestione Richieste & Ferie'}
           </h1>
           <p className="text-sm text-nicora-muted">
-            Piattaforma collaboratori per ferie programmate, scambi diretti concordati tra colleghi e segnalazioni assenza.
+            {isManagerUser
+              ? 'Pannello Direzione per la valutazione, approvazione o rifiuto delle richieste di ferie, scambi turno e assenze del personale.'
+              : 'Piattaforma collaboratori per ferie programmate, scambi diretti concordati tra colleghi e segnalazioni assenza.'}
           </p>
         </div>
       </div>
@@ -442,13 +445,14 @@ export const LeaveRequestsDesktop: React.FC<LeaveRequestsDesktopProps> = ({
       )}
 
       {/* ========================================================
-          3. GRIGLIA PRINCIPALE: Form a sinistra, Archivio a destra
+          3. GRIGLIA PRINCIPALE: Form a sinistra (se collaboratore), Archivio/Gestione
           ======================================================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className={`grid grid-cols-1 ${isManagerUser ? 'lg:grid-cols-1' : 'lg:grid-cols-12'} gap-6`}>
         
-        {/* Left Column (5 cols): Interactive Request Form */}
-        <section className="lg:col-span-5 space-y-6">
-          <div className="bg-white rounded-2xl border border-nicora-sage-border p-6 shadow-2xs space-y-6">
+        {/* Left Column (5 cols): Interactive Request Form (Solo Collaboratori) */}
+        {!isManagerUser && (
+          <section className="lg:col-span-5 space-y-6">
+            <div className="bg-white rounded-2xl border border-nicora-sage-border p-6 shadow-2xs space-y-6">
             
             {/* Header del Form */}
             <div className="flex items-center justify-between border-b border-nicora-sage-border pb-4">
@@ -774,9 +778,10 @@ export const LeaveRequestsDesktop: React.FC<LeaveRequestsDesktopProps> = ({
             </form>
           </div>
         </section>
+        )}
 
-        {/* Right Column (7 cols): Storico Richieste */}
-        <section className="lg:col-span-7 space-y-4">
+        {/* Right Column (7 cols or full width if manager): Storico e Approvazione Richieste */}
+        <section className={`${isManagerUser ? 'lg:col-span-1 max-w-4xl mx-auto w-full' : 'lg:col-span-7'} space-y-4`}>
           {/* Storico Richieste Desktop */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">

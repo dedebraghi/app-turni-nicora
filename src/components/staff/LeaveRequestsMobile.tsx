@@ -50,6 +50,7 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
   const [requestType, setRequestType] = useState<ShiftRequestType>('leave');
   
   const myEmployee = currentEmployee || employees.find((e) => e.id === currentEmployeeId);
+  const isManagerUser = Boolean(isManagerMode || myEmployee?.isOwner || myEmployee?.isManager);
 
   const gazzadaStaffCount = employees.filter((e) => e.locationId === 'gazzada' && e.isActive !== false && !e.isOwner).length;
   const vareseStaffCount = employees.filter((e) => e.locationId === 'varese' && e.isActive !== false && !e.isOwner).length;
@@ -307,11 +308,11 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
               {locationInfo?.shortName || (activeLocation === 'gazzada' ? 'Gazzada Schianno' : 'Varese')}
             </span>
             <h1 className="font-serif text-xl font-bold text-[#0a474b]">
-              Sportello Richieste &amp; Ferie
+              {isManagerUser ? 'Approvazione Richieste & Ferie' : 'Sportello Richieste & Ferie'}
             </h1>
           </div>
           <span className="text-[10px] bg-white border border-[#e2e8e4] text-neutral-600 px-2.5 py-1 rounded-full font-semibold shadow-2xs">
-            Mobile Staff
+            {isManagerUser ? 'Direzione' : 'Mobile Staff'}
           </span>
         </div>
 
@@ -454,16 +455,17 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
         )}
 
         {/* ========================================================
-            4. FORM DI INSERIMENTO NUOVA RICHIESTA
+            4. FORM DI INSERIMENTO NUOVA RICHIESTA (Solo Collaboratori)
             ======================================================== */}
-        <div className="bg-white rounded-2xl p-4 border border-nicora-sage-border shadow-2xs space-y-3.5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Sparkles size={16} className="text-nicora-orange" />
-              <h3 className="font-serif text-sm font-semibold text-nicora-title">
-                Nuova Richiesta
-              </h3>
-            </div>
+        {!isManagerUser && (
+          <div className="bg-white rounded-2xl p-4 border border-nicora-sage-border shadow-2xs space-y-3.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles size={16} className="text-nicora-orange" />
+                <h3 className="font-serif text-sm font-semibold text-nicora-title">
+                  Nuova Richiesta
+                </h3>
+              </div>
             <span className="text-[10px] text-neutral-400">Sede: {locationInfo?.shortName}</span>
           </div>
 
@@ -739,6 +741,7 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
             </button>
           </form>
         </div>
+        )}
 
         {/* ========================================================
             5. STORICO DELLE RICHIESTE
