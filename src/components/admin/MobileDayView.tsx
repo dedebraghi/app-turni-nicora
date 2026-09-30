@@ -469,7 +469,7 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
               const dMonth = parseInt(parts[1], 10);
               const hasDraft = hasDraftGenerated(activeLocation, dYear, dMonth);
               const isPastDay = day.dateStr < (weekDays.find((d) => d.isToday)?.dateStr || '');
-              const shouldSkipDotAlert = isPastDay && !hasDraft;
+              const shouldSkipDotAlert = !hasDraft || isPastDay;
 
               return (
                 <button
@@ -514,7 +514,7 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
                           ? 'bg-neutral-300'
                           : 'bg-rose-500 animate-pulse'
                       }`}
-                      title={curCassa ? 'Cassa coperta' : shouldSkipDotAlert ? 'Giorno passato' : 'Cassa scoperta!'}
+                      title={curCassa ? 'Cassa coperta' : shouldSkipDotAlert ? (isPastDay ? 'Giorno passato' : 'Non pianificato') : 'Cassa scoperta!'}
                     />
                     {day.isMerchandiseArrival && (
                       <span className="text-[8px]" title="Arrivo Merci">

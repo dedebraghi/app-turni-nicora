@@ -150,20 +150,24 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
     const dMonth = parseInt(parts[1], 10);
     const hasDraft = hasDraftGenerated(activeLocation || location.id, dYear, dMonth);
     const isPastDay = d.dateStr < todayStr;
-    const shouldSkipAlerts = isPastDay && !hasDraft;
+    const shouldSkipAlerts = !hasDraft || isPastDay;
 
-    const isCassaCovered = shouldSkipAlerts ? true : cassaShifts.length > 0;
+    const isCassaCovered = cassaShifts.length > 0;
 
     return {
       dateStr: d.dateStr,
       workingCount: working.length,
       cassaCount: cassaShifts.length,
+      hasDraft,
+      isPastDay,
       isCassaCovered,
       shouldSkipAlerts,
     };
   });
 
-  const isAllCassaCovered = dayStats.every((d) => d.isCassaCovered);
+  const weekHasAnyDraft = dayStats.some((d) => d.hasDraft);
+  // Se non c'è nessuna bozza generata nella settimana, non mostriamo allarmi di cassa scoperta
+  const isCassaWarningActive = weekHasAnyDraft && dayStats.some((d) => !d.isPastDay && d.hasDraft && !d.isCassaCovered);
   const totalWorkedShifts = storeShifts.filter((s) => s.type !== 'riposo' && s.type !== 'ferie' && s.type !== 'malattia').length;
   const startDay = weekDays[0];
   const endDay = weekDays[6];
@@ -184,10 +188,14 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
             <span className="px-3.5 py-1 rounded-full bg-nicora-orange-light text-nicora-orange font-bold text-xs uppercase tracking-wider border border-nicora-orange-border">
               {location.name || 'Nicora Garden'}
             </span>
-            {isAllCassaCovered ? (
+            {!weekHasAnyDraft ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-neutral-100 text-neutral-600 font-semibold text-xs border border-neutral-200 shadow-2xs">
+                <span>Bozza non generata</span>
+              </span>
+            ) : !isCassaWarningActive ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 font-semibold text-xs border border-emerald-200 shadow-2xs">
                 <ShieldCheck size={14} className="text-emerald-600" />
-                <span>Presidio Cassa OK (7/7 giorni)</span>
+                <span>Presidio Cassa OK</span>
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 text-rose-800 font-bold text-xs border border-rose-200 shadow-2xs animate-pulse">
@@ -527,6 +535,10 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                           <span className="text-emerald-700 font-extrabold flex items-center gap-0.5">
                             <ShieldCheck size={10} /> Cassa OK
                           </span>
+                        ) : stat.shouldSkipAlerts ? (
+                          <span className="text-neutral-400 font-medium flex items-center gap-0.5">
+                            <span>-</span>
+                          </span>
                         ) : (
                           <span className="text-rose-700 font-black flex items-center gap-0.5 animate-pulse bg-rose-100 px-1 rounded">
                             <ShieldAlert size={10} /> SCOPERTA!
@@ -808,8 +820,8 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                     >
                       {isOk ? (
                         <div className="space-y-0.5">
-                          <span className={`text-[10px] font-black px-1.5 py-0.2 rounded-md block ${shouldSkip ? 'text-neutral-600 bg-neutral-100' : 'text-emerald-800 bg-emerald-100'}`}>
-                            {shouldSkip ? 'Giorno passato' : `✓ ${activeLocationDepts.length}/${activeLocationDepts.length} Coperti`}
+                          <span className={`text-[10px] font-black px-1.5 py-0.2 rounded-md block ${shouldSkip ? 'text-neutral-500 bg-neutral-100' : 'text-emerald-800 bg-emerald-100'}`}>
+                            {shouldSkip ? (dayStats[idx]?.isPastDay ? 'Giorno passato' : 'Non pianificato') : `✓ ${activeLocationDepts.length}/${activeLocationDepts.length} Coperti`}
                           </span>
                           {location.id === 'gazzada' ? (
                             <div className="text-[9px] text-neutral-600 font-bold leading-tight">
