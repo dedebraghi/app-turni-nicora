@@ -3,7 +3,7 @@ import { NicoraLogo } from '../NicoraLogo';
 import { InstallPWAButton } from '../InstallPWAButton';
 import { LOCATIONS } from '../../domain/mockData';
 import { Employee, LocationId, UserSession } from '../../domain/types';
-import { AlertCircle, Check, ChevronDown, KeyRound, LogOut, MapPin, X } from 'lucide-react';
+import { AlertCircle, Check, ChevronDown, HelpCircle, KeyRound, LogOut, MapPin, X } from 'lucide-react';
 
 interface AppHeaderProps {
   session: UserSession;
@@ -14,6 +14,7 @@ interface AppHeaderProps {
   onChangeLocation: (loc: LocationId) => void;
   employees?: Employee[];
   onSaveEmployee?: (emp: Employee) => void;
+  onOpenTutorial?: () => void;
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
@@ -23,6 +24,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   onChangeLocation,
   employees = [],
   onSaveEmployee,
+  onOpenTutorial,
 }) => {
   const isManagerAccount = session.role === 'manager';
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -208,6 +210,20 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                     </div>
 
                     <div className="pt-2.5 flex flex-col gap-1.5">
+                      {onOpenTutorial && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsProfileMenuOpen(false);
+                            onOpenTutorial();
+                          }}
+                          className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-nicora-teal-light/60 hover:bg-nicora-teal-light text-nicora-teal-dark text-xs font-semibold transition-colors cursor-pointer"
+                        >
+                          <HelpCircle size={14} className="text-nicora-teal" />
+                          <span>Guida rapida all'app</span>
+                        </button>
+                      )}
+
                       {onSaveEmployee && (
                         <button
                           type="button"

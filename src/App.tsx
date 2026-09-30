@@ -12,6 +12,7 @@ import { ClearShiftsModal } from './components/admin/ClearShiftsModal';
 import { EmergencyModal } from './components/admin/EmergencyModal';
 import { PrintExportModal } from './components/admin/PrintExportModal';
 import { EditShiftModal } from './components/common/EditShiftModal';
+import { OnboardingTutorial } from './components/common/OnboardingTutorial';
 import { LoginScreen } from './components/auth/LoginScreen';
 import { NotificationToast, ToastMessage } from './components/common/NotificationToast';
 
@@ -70,6 +71,7 @@ export const App: React.FC = () => {
   const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
+  const [isTutorialManualOpen, setIsTutorialManualOpen] = useState(false);
   const [emergencyTargetShift, setEmergencyTargetShift] = useState<Shift | null>(null);
 
   const todayStr = formatLocalDate(new Date());
@@ -777,6 +779,7 @@ export const App: React.FC = () => {
         onChangeLocation={setActiveLocation}
         employees={employees}
         onSaveEmployee={handleSaveEmployee}
+        onOpenTutorial={() => setIsTutorialManualOpen(true)}
       />
 
       {/* Navigazione Responsive (Desktop Top Bar / Mobile Bottom Nav) */}
@@ -958,6 +961,14 @@ export const App: React.FC = () => {
         weekDays={currentWeekDays}
         employees={employees}
         shifts={shifts}
+      />
+
+      {/* Tutorial Introduttivo (Mobile-first Bottom Sheet con memorizzazione sincrona) */}
+      <OnboardingTutorial
+        userRole={isManagerMode ? 'admin' : 'staff'}
+        userId={session.user.id}
+        forceOpen={isTutorialManualOpen}
+        onClose={() => setIsTutorialManualOpen(false)}
       />
 
       {/* Toast Notifiche Realtime */}
