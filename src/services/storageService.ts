@@ -10,6 +10,7 @@ const STORAGE_KEYS = {
   SESSION: 'nicora_v4_session',
   MODE: 'nicora_v4_schedule_mode',
   DRAFTS: 'nicora_v2_generated_drafts',
+  PUBLISHED_MONTHS: 'nicora_v2_published_months',
 };
 
 export const generateInitialShifts = (): Shift[] => {
@@ -87,6 +88,10 @@ export const loadStoredShifts = (): Shift[] => {
 };
 
 export const clearStoredShifts = (locationId?: LocationId, year?: number, month?: number): Shift[] => {
+  if (!locationId && !year && !month) {
+    localStorage.removeItem(STORAGE_KEYS.SHIFTS);
+    return [];
+  }
   const current = loadStoredShifts();
   let remaining: Shift[];
   if (locationId && year && month) {
@@ -225,3 +230,54 @@ export const resetDraftGenerated = (locationId?: string, year?: number, month?: 
     console.error('Errore reset stato bozze generate:', e);
   }
 };
+
+/**
+ * Gestione dello stato di pubblicazione dei turni per sede e mese.
+ * Quando un mese è generato come bozza, isMonthPublished restituirà false finché
+ * la Direzione non preme esplicitamente "Pubblica Turni".
+ */
+export const getPublishedMonthsMap = (): Record<string, boolean> => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.PUBLISHED_MONTHS);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {
+    console.error('Errore caricamento mesi pubblicati:', e);
+  }
+  return {};
+};
+
+export const isMonthPublished = (locationId: string, year: number, month: number): boolean => {
+  const draftMap = getGeneratedDraftsMap();
+  const pubMap = getPublishedMonthsMap();
+  const key = `${locationId}_${year}-${String(month).padStart(2, '0')}`;
+  
+  // Se non è mai stata generata una bozza (es. turni storici o standard di default), è considerato visibile
+  if (!draftMap[key]) {
+    return true;
+  }
+  // Se è stata generata una bozza, è pubblico solo se esplicitamente marcato come pubblicato
+  return !!pubMap[key];
+};
+
+export const recordMonthPublished = (locationId: string, year: number, month: number): void => {
+  try {
+    const map = getPublishedMonthsMap();
+    const key = `${locationId}_${year}-${String(month).padStart(2, '0')}`;
+    map[key] = true;
+    localStorage.setItem(STORAGE_KEYS.PUBLISHED_MONTHS, JSON.stringify(map));
+  } catch (e) {
+    console.error('Errore registrazione mese pubblicato:', e);
+  }
+};
+
+export const recordMonthUnpublished = (locationId: string, year: number, month: number): void => {
+  try {
+    const map = getPublishedMonthsMap();
+    const key = `${locationId}_${year}-${String(month).padStart(2, '0')}`;
+    delete map[key];
+    localStorage.setItem(STORAGE_KEYS.PUBLISHED_MONTHS, JSON.stringify(map));
+  } catch (e) {
+    console.error('Errore registrazione mese in bozza:', e);
+  }
+};
+

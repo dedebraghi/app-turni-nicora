@@ -313,8 +313,14 @@ export const saveCloudShifts = async (shifts: Shift[]): Promise<{ success: boole
   }
   const normalizedShifts = Array.from(dedupMap.values());
 
-  // Salva sempre prima in locale per reattività immediata
-  saveStoredShifts(normalizedShifts);
+  // Unisci con i turni correnti in memoria per non sovrascrivere mesi storici se viene salvato solo un delta
+  const current = loadStoredShifts();
+  const keySet = new Set(normalizedShifts.map((s) => `${s.employeeId}_${s.date}`));
+  const merged = [
+    ...current.filter((s) => !keySet.has(`${s.employeeId}_${s.date}`)),
+    ...normalizedShifts,
+  ];
+  saveStoredShifts(merged);
 
   if (!isSupabaseConfigured || !supabase) {
     return { success: true };

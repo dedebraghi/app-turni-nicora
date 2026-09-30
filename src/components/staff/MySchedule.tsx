@@ -11,6 +11,7 @@ interface MyScheduleProps {
   onChangeLocation?: (loc: LocationId) => void;
   onLogout?: () => void;
   onSaveEmployee?: (emp: Employee) => void;
+  onRefreshShifts?: () => Promise<void> | void;
 }
 
 export const MySchedule: React.FC<MyScheduleProps> = (props) => {

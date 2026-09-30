@@ -12,13 +12,14 @@ import {
   WeekCoverageAnalysis,
 } from '../../engine/schedulerEngine';
 import { StaffSubstitutionWizard } from './StaffSubstitutionWizard';
-import { hasDraftGenerated } from '../../services/storageService';
+import { hasDraftGenerated, isMonthPublished } from '../../services/storageService';
 import { MobileHeader } from '../layout/MobileHeader';
 import {
   AlertTriangle,
   Calendar,
   ChevronLeft,
   ChevronRight,
+  Clock,
   Coffee,
   Edit3,
   Flower2,
@@ -26,6 +27,7 @@ import {
   MapPin,
   Receipt,
   Search,
+  Send,
   Share2,
   Sparkles,
   ShoppingBag,
@@ -55,6 +57,7 @@ interface MobileDayViewProps {
   onOpenClearModal?: () => void;
   onOpenEmergencyModal?: (shift?: Shift) => void;
   onApplyShift?: (newShift: Shift) => void;
+  onPublishMonth?: (locationId: LocationId, year: number, month: number) => Promise<void> | void;
   currentEmployee?: Employee;
   activeLocation?: LocationId;
   onChangeLocation?: (loc: LocationId) => void;
@@ -143,6 +146,7 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
   onOpenClearModal,
   onOpenEmergencyModal,
   onApplyShift,
+  onPublishMonth,
   currentEmployee,
   activeLocation = location.id,
   onChangeLocation,
@@ -155,6 +159,24 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
   const [isWizardOpen, setIsWizardOpen] = useState(false);
 
   const selectedDayMeta = weekDays.find((d) => d.dateStr === selectedDateStr) || weekDays[0];
+
+  const viewParts = selectedDateStr.split('-');
+  const viewYear = parseInt(viewParts[0], 10);
+  const viewMonth = parseInt(viewParts[1], 10);
+  const isViewMonthDraft = hasDraftGenerated(activeLocation, viewYear, viewMonth);
+  const isViewMonthPublished = isMonthPublished(activeLocation, viewYear, viewMonth);
+  const hasUnpublishedDraftInView = isViewMonthDraft && !isViewMonthPublished;
+  const [isPublishing, setIsPublishing] = useState<boolean>(false);
+
+  const handlePublish = async () => {
+    if (!onPublishMonth || isPublishing) return;
+    setIsPublishing(true);
+    try {
+      await onPublishMonth(activeLocation, viewYear, viewMonth);
+    } finally {
+      setIsPublishing(false);
+    }
+  };
 
   // Gestione stato "Ignora" puntuale per singola scopertura (sede + giorno + reparto + orario)
   const [ignoredGapIds, setIgnoredGapIds] = useState<string[]>(() => {
@@ -330,6 +352,30 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
             </div>
           </div>
         </div>
+
+        {/* --- BANNER BOZZA NON PUBBLICATA (Mobile Admin) --- */}
+        {isManagerMode && hasUnpublishedDraftInView && onPublishMonth && (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 flex items-center justify-between gap-2 shadow-2xs">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0">
+                <Clock size={15} />
+              </div>
+              <div className="min-w-0">
+                <span className="block text-xs font-bold text-amber-900 truncate">Bozza non pubblicata</span>
+                <span className="block text-[10px] text-amber-700 truncate">Visibile solo a te finché non pubblichi</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handlePublish}
+              disabled={isPublishing}
+              className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs px-3 py-1.5 rounded-xl shadow-xs flex items-center gap-1.5 shrink-0 transition-all disabled:opacity-60 cursor-pointer"
+            >
+              <Send size={12} className={isPublishing ? 'animate-pulse' : ''} />
+              <span>{isPublishing ? 'Pubblico...' : 'Pubblica'}</span>
+            </button>
+          </div>
+        )}
 
         {/* --- BOTTONI AZIONE PRIMARI (Genera Bozza & WhatsApp/Stampa) --- */}
         <div className="grid grid-cols-2 gap-2">

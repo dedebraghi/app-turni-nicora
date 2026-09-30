@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Employee, LocationId, Shift } from '../../domain/types';
 import { formatLocalDate, getSundayOfWeek, getWeekDays } from '../../engine/schedulerEngine';
 import { MobileHeader } from '../layout/MobileHeader';
-import { ChevronLeft, ChevronRight, Clock, Coffee, Calendar } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, Coffee, Calendar, RefreshCw } from 'lucide-react';
 
 interface MyScheduleMobileProps {
   currentEmployee: Employee;
@@ -12,6 +12,7 @@ interface MyScheduleMobileProps {
   onChangeLocation?: (loc: LocationId) => void;
   onLogout?: () => void;
   onSaveEmployee?: (emp: Employee) => void;
+  onRefreshShifts?: () => Promise<void> | void;
 }
 
 export const MyScheduleMobile: React.FC<MyScheduleMobileProps> = ({
@@ -22,8 +23,20 @@ export const MyScheduleMobile: React.FC<MyScheduleMobileProps> = ({
   onChangeLocation,
   onLogout,
   onSaveEmployee,
+  onRefreshShifts,
 }) => {
   const [weekOffset, setWeekOffset] = useState<number>(0);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+
+  const handleRefresh = async () => {
+    if (!onRefreshShifts || isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await onRefreshShifts();
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 500);
+    }
+  };
 
   const gazzadaStaffCount = employees?.filter((e) => e.locationId === 'gazzada' && e.isActive !== false).length || 10;
   const vareseStaffCount = employees?.filter((e) => e.locationId === 'varese' && e.isActive !== false).length || 16;
@@ -110,6 +123,19 @@ export const MyScheduleMobile: React.FC<MyScheduleMobileProps> = ({
                   </p>
                 </div>
               </div>
+
+              {onRefreshShifts && (
+                <button
+                  type="button"
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white text-xs font-semibold transition-all border border-white/20 backdrop-blur-xs disabled:opacity-60 cursor-pointer shadow-xs shrink-0"
+                  title="Elimina la cache e riscarica i turni aggiornati dal server"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-nicora-orange' : 'text-emerald-200'}`} />
+                  <span>{isRefreshing ? 'Aggiorno...' : 'Aggiorna'}</span>
+                </button>
+              )}
             </div>
 
             {/* Metric Pods Grid 3 items on mobile (Turni, Riposi, Assenze) */}

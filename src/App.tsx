@@ -31,6 +31,10 @@ import {
   saveStoredSession,
   saveStoredShifts,
   resetDraftGenerated,
+  clearStoredShifts,
+  isMonthPublished,
+  recordMonthPublished,
+  recordMonthUnpublished,
 } from './services/storageService';
 import {
   archiveCloudEmployee,
@@ -104,33 +108,62 @@ export const App: React.FC = () => {
     };
   }, []);
 
-  // Sottoscrizione Realtime WebSocket per aggiornamenti in tempo reale
+  // Sottoscrizione Realtime WebSocket per aggiornamenti in tempo reale con buffering
   useEffect(() => {
+    const pendingShifts = new Map<string, Shift>();
+    const pendingDeletes = new Set<string>();
+    let touchedLoggedInEmployee = false;
+    let shiftFlushTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const flushShiftBatch = () => {
+      if (pendingShifts.size === 0 && pendingDeletes.size === 0) return;
+
+      const toUpsert = Array.from(pendingShifts.values());
+      const toDelete = new Set(pendingDeletes);
+      const hadUserShift = touchedLoggedInEmployee;
+
+      pendingShifts.clear();
+      pendingDeletes.clear();
+      touchedLoggedInEmployee = false;
+
+      setShifts((prev) => {
+        let updated = prev;
+        if (toDelete.size > 0) {
+          updated = updated.filter((s) => !toDelete.has(s.id));
+        }
+        if (toUpsert.length > 0) {
+          const shiftMap = new Map(updated.map((s) => [s.id, s]));
+          for (const s of toUpsert) {
+            shiftMap.set(s.id, s);
+          }
+          updated = Array.from(shiftMap.values());
+        }
+        return updated;
+      });
+
+      if (hadUserShift) {
+        setToast({
+          id: `toast-shift-${Date.now()}`,
+          title: 'Turni Aggiornati',
+          message: 'Il tuo orario di lavoro è stato aggiornato.',
+          type: 'info',
+        });
+      }
+    };
+
     const unsubscribe = subscribeToRealtimeChanges({
       onShiftChange: ({ eventType, newShift, oldId }) => {
         if (eventType === 'DELETE' && oldId) {
-          setShifts((prev) => prev.filter((s) => s.id !== oldId));
+          pendingDeletes.add(oldId);
         } else if (newShift) {
-          setShifts((prev) => {
-            const index = prev.findIndex((s) => s.id === newShift.id);
-            if (index >= 0) {
-              const updated = [...prev];
-              updated[index] = newShift;
-              return updated;
-            }
-            return [...prev, newShift];
-          });
-
-          // Notifica mirata se l'aggiornamento tocca il dipendente attualmente loggato
+          pendingShifts.set(newShift.id, newShift);
           if (session?.user?.id === newShift.employeeId) {
-            setToast({
-              id: `toast-shift-${Date.now()}`,
-              title: 'Turno Aggiornato',
-              message: `Il tuo orario per il ${newShift.date} è stato aggiornato.`,
-              type: 'info',
-            });
+            touchedLoggedInEmployee = true;
           }
         }
+
+        if (shiftFlushTimer) clearTimeout(shiftFlushTimer);
+        shiftFlushTimer = setTimeout(flushShiftBatch, 250);
       },
       onRequestChange: ({ eventType, newRequest, oldId }) => {
         if (eventType === 'DELETE' && oldId) {
@@ -163,6 +196,7 @@ export const App: React.FC = () => {
     });
 
     return () => {
+      if (shiftFlushTimer) clearTimeout(shiftFlushTimer);
       unsubscribe();
     };
   }, [session]);
@@ -223,25 +257,92 @@ export const App: React.FC = () => {
     const pastPreserved = generatedShifts.filter((s) => s.date < todayStr).length;
     const futureGenerated = generatedShifts.filter((s) => s.date >= todayStr).length;
 
+    // Registra il mese e anno della bozza come non ancora pubblicato allo staff
+    if (generatedShifts.length > 0) {
+      const sample = generatedShifts[0];
+      const [yStr, mStr] = sample.date.split('-');
+      recordMonthUnpublished(sample.locationId, parseInt(yStr, 10), parseInt(mStr, 10));
+    }
+
     setShifts((prev) => {
       const genKeys = new Set(generatedShifts.map((s) => `${s.employeeId}_${s.date}`));
       const remaining = prev.filter((s) => !genKeys.has(`${s.employeeId}_${s.date}`));
       const next = [...remaining, ...generatedShifts];
-      saveCloudShifts(next);
+      // Salvataggio immediato in cache locale (senza inviare a Supabase, evitando sovraccarico e notifiche anticipate)
       saveStoredShifts(next);
       return next;
     });
 
     const msg = pastPreserved > 0
-      ? `${futureGenerated} turni generati da oggi in avanti (${pastPreserved} turni passati preservati).`
-      : `${generatedShifts.length} turni aggiornati e salvati con successo.`;
+      ? `${futureGenerated} turni generati in bozza (${pastPreserved} passati preservati). Controlla il tabellone e clicca "Pubblica Turni allo Staff" per renderli ufficiali.`
+      : `${generatedShifts.length} turni generati in bozza. Clicca "Pubblica Turni allo Staff" quando desideri renderli visibili ai collaboratori.`;
 
     setToast({
       id: `toast-gen-${Date.now()}`,
-      title: 'Bozza Mensile Applicata',
+      title: 'Bozza Mensile Generata 📝',
       message: msg,
-      type: 'success',
+      type: 'info',
     });
+  };
+
+  const handlePublishMonth = async (locId: LocationId, year: number, month: number) => {
+    const monthPrefix = `${year}-${String(month).padStart(2, '0')}`;
+    const monthShifts = shifts.filter((s) => s.locationId === locId && s.date.startsWith(monthPrefix));
+
+    if (monthShifts.length === 0) {
+      setToast({
+        id: `toast-pub-warn-${Date.now()}`,
+        title: 'Nessun Turno Trovato',
+        message: `Non sono presenti turni da pubblicare per ${monthPrefix}.`,
+        type: 'warning',
+      });
+      return;
+    }
+
+    // Salva su Supabase esclusivamente il delta dei turni del mese (veloce e leggero)
+    const res = await saveCloudShifts(monthShifts);
+    if (res.success) {
+      recordMonthPublished(locId, year, month);
+      // Forza l'aggiornamento dello stato per aggiornare i filtri di visibilità
+      setShifts((prev) => [...prev]);
+      setToast({
+        id: `toast-pub-${Date.now()}`,
+        title: 'Turni Pubblicati! 🚀',
+        message: `I turni di ${monthPrefix} sono stati pubblicati e sono ora visibili a tutto lo staff.`,
+        type: 'success',
+      });
+    } else {
+      setToast({
+        id: `toast-pub-err-${Date.now()}`,
+        title: 'Errore Pubblicazione',
+        message: res.error || 'Impossibile pubblicare i turni sul cloud.',
+        type: 'warning',
+      });
+    }
+  };
+
+  const handleRefreshShifts = async () => {
+    try {
+      clearStoredShifts();
+      const fresh = await fetchCloudShifts();
+      if (fresh && fresh.length > 0) {
+        setShifts(fresh.filter((s) => s.employeeId !== 'emp-gz-4'));
+      }
+      setToast({
+        id: `toast-ref-${Date.now()}`,
+        title: 'Turni Aggiornati ✨',
+        message: 'I tuoi orari sono stati sincronizzati direttamente dal server.',
+        type: 'success',
+      });
+    } catch (err: any) {
+      console.error('Errore rinfresco turni:', err);
+      setToast({
+        id: `toast-ref-err-${Date.now()}`,
+        title: 'Errore Aggiornamento',
+        message: 'Impossibile sincronizzare i turni in questo momento.',
+        type: 'warning',
+      });
+    }
   };
 
   const handleClearShifts = async (targetLocationId: LocationId, mode: 'future' | 'all') => {
@@ -766,6 +867,18 @@ export const App: React.FC = () => {
   const currentSunday = getSundayOfWeek(new Date());
   const currentWeekDays = getWeekDays(formatLocalDate(currentSunday));
 
+  // Filtro turni visibili allo staff:
+  // Se manager vede tutto (comprese le bozze locali per verifiche).
+  // Se collaboratore, esclude i turni che appartengono a mesi registrati in bozza e non ancora pubblicati
+  const visibleShifts = isManagerMode
+    ? shifts
+    : shifts.filter((s) => {
+        const parts = s.date.split('-');
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        return isMonthPublished(s.locationId, y, m);
+      });
+
   return (
     <div className="min-h-screen bg-nicora-bg text-nicora-text flex flex-col antialiased">
       
@@ -799,7 +912,7 @@ export const App: React.FC = () => {
             currentDate={todayStr}
             currentEmployeeId={currentEmployee.id}
             employees={employees}
-            shifts={shifts}
+            shifts={visibleShifts}
             isManagerMode={isManagerMode}
             activeLocation={activeLocation}
             onChangeLocation={setActiveLocation}
@@ -814,11 +927,12 @@ export const App: React.FC = () => {
           <MySchedule
             currentEmployee={currentEmployee}
             employees={employees}
-            shifts={shifts}
+            shifts={visibleShifts}
             activeLocation={activeLocation}
             onChangeLocation={setActiveLocation}
             onLogout={handleLogout}
             onSaveEmployee={handleSaveEmployee}
+            onRefreshShifts={handleRefreshShifts}
           />
         )}
 
@@ -845,6 +959,7 @@ export const App: React.FC = () => {
             }}
             onOpenExportModal={() => setIsExportModalOpen(true)}
             onApplyShift={handleApplySingleShift}
+            onPublishMonth={handlePublishMonth}
             onApproveRequest={(id) => handleUpdateRequestStatus(id, 'approved', 'Approvata 1-click dal responsabile')}
             onRejectRequest={(id) => handleUpdateRequestStatus(id, 'rejected', 'Non conciliabile con la copertura minima')}
           />
@@ -856,7 +971,7 @@ export const App: React.FC = () => {
             currentEmployee={currentEmployee}
             currentEmployeeId={currentEmployee.id}
             employees={employees}
-            shifts={shifts}
+            shifts={visibleShifts}
             requests={requests}
             onSubmitRequest={handleSubmitRequest}
             isManagerMode={isManagerMode}

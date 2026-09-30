@@ -16,10 +16,11 @@ import {
   WeekCoverageAnalysis,
 } from '../../engine/schedulerEngine';
 import { StaffSubstitutionWizard } from './StaffSubstitutionWizard';
-import { hasDraftGenerated } from '../../services/storageService';
+import { hasDraftGenerated, isMonthPublished } from '../../services/storageService';
 import {
   AlertTriangle,
   Award,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Clock,
@@ -27,6 +28,7 @@ import {
   MapPin,
   Monitor,
   Search,
+  Send,
   Share2,
   ShieldAlert,
   ShieldCheck,
@@ -54,6 +56,7 @@ interface PlannerGridProps {
   onApplyShift?: (shift: Shift) => void;
   onApproveRequest?: (requestId: string) => void;
   onRejectRequest?: (requestId: string) => void;
+  onPublishMonth?: (locationId: LocationId, year: number, month: number) => Promise<void> | void;
   currentEmployee?: Employee;
   activeLocation?: LocationId;
   onChangeLocation?: (loc: LocationId) => void;
@@ -76,6 +79,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
   onApplyShift,
   onApproveRequest,
   onRejectRequest,
+  onPublishMonth,
   currentEmployee,
   activeLocation,
   onChangeLocation,
@@ -176,6 +180,25 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
     ? 'Viale Gallarate 26, Gazzada Schianno (VA)'
     : 'Via Carnia 2, Varese (VA)';
 
+  const viewParts = startDay.dateStr.split('-');
+  const viewYear = parseInt(viewParts[0], 10);
+  const viewMonth = parseInt(viewParts[1], 10);
+  const locId = (activeLocation || location.id) as LocationId;
+  const isViewMonthDraft = hasDraftGenerated(locId, viewYear, viewMonth);
+  const isViewMonthPublished = isMonthPublished(locId, viewYear, viewMonth);
+  const hasUnpublishedDraftInView = isViewMonthDraft && !isViewMonthPublished;
+  const [isPublishing, setIsPublishing] = useState<boolean>(false);
+
+  const handlePublish = async () => {
+    if (!onPublishMonth || isPublishing) return;
+    setIsPublishing(true);
+    try {
+      await onPublishMonth(locId, viewYear, viewMonth);
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
   const [displayMode, setDisplayMode] = useState<'shifts' | 'coverage'>('shifts');
 
   return (
@@ -188,7 +211,12 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
             <span className="px-3.5 py-1 rounded-full bg-nicora-orange-light text-nicora-orange font-bold text-xs uppercase tracking-wider border border-nicora-orange-border">
               {location.name || 'Nicora Garden'}
             </span>
-            {!weekHasAnyDraft ? (
+            {hasUnpublishedDraftInView ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-900 font-bold text-xs border border-amber-300 shadow-2xs">
+                <Clock size={13} className="text-amber-700" />
+                <span>Bozza non pubblicata</span>
+              </span>
+            ) : !weekHasAnyDraft ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-neutral-100 text-neutral-600 font-semibold text-xs border border-neutral-200 shadow-2xs">
                 <span>Bozza non generata</span>
               </span>
@@ -276,6 +304,20 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
               <span>Stampa & WhatsApp</span>
             </button>
 
+            {/* Pubblica Turni allo Staff (se è presente una bozza non ancora pubblicata) */}
+            {isManagerMode && hasUnpublishedDraftInView && onPublishMonth && (
+              <button
+                type="button"
+                onClick={handlePublish}
+                disabled={isPublishing}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer disabled:opacity-60"
+                title="Rendi ufficiali i turni del mese corrente e sincronizzali con tutto lo staff"
+              >
+                <Send size={14} className={isPublishing ? 'animate-pulse' : ''} />
+                <span>{isPublishing ? 'Pubblicazione...' : 'Pubblica Turni allo Staff'}</span>
+              </button>
+            )}
+
             {/* Genera Bozza */}
             {isManagerMode && (
               <button
@@ -302,6 +344,34 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
           </div>
 
         </div>
+
+        {/* Banner Bozza Mensile in Elaborazione (solo admin) */}
+        {isManagerMode && hasUnpublishedDraftInView && onPublishMonth && (
+          <div className="bg-amber-50/90 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                <Clock size={18} />
+              </div>
+              <div>
+                <h4 className="font-serif font-bold text-xs sm:text-sm text-amber-900">
+                  Bozza del mese in elaborazione (non ancora visibile allo staff)
+                </h4>
+                <p className="text-[11px] sm:text-xs text-amber-800 mt-0.5">
+                  I turni generati sono al momento salvati come bozza di lavoro. I collaboratori continuano a vedere i turni ufficiali precedenti finché non pubblichi.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handlePublish}
+              disabled={isPublishing}
+              className="self-end sm:self-center bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs flex items-center gap-1.5 transition-all shrink-0 cursor-pointer disabled:opacity-60"
+            >
+              <Send size={13} />
+              <span>{isPublishing ? 'Pubblicazione...' : 'Pubblica Turni Ora'}</span>
+            </button>
+          </div>
+        )}
 
         {/* Banner Allarme Scopertura Reparti Desktop (solo admin) */}
         {isManagerMode && (() => {
@@ -464,6 +534,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
             onOpenExportModal={onOpenExportModal}
             onOpenEmergencyModal={onOpenEmergencyModal}
             onApplyShift={onApplyShift}
+            onPublishMonth={onPublishMonth}
             currentEmployee={currentEmployee}
             activeLocation={activeLocation}
             onChangeLocation={onChangeLocation}
