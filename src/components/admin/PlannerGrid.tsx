@@ -7,6 +7,7 @@ import {
   calculateEmployeeWeeklyHours,
   calculateWeekHourlyCoverage,
   clearLegacyIgnoredAlerts,
+  formatItalianDate,
   formatLocalDate,
   getIgnoredGapIds,
   getSundayOfWeek,
@@ -156,9 +157,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
   const totalWorkedShifts = storeShifts.filter((s) => s.type !== 'riposo' && s.type !== 'ferie' && s.type !== 'malattia').length;
   const startDay = weekDays[0];
   const endDay = weekDays[6];
-  const endDayDate = new Date(`${endDay.dateStr}T12:00:00`);
-  const monthName = endDayDate.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
-  const weekLabel = `Domenica ${startDay.dayNum} — Sabato ${endDay.dayNum} ${monthName}`;
+  const weekLabel = `Domenica ${formatItalianDate(startDay.dateStr)} — Sabato ${formatItalianDate(endDay.dateStr)}`;
   const locationAddress = (activeLocation || location.id) === 'gazzada'
     ? 'Viale Gallarate 26, Gazzada Schianno (VA)'
     : 'Via Carnia 2, Varese (VA)';
@@ -339,7 +338,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                     }`}
                   >
                     <span className="font-bold underline">
-                      {currentGap.dayMeta.dayName} {currentGap.dayMeta.dayNum}
+                      {currentGap.dayMeta.dayName} {formatItalianDate(currentGap.dateStr)}
                     </span>
                     {`: ${currentGap.department} ${currentGap.hoursDescription.toLowerCase()}`}
                     {activeGaps.length > 1 && (

@@ -6,6 +6,7 @@ import {
   calculateEmployeeWeeklyHours,
   calculateWeekHourlyCoverage,
   clearLegacyIgnoredAlerts,
+  formatItalianDate,
   getIgnoredGapIds,
   ignoreGapId,
   WeekCoverageAnalysis,
@@ -406,7 +407,7 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
                   }`}
                 >
                   <span className="font-bold underline decoration-amber-400/50">
-                    {currentGap.dayMeta.dayName} {currentGap.dayMeta.dayNum}
+                    {currentGap.dayMeta.dayName} {formatItalianDate(currentGap.dateStr)}
                   </span>
                   {`: ${currentGap.department} ${currentGap.hoursDescription.toLowerCase()}`}
                   {activeGaps.length > 1 && (

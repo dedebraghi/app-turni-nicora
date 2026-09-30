@@ -1,6 +1,6 @@
 import React from 'react';
 import { LocationId, Shift } from '../../domain/types';
-import { formatLocalDate } from '../../engine/schedulerEngine';
+import { formatItalianDate, formatLocalDate } from '../../engine/schedulerEngine';
 import {
   AlertTriangle,
   CalendarOff,
@@ -104,7 +104,7 @@ export const ClearShiftsModal: React.FC<ClearShiftsModalProps> = ({
                     </span>
                   </div>
                   <p className="text-emerald-900/80 text-[11px] mt-1 leading-snug">
-                    Rimuove i <strong>{futureCount} turni futuri</strong> da oggi in avanti.
+                    Rimuove i <strong>{futureCount} turni futuri</strong> dal <strong>{formatItalianDate(todayStr)}</strong> in avanti.
                     Tutti i <strong>{pastCount} turni dei giorni passati</strong> rimangono intatti e protetti al 100% per preservare lo storico presenze.
                   </p>
                 </div>

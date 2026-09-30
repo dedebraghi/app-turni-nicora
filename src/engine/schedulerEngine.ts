@@ -93,6 +93,35 @@ export const formatLocalDate = (d: Date = new Date()): string => {
 };
 
 /**
+ * Converte una data (stringa YYYY-MM-DD o oggetto Date) nel formato visivo italiano GG/MM/AAAA.
+ * Se la stringa non è valida o vuota, restituisce la stringa originale senza errori.
+ */
+export const formatItalianDate = (dateInput?: string | Date | null): string => {
+  if (!dateInput) return '';
+  if (typeof dateInput === 'string') {
+    // Gestione formato YYYY-MM-DD
+    const match = dateInput.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      const [, y, m, d] = match;
+      return `${d}/${m}/${y}`;
+    }
+    // Prova il parsing come Date generico se contiene una data ISO
+    const parsed = new Date(dateInput);
+    if (!isNaN(parsed.getTime())) {
+      const day = parsed.getDate().toString().padStart(2, '0');
+      const month = (parsed.getMonth() + 1).toString().padStart(2, '0');
+      const year = parsed.getFullYear();
+      return `${day}/${month}/${year}`;
+    }
+    return dateInput;
+  }
+  const day = dateInput.getDate().toString().padStart(2, '0');
+  const month = (dateInput.getMonth() + 1).toString().padStart(2, '0');
+  const year = dateInput.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
+/**
  * Calcola la data della Domenica iniziale per una data qualsiasi.
  */
 export const getSundayOfWeek = (d: Date = new Date()): Date => {
@@ -1175,7 +1204,7 @@ export const generateWeeklySchedule = ({
     });
 
     if (availableStaff.length === 0) {
-      warnings.push(`Attenzione: nessun dipendente in servizio il ${dayMeta.dayName} ${dateStr}!`);
+      warnings.push(`Attenzione: nessun dipendente in servizio il ${dayMeta.dayName} ${formatItalianDate(dateStr)}!`);
       uncoveredDaysList.push({ dateStr, departments: getLocationDepartments(locationId, isChristmasSeason) });
       return;
     }
@@ -1208,7 +1237,7 @@ export const generateWeeklySchedule = ({
           empName: item.emp.name,
         });
         warnings.push(
-          `Presidio ${item.dept} il ${dayMeta.dayName} ${dateStr} affidato a ${item.emp.name} con competenza non massima (${item.assignedSkillScore}/10).`
+          `Presidio ${item.dept} il ${dayMeta.dayName} ${formatItalianDate(dateStr)} affidato a ${item.emp.name} con competenza non massima (${item.assignedSkillScore}/10).`
         );
       }
     });
@@ -1240,11 +1269,11 @@ export const generateWeeklySchedule = ({
             assignedSkillScore: score,
           });
           warnings.push(
-            `Presidio ${dept} il ${dayMeta.dayName} ${dateStr} coperto in trasferta da ${candidate.name} (Sede base: ${candidate.locationId}).`
+            `Presidio ${dept} il ${dayMeta.dayName} ${formatItalianDate(dateStr)} coperto in trasferta da ${candidate.name} (Sede base: ${candidate.locationId}).`
           );
         } else {
           uncoveredDaysList.push({ dateStr, departments: [dept] });
-          warnings.push(`Reparto scoperto il ${dayMeta.dayName} ${dateStr}: ${dept}`);
+          warnings.push(`Reparto scoperto il ${dayMeta.dayName} ${formatItalianDate(dateStr)}: ${dept}`);
         }
       });
     }

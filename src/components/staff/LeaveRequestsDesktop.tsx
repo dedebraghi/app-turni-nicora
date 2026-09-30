@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Employee, LocationId, Shift, ShiftRequest, ShiftRequestStatus, ShiftRequestType } from '../../domain/types';
 import { CONTINUATO_SLOTS } from '../../domain/rules';
+import { formatItalianDate } from '../../engine/schedulerEngine';
 import { 
   AlertTriangle,
   ArrowLeftRight, 
@@ -157,10 +158,10 @@ export const LeaveRequestsDesktop: React.FC<LeaveRequestsDesktopProps> = ({
       '17:00';
 
     return {
-      reqDate,
+      reqDate: formatItalianDate(reqDate),
       reqDept,
       reqHours: `${reqStart} - ${reqEnd}`,
-      targetDate,
+      targetDate: formatItalianDate(targetDate),
       targetDept,
       targetHours: `${targetStart} - ${targetEnd}`,
     };
@@ -197,7 +198,7 @@ export const LeaveRequestsDesktop: React.FC<LeaveRequestsDesktopProps> = ({
 
       if (!targetEmployeeId || !selectedColleagueEntry) {
         setErrorMsg(
-          `Errore: nessun collega valido in turno selezionato per il giorno ${targetShiftDate}. Verifica che ci sia almeno un collega in turno in quella data.`
+          `Errore: nessun collega valido in turno selezionato per il giorno ${formatItalianDate(targetShiftDate)}. Verifica che ci sia almeno un collega in turno in quella data.`
         );
         return;
       }
@@ -223,7 +224,7 @@ export const LeaveRequestsDesktop: React.FC<LeaveRequestsDesktopProps> = ({
       });
 
       setSuccessMsg(
-        `Proposta di scambio turno inviata a ${selectedColleagueEntry.employee.name} (in turno in ${colleagueEffectiveDept} il ${targetShiftDate}). Verrà inoltrata al responsabile appena il collega accetterà.`
+        `Proposta di scambio turno inviata a ${selectedColleagueEntry.employee.name} (in turno in ${colleagueEffectiveDept} il ${formatItalianDate(targetShiftDate)}). Verrà inoltrata al responsabile appena il collega accetterà.`
       );
       setReason('');
       setIsSuccess(true);
@@ -598,7 +599,7 @@ export const LeaveRequestsDesktop: React.FC<LeaveRequestsDesktopProps> = ({
                   {/* Box verifica del turno del richiedente nel giorno shiftDate */}
                   <div>
                     <span className="block font-semibold text-neutral-700 mb-1">
-                      Il tuo turno rilevato il {shiftDate}:
+                      Il tuo turno rilevato il {formatItalianDate(shiftDate)}:
                     </span>
                     {myShiftOnDate ? (
                       <div className="bg-teal-50/90 border border-teal-200 rounded-xl px-3.5 py-2.5 flex items-center justify-between text-xs text-teal-950">
@@ -616,7 +617,7 @@ export const LeaveRequestsDesktop: React.FC<LeaveRequestsDesktopProps> = ({
                       <div className="bg-rose-50 border border-rose-200 rounded-xl px-3.5 py-2.5 flex items-center gap-2 text-xs text-rose-800 font-semibold">
                         <AlertTriangle size={15} className="text-rose-600 shrink-0" />
                         <span>
-                          Attenzione: il giorno <strong>{shiftDate}</strong> non hai un turno lavorativo attivo (
+                          Attenzione: il giorno <strong>{formatItalianDate(shiftDate)}</strong> non hai un turno lavorativo attivo (
                           {myRawShiftOnDate?.type === 'riposo'
                             ? 'sei a riposo'
                             : myRawShiftOnDate?.type === 'ferie'
@@ -633,7 +634,7 @@ export const LeaveRequestsDesktop: React.FC<LeaveRequestsDesktopProps> = ({
                   {/* Menu a tendina colleghi effettivamente in turno il giorno targetShiftDate */}
                   <div>
                     <label className="block font-semibold text-neutral-700 mb-1">
-                      Seleziona il collega in turno il {targetShiftDate} con cui scambiare:
+                      Seleziona il collega in turno il {formatItalianDate(targetShiftDate)} con cui scambiare:
                     </label>
                     {colleaguesInTurnOnTargetDate.length > 0 ? (
                       <select
@@ -656,7 +657,7 @@ export const LeaveRequestsDesktop: React.FC<LeaveRequestsDesktopProps> = ({
                       <div className="bg-amber-50 border border-amber-300 rounded-xl px-3.5 py-2.5 flex items-center gap-2 text-xs text-amber-900 font-semibold">
                         <AlertTriangle size={15} className="text-amber-600 shrink-0" />
                         <span>
-                          Nessun collega risulta in turno lavorativo il <strong>{targetShiftDate}</strong> in questa sede. Seleziona un'altra data.
+                          Nessun collega risulta in turno lavorativo il <strong>{formatItalianDate(targetShiftDate)}</strong> in questa sede. Seleziona un'altra data.
                         </span>
                       </div>
                     )}
@@ -864,7 +865,7 @@ export const LeaveRequestsDesktop: React.FC<LeaveRequestsDesktopProps> = ({
                                   : 'Variazione Orario'}
                               </span>
                             </div>
-                            <span className="text-[11px] text-neutral-400">Data richiesta: {req.shiftDate}</span>
+                            <span className="text-[11px] text-neutral-400">Data richiesta: {formatItalianDate(req.shiftDate)}</span>
                           </div>
                         </div>
 

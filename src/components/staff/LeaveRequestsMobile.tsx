@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Employee, LocationId, Shift, ShiftRequest, ShiftRequestStatus, ShiftRequestType } from '../../domain/types';
 import { CONTINUATO_SLOTS } from '../../domain/rules';
+import { formatItalianDate } from '../../engine/schedulerEngine';
 import { 
   ArrowLeftRight, 
   CheckCircle2, 
@@ -164,10 +165,10 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
       '17:00';
 
     return {
-      reqDate,
+      reqDate: formatItalianDate(reqDate),
       reqDept,
       reqHours: `${reqStart} - ${reqEnd}`,
-      targetDate,
+      targetDate: formatItalianDate(targetDate),
       targetDept,
       targetHours: `${targetStart} - ${targetEnd}`,
     };
@@ -193,7 +194,7 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
             ? 'risulti in malattia'
             : 'non hai alcun turno assegnato';
         setErrorMsg(
-          `Errore: non puoi richiedere uno scambio per il ${shiftDate} perché in quella data ${statusLabel}. Seleziona un giorno in cui sei effettivamente in turno.`
+          `Errore: non puoi richiedere uno scambio per il ${formatItalianDate(shiftDate)} perché in quella data ${statusLabel}. Seleziona un giorno in cui sei effettivamente in turno.`
         );
         return;
       }
@@ -204,7 +205,7 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
 
       if (!targetEmployeeId || !selectedColleagueEntry) {
         setErrorMsg(
-          `Errore: il collega selezionato non ha un turno lavorativo attivo il giorno ${targetShiftDate}. Seleziona una data e un collega effettivamente in turno.`
+          `Errore: il collega selezionato non ha un turno lavorativo attivo il giorno ${formatItalianDate(targetShiftDate)}. Seleziona una data e un collega effettivamente in turno.`
         );
         return;
       }
@@ -563,7 +564,7 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
                   {myShiftOnDate ? (
                     <div className="bg-teal-50/90 border border-teal-200 rounded-xl px-3 py-2 flex items-center justify-between text-[11px] text-teal-950">
                       <span>
-                        Il tuo turno del <strong>{shiftDate}</strong>:
+                        Il tuo turno del <strong>{formatItalianDate(shiftDate)}</strong>:
                       </span>
                       <span className="font-bold text-nicora-teal">
                         Reparto {myShiftOnDate.department || myEmployee?.role} ({myShiftOnDate.startTime || '08:30'} - {myShiftOnDate.endTime || '17:00'})
@@ -573,7 +574,7 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
                     <div className="bg-rose-50 border border-rose-200 rounded-xl px-3 py-2 flex items-center gap-1.5 text-[11px] text-rose-800 font-semibold">
                       <AlertTriangle size={14} className="text-rose-600 shrink-0" />
                       <span>
-                        Non hai un turno lavorativo attivo il {shiftDate} (
+                        Non hai un turno lavorativo attivo il {formatItalianDate(shiftDate)} (
                         {myRawShiftOnDate?.type === 'riposo'
                           ? 'Riposo'
                           : myRawShiftOnDate?.type === 'ferie'
@@ -607,7 +608,7 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
 
                 <div>
                   <label className="block font-semibold text-neutral-700 mb-1">
-                    Collega effettivamente in turno il {targetShiftDate}:
+                    Collega effettivamente in turno il {formatItalianDate(targetShiftDate)}:
                   </label>
                   {colleaguesInTurnOnTargetDate.length > 0 ? (
                     <select
@@ -630,7 +631,7 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
                     <div className="bg-amber-50 border border-amber-300 rounded-xl px-3 py-2.5 flex items-center gap-2 text-[11px] text-amber-900 font-semibold">
                       <AlertTriangle size={14} className="text-amber-600 shrink-0" />
                       <span>
-                        Nessun collega risulta in turno lavorativo il {targetShiftDate} in questa sede. Seleziona un'altra data.
+                        Nessun collega risulta in turno lavorativo il {formatItalianDate(targetShiftDate)} in questa sede. Seleziona un'altra data.
                       </span>
                     </div>
                   )}
@@ -816,7 +817,7 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
 
                     <div className="text-[11px] text-neutral-600 space-y-1">
                       <div className="flex items-center justify-between">
-                        <span>Data turno: <strong>{req.shiftDate}</strong></span>
+                        <span>Data turno: <strong>{formatItalianDate(req.shiftDate)}</strong></span>
                         <span className="font-bold text-neutral-700">
                           {req.type === 'swap'
                             ? 'Scambio Turno'

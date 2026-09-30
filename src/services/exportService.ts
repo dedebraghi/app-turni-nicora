@@ -1,6 +1,6 @@
 import { Department, Employee, LocationId, LocationInfo, MonthlyEmployeeSummary, MonthlyStoreSummary, Shift, WeekDayMeta } from '../domain/types';
 import { DEPARTMENTS } from '../domain/rules';
-import { getLeaveHours, getShiftHours } from '../engine/schedulerEngine';
+import { formatItalianDate, getLeaveHours, getShiftHours } from '../engine/schedulerEngine';
 
 interface ExportParams {
 
@@ -24,11 +24,11 @@ export const generateWhatsAppScheduleText = ({
   const endDay = weekDays[6];
 
   let msg = `🌿 *NICORA GARDEN - ${location.name.toUpperCase()}*\n`;
-  msg += `📅 *Turni Settimana: ${startDay.dayShort} ${startDay.dayNum} ➔ ${endDay.dayShort} ${endDay.dayNum}*\n`;
+  msg += `📅 *Turni Settimana: ${startDay.dayShort} ${formatItalianDate(startDay.dateStr)} ➔ ${endDay.dayShort} ${formatItalianDate(endDay.dateStr)}*\n`;
   msg += `----------------------------------------\n\n`;
 
   weekDays.forEach((day) => {
-    msg += `📆 *${day.dayName.toUpperCase()} ${day.dayNum}*\n`;
+    msg += `📆 *${day.dayName.toUpperCase()} ${formatItalianDate(day.dateStr)}*\n`;
 
     const dayShifts = shifts.filter((s) => s.locationId === location.id && s.date === day.dateStr);
 
@@ -225,7 +225,7 @@ export const printWeeklyBoard = ({
       <div class="header">
         <div>
           <h1 class="title">NICORA GARDEN CENTER — ${location.name.toUpperCase()}</h1>
-          <div class="subtitle">TABELLONE TURNI: DOMENICA ${startDay.dayNum} ➔ SABATO ${endDay.dayNum}</div>
+          <div class="subtitle">TABELLONE TURNI: DOMENICA ${formatItalianDate(startDay.dateStr)} ➔ SABATO ${formatItalianDate(endDay.dateStr)}</div>
         </div>
         <div class="meta">
           <div>Orario: Lun-Dom 08:30–19:30</div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Department, Employee, LocationId, Shift } from '../../domain/types';
-import { DepartmentGap, findCandidatesForGap, ReplacementCandidate } from '../../engine/schedulerEngine';
+import { DepartmentGap, findCandidatesForGap, formatItalianDate, ReplacementCandidate } from '../../engine/schedulerEngine';
 import {
   AlertTriangle,
   ArrowRight,
@@ -309,7 +309,7 @@ export const StaffSubstitutionWizard: React.FC<StaffSubstitutionWizardProps> = (
                   <div className="flex items-center gap-1.5">
                     <Clock size={16} className={currentGap.severity === 'critical' ? 'text-rose-600' : 'text-amber-600'} />
                     <span className="font-bold text-sm text-neutral-900">
-                      {currentGap.dayMeta.dayName} {currentGap.dayMeta.dayNum} {currentGap.dateStr.slice(0, 7)}
+                      {currentGap.dayMeta.dayName} {formatItalianDate(currentGap.dateStr)}
                     </span>
                   </div>
                   <span

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Employee, Shift, ShiftRequest } from '../../domain/types';
+import { formatItalianDate } from '../../engine/schedulerEngine';
 import { ArrowLeftRight, CalendarOff, CheckCircle2, ChevronLeft, ChevronRight, Clock, X, XCircle } from 'lucide-react';
 
 interface PendingRequestsBannerProps {
@@ -112,7 +113,7 @@ export const PendingRequestsBanner: React.FC<PendingRequestsBannerProps> = ({
           </div>
 
           <span className="text-xs font-bold text-neutral-600 bg-white/80 px-2 py-0.5 rounded-lg border border-amber-200">
-            Data: <strong>{currentReq.shiftDate}</strong>
+            Data: <strong>{formatItalianDate(currentReq.shiftDate)}</strong>
           </span>
         </div>
 
@@ -134,10 +135,10 @@ export const PendingRequestsBanner: React.FC<PendingRequestsBannerProps> = ({
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px] pt-1">
               <div className="bg-white/80 px-2 py-1 rounded-lg border border-emerald-200/60">
-                • <strong>{target.name}</strong> copre il <strong>{reqDate}</strong> in <strong>{reqDept}</strong> ({reqHours})
+                • <strong>{target.name}</strong> copre il <strong>{formatItalianDate(reqDate)}</strong> in <strong>{reqDept}</strong> ({reqHours})
               </div>
               <div className="bg-white/80 px-2 py-1 rounded-lg border border-emerald-200/60">
-                • <strong>{requester?.name}</strong> copre il <strong>{targetDate}</strong> in <strong>{targetDept}</strong> ({targetHours})
+                • <strong>{requester?.name}</strong> copre il <strong>{formatItalianDate(targetDate)}</strong> in <strong>{targetDept}</strong> ({targetHours})
               </div>
             </div>
           </div>

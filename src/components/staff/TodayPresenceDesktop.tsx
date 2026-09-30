@@ -108,7 +108,7 @@ export const TodayPresenceDesktop: React.FC<TodayPresenceDesktopProps> = ({
   ];
 
   const formatDisplayDate = (dStr: string) => {
-    const d = new Date(dStr);
+    const d = new Date(`${dStr}T12:00:00`);
     return d.toLocaleDateString('it-IT', {
       weekday: 'long',
       day: 'numeric',

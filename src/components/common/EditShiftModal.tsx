@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CONTINUATO_SLOTS, getLocationDepartments, SHIFT_TYPES, STANDARD_HOURS } from '../../domain/rules';
 import { Department, Employee, Shift, ShiftType } from '../../domain/types';
+import { formatItalianDate } from '../../engine/schedulerEngine';
 import { X, Check, Clock, MapPin, Tag, ShieldAlert, Sparkles } from 'lucide-react';
 
 interface EditShiftModalProps {
@@ -102,7 +103,7 @@ export const EditShiftModal: React.FC<EditShiftModalProps> = ({
             <h3 className="font-bold text-base leading-tight">
               {employee?.name}
             </h3>
-            <p className="text-xs text-nicora-teal-light/80">Data: {shift.date}</p>
+            <p className="text-xs text-nicora-teal-light/80">Data: {formatItalianDate(shift.date)}</p>
           </div>
           <button
             onClick={onClose}

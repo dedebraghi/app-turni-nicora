@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Department, Employee, LocationId, Shift } from '../../domain/types';
 import { getLocationDepartments } from '../../domain/rules';
 import { findBestReplacements } from '../../engine/replacementAdvisor';
-import { formatLocalDate } from '../../engine/schedulerEngine';
+import { formatItalianDate, formatLocalDate } from '../../engine/schedulerEngine';
 import { X, ShieldAlert, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
 
 interface EmergencyModalProps {
@@ -112,8 +112,11 @@ export const EmergencyModal: React.FC<EmergencyModalProps> = ({
           {/* Selezione data e assente */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-neutral-50 p-3.5 rounded-2xl border border-nicora-border">
             <div>
-              <label className="block font-bold text-neutral-700 mb-1">
-                Data dell'imprevisto / assenza:
+              <label className="block font-bold text-neutral-700 mb-1 flex items-center justify-between">
+                <span>Data dell'imprevisto / assenza:</span>
+                {selectedShiftDate && (
+                  <span className="text-[11px] text-nicora-teal font-extrabold">{formatItalianDate(selectedShiftDate)}</span>
+                )}
               </label>
               <input
                 type="date"
