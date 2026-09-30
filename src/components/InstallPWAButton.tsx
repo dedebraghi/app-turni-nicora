@@ -102,33 +102,33 @@ export const InstallPWAButton: React.FC<InstallPWAButtonProps> = ({
 
       {/* Modale con istruzioni dettagliate sia per Android che per iOS */}
       {showGuideModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-xs p-3 sm:p-4 pt-safe pb-safe animate-in fade-in duration-200">
           <div
             className="fixed inset-0 -z-10"
             onClick={() => setShowGuideModal(false)}
           />
 
-          <div className="bg-white rounded-3xl shadow-2xl border border-nicora-sage-border w-full max-w-sm overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
-            {/* Header Modale */}
-            <div className="bg-gradient-to-r from-nicora-teal-dark via-nicora-teal to-nicora-teal-dark text-white px-5 py-3.5 flex items-center justify-between">
+          <div className="bg-white rounded-3xl shadow-2xl border border-nicora-sage-border w-full max-w-sm max-h-[88dvh] overflow-hidden flex flex-col my-auto animate-in zoom-in-95 duration-200">
+            {/* Header Modale fisso in alto al box */}
+            <div className="bg-gradient-to-r from-nicora-teal-dark via-nicora-teal to-nicora-teal-dark text-white px-4 sm:px-5 py-3 sm:py-3.5 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
-                <Smartphone size={20} className="text-amber-300" />
-                <h3 className="font-serif text-sm sm:text-base font-bold text-white">
+                <Smartphone size={18} className="text-amber-300" />
+                <h3 className="font-serif text-sm sm:text-base font-bold text-white leading-tight">
                   Installa App Nicora Turni
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setShowGuideModal(false)}
-                className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
+                className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
                 aria-label="Chiudi guida installazione"
               >
                 <X size={18} />
               </button>
             </div>
 
-            {/* Contenuto Switch Tab o Sezioni */}
-            <div className="p-5 flex flex-col gap-4 text-left">
+            {/* Contenuto scrollabile fluidamente in caso di schermi compatti o barre browser visibili */}
+            <div className="p-4 sm:p-5 overflow-y-auto flex flex-col gap-3.5 text-left">
               {/* Tab selettore piattaforma */}
               <div className="grid grid-cols-2 p-1 bg-neutral-100 rounded-xl text-xs font-bold text-neutral-600">
                 <button
