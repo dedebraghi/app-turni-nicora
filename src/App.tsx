@@ -131,6 +131,21 @@ export const App: React.FC = () => {
       pendingDeletes.clear();
       touchedLoggedInEmployee = false;
 
+      // Marca come "pubblicati" i mesi dei turni ricevuti via Realtime,
+      // così visibleShifts non li filtra per i dipendenti
+      if (toUpsert.length > 0) {
+        const monthKeys = new Set<string>();
+        for (const s of toUpsert) {
+          const parts = s.date.split('-');
+          if (parts.length >= 2) {
+            monthKeys.add(`${s.locationId}_${parts[0]}-${parts[1]}`);
+          }
+        }
+        if (monthKeys.size > 0) {
+          syncPublishedMonthsFromCloud(monthKeys);
+        }
+      }
+
       setShifts((prev) => {
         let updated = prev;
         if (toDelete.size > 0) {
