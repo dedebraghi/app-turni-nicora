@@ -412,7 +412,7 @@ html_content = """<!DOCTYPE html>
       <div class="toc-item level-2"><a href="#cap-3-9">3.9 Esportazione e Stampa Ufficiale per Bacheca</a></div>
       <div class="toc-item level-2"><a href="#cap-3-10">3.10 Scheda "Personale e Competenze" (Anagrafica e Modifica)</a></div>
       <div class="toc-item level-2"><a href="#cap-3-11">3.11 Matrice Competenze (Skills Matrix)</a></div>
-      <div class="toc-item level-2"><a href="#cap-3-12">3.12 Monitoraggio Equità (Fairness Tracker e Ore Lavorate)</a></div>
+      <div class="toc-item level-2"><a href="#cap-3-12">3.12 Monitoraggio Equità e Quadratura Ore Contrattuali</a></div>
 
       <div class="toc-item level-1"><a href="#cap-4">4. Glossario Completo di Icone, Badge, Banner e Colori</a></div>
       <div class="toc-item level-2"><a href="#cap-4-1">4.1 Codice Cromatico Ufficiale delle Tipologie di Turno</a></div>
@@ -730,7 +730,7 @@ html_content = """<!DOCTYPE html>
         1. Selezionare il collaboratore assente e il turno scoperto.
         <br>2. Il sistema esclude all'istante chi è già di turno, chi è in ferie o chi violerebbe le 11 ore di riposo.
         <br>3. Analizza la <strong>Skills Matrix</strong> per verificare chi ha la competenza richiesta dal reparto rimasto scoperto.
-        <br>4. Esamina il <strong>Fairness Tracker</strong> e il monte ore settimanale per favorire chi ha meno ore lavorate o meno domeniche accumulate.
+        <br>4. Valuta la disponibilità nella giornata (favorisce chi è a riposo per un subentro ed evita di spostare chi è già a presidio della Cassa).
         <br>5. Presenta alla Direzione una classifica con i <strong>3 migliori sostituti ideali</strong>, spiegando per ciascuno il motivo del punteggio.
         <br>6. Con un click sul candidato prescelto, il turno viene riassegnato e il collaboratore avvisato!
       </p>
@@ -821,17 +821,17 @@ html_content = """<!DOCTYPE html>
       La Direzione può modificare i punteggi con un semplice click. L'algoritmo di generazione automatica e il wizard delle emergenze leggono questi dati in tempo reale per non lasciare mai sguarnito un reparto critico.
     </p>
 
-    <h2 class="section-title" id="cap-3-12">3.12 Monitoraggio Equità (Fairness Tracker e Ore Lavorate)</h2>
+    <h2 class="section-title" id="cap-3-12">3.12 Monitoraggio Equità e Quadratura Ore Contrattuali</h2>
     <p>
-      Per favorire un clima aziendale sereno e motivante, il modulo <strong>Fairness Tracker</strong> traccia automaticamente:
+      Per garantire un'allocazione trasparente dei carichi di lavoro ed evitare disparità, il sistema monitora costantemente l'impegno di ciascun collaboratore:
     </p>
     <ul>
-      <li>Il conteggio esatto delle <strong>Domeniche lavorate</strong> da ciascun collaboratore nell'anno solare.</li>
-      <li>Il numero di turni spezzati o chiusure serali effettuate.</li>
-      <li>Lo scostamento cumulativo tra ore pianificate e ore da contratto.</li>
+      <li><strong>Quadratura Ore Settimanali (PlannerGrid):</strong> Nella colonna di ciascun dipendente, un indicatore colorato confronta in tempo reale le ore complessivamente computate (lavoro effettivo + ferie/permessi) con le ore previste da contratto (badge verde se soddisfatto, ambra in difetto e rosso in esubero).</li>
+      <li><strong>Controllo Presenze Settimanali:</strong> Il badge conteggia i giorni effettivi di servizio rispetto ai 5 giorni lavorativi contrattuali previsti (es. 5/5 gg).</li>
+      <li><strong>Consuntivo Mensile e Saldo Ore (Scheda Personale):</strong> La tabella di riepilogo mensile aggrega le ore lavorate per ciascun reparto, le presenze, i riposi, le ferie e le malattie, calcolando automaticamente il monte ore contrattuale e il saldo positivo o negativo.</li>
     </ul>
     <p>
-      Quando si verificano squilibri (es. un dipendente che ha lavorato 3 domeniche consecutive rispetto a un collega con zero domeniche), il sistema segnala visivamente la disparità suggerendo la compensazione nei turni successivi.
+      Queste metriche permettono alla Direzione di calibrare con precisione la pianificazione prima di pubblicare il mese, prevenendo sbilanciamenti e garantendo che ogni risorsa rispetti il proprio monte ore contrattuale.
     </p>
   </div>
 
