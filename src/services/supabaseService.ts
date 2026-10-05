@@ -462,7 +462,7 @@ export const fetchCloudPublishedMonths = async (): Promise<Set<string>> => {
   }
 
   try {
-    // 1. Prova a leggere l'elenco centralizzato dal record di sistema
+    // Prova a leggere l'elenco centralizzato dal record di sistema
     const { data: configData, error: configError } = await supabase
       .from('employees')
       .select('skills')
@@ -473,23 +473,6 @@ export const fetchCloudPublishedMonths = async (): Promise<Set<string>> => {
       for (const m of (configData.skills as any).published_months) {
         if (typeof m === 'string') {
           result.add(m);
-        }
-      }
-      return result;
-    }
-
-    // 2. Fallback: se sys-app-config non è ancora popolato, deduci dai turni storici
-    const { data, error } = await supabase
-      .from('shifts')
-      .select('location_id, date');
-
-    if (error) throw error;
-    if (data) {
-      for (const row of data) {
-        const parts = (row.date as string).split('-');
-        if (parts.length >= 2) {
-          const key = `${row.location_id}_${parts[0]}-${parts[1]}`;
-          result.add(key);
         }
       }
     }
@@ -524,7 +507,7 @@ export const publishCloudMonth = async (
 
     const currentMonths: string[] = Array.isArray(data?.skills?.published_months)
       ? [...data.skills.published_months]
-      : ['gazzada_2026-09', 'varese_2026-09', 'gazzada_2026-10', 'varese_2026-10'];
+      : [];
 
     if (!currentMonths.includes(monthKey)) {
       currentMonths.push(monthKey);
@@ -565,11 +548,12 @@ export interface RealtimeSubscriptionHandlers {
     newRequest?: ShiftRequest;
     oldId?: string;
   }) => void;
+  onConfigChange?: (publishedMonths: Set<string>) => void;
 }
 
 /**
  * Attiva la sottoscrizione WebSocket Realtime su Supabase per sincronizzare
- * istantaneamente turni e richieste ferie tra tutti i dispositivi.
+ * istantaneamente turni, richieste ferie e pubblicazione tra tutti i dispositivi.
  * Restituisce la funzione di cleanup da richiamare all'unmount.
  */
 export const subscribeToRealtimeChanges = (
@@ -615,6 +599,24 @@ export const subscribeToRealtimeChanges = (
             eventType: payload.eventType as 'INSERT' | 'UPDATE',
             newRequest: mapped,
           });
+        }
+      }
+    )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'employees' },
+      (payload) => {
+        const newRecord = payload.new as any;
+        if (newRecord && newRecord.id === 'sys-app-config') {
+          const publishedMonths = new Set<string>();
+          if (newRecord.skills && Array.isArray(newRecord.skills.published_months)) {
+            for (const m of newRecord.skills.published_months) {
+              if (typeof m === 'string') {
+                publishedMonths.add(m);
+              }
+            }
+          }
+          handlers.onConfigChange?.(publishedMonths);
         }
       }
     )

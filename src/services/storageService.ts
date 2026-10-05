@@ -313,23 +313,17 @@ export const recordMonthUnpublished = (locationId: string, year: number, month: 
 };
 
 /**
- * Sincronizza lo stato di pubblicazione dal cloud al localStorage.
- * Per ogni mese/sede con turni su Supabase, marca come "pubblicato" nel localStorage locale
- * così che i dipendenti su qualsiasi dispositivo vedano correttamente i turni.
+ * Sincronizza in modo autorevole lo stato dei mesi pubblicati dal cloud al localStorage.
+ * Imposta la mappa dei mesi pubblicati esattamente pari all'insieme autorevole del cloud,
+ * assicurando che mesi non pubblicati o bozze tornino correttamente non pubblicati su tutti i dispositivi.
  */
 export const syncPublishedMonthsFromCloud = (cloudMonthKeys: Set<string>): void => {
   try {
-    const pubMap = getPublishedMonthsMap();
-    let changed = false;
+    const pubMap: Record<string, boolean> = {};
     for (const key of cloudMonthKeys) {
-      if (!pubMap[key]) {
-        pubMap[key] = true;
-        changed = true;
-      }
+      pubMap[key] = true;
     }
-    if (changed) {
-      localStorage.setItem(STORAGE_KEYS.PUBLISHED_MONTHS, JSON.stringify(pubMap));
-    }
+    localStorage.setItem(STORAGE_KEYS.PUBLISHED_MONTHS, JSON.stringify(pubMap));
   } catch (e) {
     console.error('Errore sincronizzazione mesi pubblicati dal cloud:', e);
   }

@@ -62,7 +62,15 @@ export const LeaveRequestsDesktop: React.FC<LeaveRequestsDesktopProps> = ({
   );
   const myShiftOnDate = isWorkingShift(myRawShiftOnDate) ? myRawShiftOnDate : undefined;
 
-  // Colleghi effettivamente in turno lavorativo nel giorno targetShiftDate nella sede attiva
+  // Verifica se il richiedente ha già un turno lavorativo nella data del collega (targetShiftDate)
+  const requesterHasWorkingShiftOnTargetDate =
+    shiftDate !== targetShiftDate &&
+    shifts.some(
+      (s) => s.employeeId === currentEmployeeId && s.date === targetShiftDate && isWorkingShift(s)
+    );
+
+  // Colleghi effettivamente in turno lavorativo nel giorno targetShiftDate nella sede attiva,
+  // escludendo chi ha collisioni di sovrapposizione turni
   const colleaguesInTurnOnTargetDate = employees
     .filter((emp) => emp.isActive !== false && !emp.isOwner && emp.id !== currentEmployeeId)
     .map((emp) => {
@@ -73,7 +81,20 @@ export const LeaveRequestsDesktop: React.FC<LeaveRequestsDesktopProps> = ({
           s.locationId === activeLocation &&
           isWorkingShift(s)
       );
-      return shift ? { employee: emp, shift } : null;
+      if (!shift) return null;
+
+      // 1. Il collega non deve già avere un turno lavorativo nella data del richiedente (shiftDate)
+      const colleagueHasWorkingShiftOnRequesterDate =
+        shiftDate !== targetShiftDate &&
+        shifts.some(
+          (s) => s.employeeId === emp.id && s.date === shiftDate && isWorkingShift(s)
+        );
+      if (colleagueHasWorkingShiftOnRequesterDate) return null;
+
+      // 2. Il richiedente non deve già avere un turno lavorativo nella data del collega (targetShiftDate)
+      if (requesterHasWorkingShiftOnTargetDate) return null;
+
+      return { employee: emp, shift };
     })
     .filter((item): item is { employee: Employee; shift: Shift } => item !== null);
 
@@ -87,7 +108,7 @@ export const LeaveRequestsDesktop: React.FC<LeaveRequestsDesktopProps> = ({
     if (!stillValid) {
       setTargetEmployeeId(colleaguesInTurnOnTargetDate[0]?.employee.id || '');
     }
-  }, [targetShiftDate, activeLocation, shifts, currentEmployeeId]);
+  }, [targetShiftDate, activeLocation, shifts, currentEmployeeId, shiftDate]);
 
   const [requestedStartTime, setRequestedStartTime] = useState('10:00');
   const [requestedEndTime, setRequestedEndTime] = useState('18:30');
@@ -196,13 +217,32 @@ export const LeaveRequestsDesktop: React.FC<LeaveRequestsDesktopProps> = ({
         return;
       }
 
+      if (shiftDate !== targetShiftDate) {
+        if (requesterHasWorkingShiftOnTargetDate) {
+          setErrorMsg(
+            `Errore conflitto turni: risulti già in turno lavorativo il giorno ${formatItalianDate(targetShiftDate)}. Non puoi subentrare nel turno di un collega in una data in cui lavori già.`
+          );
+          return;
+        }
+
+        const colleagueCollision = shifts.some(
+          (s) => s.employeeId === targetEmployeeId && s.date === shiftDate && isWorkingShift(s)
+        );
+        if (colleagueCollision) {
+          setErrorMsg(
+            `Errore conflitto turni: il collega selezionato ha già un turno lavorativo il giorno ${formatItalianDate(shiftDate)}. Non può subentrare nel tuo turno.`
+          );
+          return;
+        }
+      }
+
       const selectedColleagueEntry = colleaguesInTurnOnTargetDate.find(
         (c) => c.employee.id === targetEmployeeId
       );
 
       if (!targetEmployeeId || !selectedColleagueEntry) {
         setErrorMsg(
-          `Errore: nessun collega valido in turno selezionato per il giorno ${formatItalianDate(targetShiftDate)}. Verifica che ci sia almeno un collega in turno in quella data.`
+          `Errore: nessun collega valido in turno selezionato per il giorno ${formatItalianDate(targetShiftDate)}. Verifica che ci sia almeno un collega in turno in quella data senza conflitti di turno.`
         );
         return;
       }
@@ -661,7 +701,15 @@ export const LeaveRequestsDesktop: React.FC<LeaveRequestsDesktopProps> = ({
                       <div className="bg-amber-50 border border-amber-300 rounded-xl px-3.5 py-2.5 flex items-center gap-2 text-xs text-amber-900 font-semibold">
                         <AlertTriangle size={15} className="text-amber-600 shrink-0" />
                         <span>
-                          Nessun collega risulta in turno lavorativo il <strong>{formatItalianDate(targetShiftDate)}</strong> in questa sede. Seleziona un'altra data.
+                          {requesterHasWorkingShiftOnTargetDate ? (
+                            <>
+                              Attenzione: hai già un turno lavorativo attivo il <strong>{formatItalianDate(targetShiftDate)}</strong>. Non puoi effettuare uno scambio con una data in cui lavori già.
+                            </>
+                          ) : (
+                            <>
+                              Nessun collega idoneo in turno lavorativo il <strong>{formatItalianDate(targetShiftDate)}</strong> in questa sede (nessun collega in turno o conflitti di turno per il {formatItalianDate(shiftDate)}). Seleziona un'altra data.
+                            </>
+                          )}
                         </span>
                       </div>
                     )}

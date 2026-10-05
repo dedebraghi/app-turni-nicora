@@ -132,13 +132,21 @@ export function mapDbToRequest(row: any): ShiftRequest {
     rawNote = rawNote.replace('[STATO_COLLEGA:rejected]', '').trim();
   }
 
+  // Ripristina il sottotipo ('sick' o 'schedule_change') se codificato in manager_note
+  let reqType: ShiftRequest['type'] = row.type;
+  const subtypeMatch = rawNote.match(/\[SUBTYPE:(sick|schedule_change)\]/);
+  if (subtypeMatch) {
+    reqType = subtypeMatch[1] as 'sick' | 'schedule_change';
+    rawNote = rawNote.replace(subtypeMatch[0], '').trim();
+  }
+
   const managerNote = rawNote || undefined;
 
   return {
     id: row.id,
     requesterId: row.requester_id,
     locationId: row.location_id as LocationId,
-    type: row.type,
+    type: reqType,
     targetEmployeeId: row.target_employee_id || undefined,
     shiftDate: row.shift_date,
     targetShiftDate: row.target_shift_date || undefined,
@@ -163,6 +171,15 @@ export function mapRequestToDb(req: ShiftRequest) {
 
   if (req.managerNote) {
     noteParts.push(req.managerNote.trim());
+  }
+
+  // Preserva il sottotipo in manager_note per 'sick' e 'schedule_change'
+  // dato che la colonna DB 'type' accetta unicamente 'swap' o 'leave'
+  if (req.type === 'sick' || req.type === 'schedule_change') {
+    const subtypeTag = `[SUBTYPE:${req.type}]`;
+    if (!noteParts.some((p) => p.includes(subtypeTag))) {
+      noteParts.push(subtypeTag);
+    }
   }
 
   if (req.colleagueNote) {
@@ -213,4 +230,94 @@ export function mapRequestToDb(req: ShiftRequest) {
     manager_note: noteParts.join(' ').trim() || null,
   };
 }
+
+/**
+ * Ritira la pubblicazione di un mese da Supabase Cloud (sys-app-config).
+ */
+export const unpublishCloudMonth = async (
+  locationId: LocationId,
+  year: number,
+  month: number
+): Promise<{ success: boolean; error?: string }> => {
+  const monthKey = `${locationId}_${year}-${String(month).padStart(2, '0')}`;
+
+  if (!isSupabaseConfigured || !supabase) {
+    return { success: false, error: 'Database Supabase Cloud non raggiungibile.' };
+  }
+
+  try {
+    const { data } = await supabase
+      .from('employees')
+      .select('skills')
+      .eq('id', 'sys-app-config')
+      .maybeSingle();
+
+    const currentMonths: string[] = Array.isArray(data?.skills?.published_months)
+      ? [...data.skills.published_months]
+      : [];
+
+    const updated = currentMonths.filter((m) => m !== monthKey);
+
+    const { error: upsertErr } = await supabase.from('employees').upsert({
+      id: 'sys-app-config',
+      name: 'Configurazione Sistema',
+      location_id: 'gazzada',
+      role: 'Area Tecnica',
+      avatar: 'CF',
+      email: 'system-config@nicoragarden.local',
+      is_active: false,
+      skills: { published_months: updated },
+      updated_at: new Date().toISOString(),
+    });
+
+    if (upsertErr) throw upsertErr;
+    return { success: true };
+  } catch (err: any) {
+    console.error('[Supabase] Errore ritiro pubblicazione mese su cloud:', err);
+    return { success: false, error: err.message || 'Errore ritiro pubblicazione cloud' };
+  }
+};
+
+/**
+ * Ritira la pubblicazione di tutti i mesi per una sede da Supabase Cloud (sys-app-config).
+ */
+export const unpublishCloudLocation = async (
+  locationId: LocationId
+): Promise<{ success: boolean; error?: string }> => {
+  if (!isSupabaseConfigured || !supabase) {
+    return { success: false, error: 'Database Supabase Cloud non raggiungibile.' };
+  }
+
+  try {
+    const { data } = await supabase
+      .from('employees')
+      .select('skills')
+      .eq('id', 'sys-app-config')
+      .maybeSingle();
+
+    const currentMonths: string[] = Array.isArray(data?.skills?.published_months)
+      ? [...data.skills.published_months]
+      : [];
+
+    const updated = currentMonths.filter((m) => !m.startsWith(`${locationId}_`));
+
+    const { error: upsertErr } = await supabase.from('employees').upsert({
+      id: 'sys-app-config',
+      name: 'Configurazione Sistema',
+      location_id: 'gazzada',
+      role: 'Area Tecnica',
+      avatar: 'CF',
+      email: 'system-config@nicoragarden.local',
+      is_active: false,
+      skills: { published_months: updated },
+      updated_at: new Date().toISOString(),
+    });
+
+    if (upsertErr) throw upsertErr;
+    return { success: true };
+  } catch (err: any) {
+    console.error('[Supabase] Errore ritiro pubblicazione sede su cloud:', err);
+    return { success: false, error: err.message || 'Errore ritiro pubblicazione cloud' };
+  }
+};
 

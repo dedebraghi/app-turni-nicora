@@ -37,6 +37,7 @@ import {
   recordMonthPublished,
   recordMonthUnpublished,
   syncPublishedMonthsFromCloud,
+  getPublishedMonthsMap,
 } from './services/storageService';
 import {
   archiveCloudEmployee,
@@ -53,6 +54,7 @@ import {
   subscribeToRealtimeChanges,
   updateCloudRequestStatus,
 } from './services/supabaseService';
+import { unpublishCloudMonth, unpublishCloudLocation } from './services/supabaseClient';
 
 export const App: React.FC = () => {
   // Sede attiva (Gazzada o Varese)
@@ -102,8 +104,8 @@ export const App: React.FC = () => {
           if (cloudEmps && cloudEmps.length > 0) setEmployees(cloudEmps);
           if (cloudShifts && cloudShifts.length > 0) setShifts(cloudShifts.filter((s) => s.employeeId !== 'emp-gz-4'));
           if (cloudReqs && cloudReqs.length > 0) setRequests(cloudReqs);
-          // Sincronizza lo stato di pubblicazione: i mesi con turni su Supabase sono visibili su qualsiasi dispositivo
-          if (cloudPubMonths.size > 0) syncPublishedMonthsFromCloud(cloudPubMonths);
+          // Sincronizza lo stato di pubblicazione dal cloud in modo autorevole
+          syncPublishedMonthsFromCloud(cloudPubMonths);
         }
       } catch (err) {
         console.warn('[Cloud] Inizializzazione fallback:', err);
@@ -132,21 +134,6 @@ export const App: React.FC = () => {
       pendingShifts.clear();
       pendingDeletes.clear();
       touchedLoggedInEmployee = false;
-
-      // Marca come "pubblicati" i mesi dei turni ricevuti via Realtime,
-      // così visibleShifts non li filtra per i dipendenti
-      if (toUpsert.length > 0) {
-        const monthKeys = new Set<string>();
-        for (const s of toUpsert) {
-          const parts = s.date.split('-');
-          if (parts.length >= 2) {
-            monthKeys.add(`${s.locationId}_${parts[0]}-${parts[1]}`);
-          }
-        }
-        if (monthKeys.size > 0) {
-          syncPublishedMonthsFromCloud(monthKeys);
-        }
-      }
 
       setShifts((prev) => {
         let updated = prev;
@@ -215,6 +202,11 @@ export const App: React.FC = () => {
           }
         }
       },
+      onConfigChange: (cloudPubMonths) => {
+        syncPublishedMonthsFromCloud(cloudPubMonths);
+        // Forza il ricalcolo dei turni visibili e dei badge di pubblicazione in tempo reale
+        setShifts((prev) => [...prev]);
+      },
     });
 
     return () => {
@@ -275,7 +267,8 @@ export const App: React.FC = () => {
   const handleSaveShift = (updatedShift: Shift) => {
     setShifts((prev) => {
       const next = prev.map((s) => (s.id === updatedShift.id ? updatedShift : s));
-      saveCloudShifts(next);
+      saveStoredShifts(next);
+      saveCloudShifts([updatedShift]);
       return next;
     });
   };
@@ -378,8 +371,8 @@ export const App: React.FC = () => {
       if (fresh && fresh.length > 0) {
         setShifts(fresh.filter((s) => s.employeeId !== 'emp-gz-4'));
       }
-      // Sincronizza anche lo stato di pubblicazione dal cloud
-      if (cloudPubMonths.size > 0) syncPublishedMonthsFromCloud(cloudPubMonths);
+      // Sincronizza anche lo stato di pubblicazione dal cloud in modo autorevole
+      syncPublishedMonthsFromCloud(cloudPubMonths);
       setToast({
         id: `toast-ref-${Date.now()}`,
         title: 'Turni Aggiornati ✨',
@@ -397,7 +390,11 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleClearShifts = async (targetLocationId: LocationId, mode: 'future' | 'all') => {
+  const handleClearShifts = async (
+    targetLocationId: LocationId,
+    mode: 'future' | 'month' | 'all',
+    targetDateStr?: string
+  ) => {
     const todayStr = formatLocalDate(new Date());
     let next: Shift[];
     let clearedCount = 0;
@@ -421,23 +418,64 @@ export const App: React.FC = () => {
         message: `${clearedCount} turni da oggi in poi rimossi. ${preservedCount} turni passati preservati intatti.`,
         type: 'info',
       });
+    } else if (mode === 'month') {
+      const refDate = targetDateStr || todayStr;
+      const [yStr, mStr] = refDate.split('-');
+      const yNum = parseInt(yStr, 10);
+      const mNum = parseInt(mStr, 10);
+      const monthPrefix = `${yNum}-${String(mNum).padStart(2, '0')}`;
+
+      clearedCount = shifts.filter(
+        (s) => s.locationId === targetLocationId && s.date.startsWith(monthPrefix)
+      ).length;
+      next = shifts.filter(
+        (s) => !(s.locationId === targetLocationId && s.date.startsWith(monthPrefix))
+      );
+
+      const startDate = `${monthPrefix}-01`;
+      const endDate = `${monthPrefix}-31`;
+      await deleteCloudShifts(targetLocationId, startDate, endDate);
+
+      // Ritiro stato pubblicazione e bozza per il mese svuotato sia in locale che nel cloud
+      recordMonthUnpublished(targetLocationId, yNum, mNum);
+      resetDraftGenerated(targetLocationId, yNum, mNum);
+      await unpublishCloudMonth(targetLocationId, yNum, mNum);
+
+      setToast({
+        id: `toast-clear-month-${Date.now()}`,
+        title: 'Mese Svuotato',
+        message: `${clearedCount} turni di ${monthPrefix} rimossi per ${targetLocationId === 'gazzada' ? 'Gazzada' : 'Varese'}. Il mese è stato ritirato dalla pubblicazione.`,
+        type: 'info',
+      });
     } else {
       // mode === 'all': svuota TUTTO il database (incluso lo storico)
       clearedCount = shifts.filter((s) => s.locationId === targetLocationId).length;
       next = shifts.filter((s) => s.locationId !== targetLocationId);
       await deleteCloudShifts(targetLocationId);
 
+      // Svuota tutti i mesi pubblicati per questa sede sia in locale che su cloud
+      const pubMap = getPublishedMonthsMap();
+      for (const key of Object.keys(pubMap)) {
+        if (key.startsWith(`${targetLocationId}_`)) {
+          const parts = key.replace(`${targetLocationId}_`, '').split('-');
+          if (parts.length >= 2) {
+            recordMonthUnpublished(targetLocationId, parseInt(parts[0], 10), parseInt(parts[1], 10));
+          }
+        }
+      }
+      resetDraftGenerated(targetLocationId);
+      await unpublishCloudLocation(targetLocationId);
+
       setToast({
         id: `toast-clear-all-${Date.now()}`,
         title: 'Database Azzerato',
-        message: `Tutti i ${clearedCount} turni (incluso lo storico) per ${targetLocationId === 'gazzada' ? 'Gazzada' : 'Varese'} sono stati eliminati definitivamente.`,
+        message: `Tutti i ${clearedCount} turni (incluso lo storico) per ${targetLocationId === 'gazzada' ? 'Gazzada' : 'Varese'} sono stati eliminati definitivamente e le pubblicazioni azzerate.`,
         type: 'info',
       });
     }
 
     setShifts(next);
     saveStoredShifts(next);
-    resetDraftGenerated(targetLocationId);
     setIsClearModalOpen(false);
   };
 
@@ -448,7 +486,7 @@ export const App: React.FC = () => {
       );
       const next = [...filtered, shiftToApply];
       saveStoredShifts(next);
-      saveCloudShifts(next);
+      saveCloudShifts([shiftToApply]);
       return next;
     });
 
@@ -995,7 +1033,7 @@ export const App: React.FC = () => {
           <PlannerGrid
             location={locationInfo}
             employees={employees}
-            shifts={shifts}
+            shifts={visibleShifts}
             requests={requests}
             isManagerMode={isManagerMode}
             currentEmployee={currentEmployee}

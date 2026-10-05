@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { LocationId, Shift } from '../../domain/types';
 import { formatItalianDate, formatLocalDate } from '../../engine/schedulerEngine';
 import {
   AlertTriangle,
+  Calendar,
   CalendarOff,
   Flame,
   ShieldCheck,
@@ -16,7 +17,12 @@ interface ClearShiftsModalProps {
   locationId: LocationId;
   locationName: string;
   shifts: Shift[];
-  onConfirmClear: (targetLocationId: LocationId, mode: 'future' | 'all') => void;
+  currentMonthDate?: string;
+  onConfirmClear: (
+    targetLocationId: LocationId,
+    mode: 'future' | 'month' | 'all',
+    targetDateStr?: string
+  ) => void;
 }
 
 export const ClearShiftsModal: React.FC<ClearShiftsModalProps> = ({
@@ -25,14 +31,22 @@ export const ClearShiftsModal: React.FC<ClearShiftsModalProps> = ({
   locationId,
   locationName,
   shifts,
+  currentMonthDate,
   onConfirmClear,
 }) => {
+  const todayStr = formatLocalDate(new Date());
+  const [selectedMonth, setSelectedMonth] = useState<string>(() =>
+    currentMonthDate ? currentMonthDate.substring(0, 7) : todayStr.substring(0, 7)
+  );
+
   if (!isOpen) return null;
 
-  const todayStr = formatLocalDate(new Date());
   const storeShifts = (shifts || []).filter((s) => s.locationId === locationId);
   const pastShifts = storeShifts.filter((s) => s.date < todayStr);
   const futureShifts = storeShifts.filter((s) => s.date >= todayStr);
+
+  const monthShifts = storeShifts.filter((s) => s.date.startsWith(selectedMonth));
+  const monthCount = monthShifts.length;
 
   const totalCount = storeShifts.length;
   const pastCount = pastShifts.length;
@@ -40,6 +54,15 @@ export const ClearShiftsModal: React.FC<ClearShiftsModalProps> = ({
 
   const handleClearFuture = () => {
     onConfirmClear(locationId, 'future');
+  };
+
+  const handleClearMonth = () => {
+    const confirmation = window.confirm(
+      `Confermi di voler eliminare TUTTI i ${monthCount} turni del mese ${selectedMonth} per ${locationName}?\n\nQuesta operazione rimuove tutti i turni del mese e ritira lo stato di pubblicazione (il mese non sarà più pubblicato).`
+    );
+    if (confirmation) {
+      onConfirmClear(locationId, 'month', `${selectedMonth}-01`);
+    }
   };
 
   const handleClearAll = () => {
@@ -130,7 +153,59 @@ export const ClearShiftsModal: React.FC<ClearShiftsModalProps> = ({
             </button>
           </div>
 
-          {/* Opzione 2: ZONA PERICOLO (Reset totale del database) */}
+          {/* Opzione 2: Svuota un mese intero */}
+          <div className="bg-amber-50/70 border border-amber-300 rounded-2xl p-4 space-y-3 transition-all hover:shadow-xs">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-amber-600/10 text-amber-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Calendar size={18} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-amber-950 text-sm">
+                      Svuota un mese intero
+                    </span>
+                    <span className="bg-amber-700 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      Mese Intero
+                    </span>
+                  </div>
+                  <p className="text-amber-900/80 text-[11px] mt-1 leading-snug">
+                    Rimuove tutti i <strong>{monthCount} turni</strong> del mese selezionato e ritira la pubblicazione, riportando il mese a stato non pubblicato sia in locale che sul cloud.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <label className="text-[11px] font-semibold text-neutral-700">Mese da svuotare:</label>
+              <input
+                type="month"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="bg-white border border-amber-300 rounded-lg px-2.5 py-1 text-xs text-neutral-800 font-semibold focus:outline-none focus:ring-1 focus:ring-amber-500"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleClearMonth}
+              disabled={monthCount === 0}
+              className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer ${
+                monthCount > 0
+                  ? 'bg-amber-700 hover:bg-amber-800 text-white active:scale-98'
+                  : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+              }`}
+            >
+              <CalendarOff size={15} />
+              <span>
+                {monthCount > 0
+                  ? `Svuota mese ${selectedMonth} (${monthCount} turni)`
+                  : `Nessun turno presente in ${selectedMonth}`}
+              </span>
+            </button>
+          </div>
+
+          {/* Opzione 3: ZONA PERICOLO (Reset totale del database) */}
           <div className="bg-rose-50/80 border-2 border-rose-300/80 rounded-2xl p-4 space-y-3 ring-1 ring-rose-200 transition-all">
             <div className="flex items-start gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-rose-600/15 text-rose-700 flex items-center justify-center flex-shrink-0 mt-0.5">

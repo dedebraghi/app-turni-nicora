@@ -123,7 +123,16 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
   }, [baseSundayStr]);
 
   const storeEmployees = employees.filter((e) => (e.locationId === location.id || e.isMobile) && e.isActive !== false && !e.isOwner);
-  const storeShifts = shifts; // Conserviamo tutti i turni per poter rilevare i turni dei dipendenti mobili nell'altra sede
+
+  // Se non in modalità manager, filtra i turni escludendo quelli dei mesi non ancora pubblicati (privacy collaboratori)
+  const storeShifts = isManagerMode
+    ? shifts
+    : shifts.filter((s) => {
+        const parts = s.date.split('-');
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        return isMonthPublished(s.locationId, y, m);
+      });
 
   // Turni della sola settimana correntemente visualizzata (per calcolo monte ore settimanale e presenze)
   const weekDateSet = new Set(weekDays.map((d) => d.dateStr));

@@ -372,8 +372,10 @@ export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
                         <span className="text-emerald-700 flex items-center gap-0.5">
                           <CheckCircle2 size={11} /> In Cassa
                         </span>
-                      ) : (shift.type === 'mattina' || shift.type === 'pomeriggio') ? (
+                      ) : shift.type === 'mattina' ? (
                         <span className="text-amber-600 font-semibold">Mattina (Mezza g.)</span>
+                      ) : shift.type === 'pomeriggio' ? (
+                        <span className="text-amber-600 font-semibold">Pomeriggio (Mezza g.)</span>
                       ) : (
                         <span className="text-neutral-500 font-medium">In turno</span>
                       )}
