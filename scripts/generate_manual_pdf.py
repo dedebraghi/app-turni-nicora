@@ -439,7 +439,7 @@ html_content = """<!DOCTYPE html>
       del lavoro nei due punti vendita di <strong>Gazzada Schianno</strong> e <strong>Varese</strong>. L'obiettivo primario 
       è garantire la massima trasparenza per ciascun collaboratore, eliminare la confusione delle comunicazioni cartacee o via chat, 
       assicurare una turnazione etica ed equa, e fornire alla Direzione uno strumento infallibile per presidiare costantemente 
-      tutti i reparti chiave (Cassa, Fioreria, Serra Calda, Serra Fredda, Vivai e Reparto Decorazione).
+      tutti i reparti chiave (a Gazzada: Cassa, Fioreria, Serra Fredda, Serra Calda, Area Tecnica; a Varese: Cassa, Fioreria, Decor, Emporio, Serra Calda, Serra Fredda e stagione Natale).
     </p>
 
     <div class="info-box">
@@ -507,43 +507,58 @@ html_content = """<!DOCTYPE html>
     <h2 class="section-title" id="cap-2-1">2.1 Scheda "Oggi in Sede" (Presenze e Colleghi di Turno)</h2>
     <p>
       La scheda <strong>"Oggi in Sede"</strong> è la pagina predefinita di atterraggio. È stata disegnata per rispondere 
-      istantaneamente alla domanda: <em>"A che ora lavoro oggi e con chi sono di turno nei vari reparti?"</em>.
+      istantaneamente alla domanda: <em>"A che ora lavoro oggi e quali colleghi sono di turno nei vari reparti?"</em>.
     </p>
 
     <div class="card-grid">
       <div class="card">
-        <div class="card-title">Banner del Turno Personale</div>
+        <div class="card-title">Banner Hero "Il Tuo Turno"</div>
         <p style="font-size: 8pt; color: #4a5568;">
-          Collocato in cima alla pagina con risalto visivo. Riporta chiaramente la data odierna, la fascia oraria precisa 
-          (es. 08:30 - 12:30 oppure 08:30 - 19:30), il reparto assegnato (es. Fioreria) e le eventuali note operative inserite 
-          dalla Direzione (es. "Postazione Banco Confezioni", "Presidio Scarico"). Se per oggi sei a riposo o in ferie, compare il relativo messaggio rassicurante.
+          Collocato in cima alla pagina con risalto visivo e sfondo scuro elegante. Riporta chiaramente il tuo nome, la fascia oraria del tuo turno odierno 
+          (es. 08:30 — 19:30 oppure 08:30 — 12:30), la tipologia (Giornata Intera o Mezza Giornata) e il badge colorato del reparto assegnato (es. Cassa, Fioreria, Serra). 
+          Se per oggi non lavori, la card si adatta visualizzando lo stato reale: <em>Giorno di Riposo ☕</em>, <em>In Ferie 🌴</em> oppure <em>In Malattia 🏥</em>.
         </p>
       </div>
       <div class="card">
-        <div class="card-title">Contatore Presenze Attive</div>
+        <div class="card-title">3 Riquadri Statistici (KPI Giornalieri)</div>
         <p style="font-size: 8pt; color: #4a5568;">
-          Un indicatore numerico evidenzia il totale esatto dei colleghi presenti in sede oggi (es. <em>"12 Collaboratori in servizio oggi a Gazzada"</em>).
+          In alto sono posizionati 3 indicatori compatti essenziali:
+          <br>• <strong>In Servizio:</strong> totale esatto dei collaboratori presenti oggi in sede (con pallino verde).
+          <br>• <strong>Riposo / Ferie:</strong> conteggio dei colleghi a riposo, ferie o assenti oggi.
+          <br>• <strong>Presidio Cassa:</strong> conteggio delle linee cassa attive, con badge di sicurezza verde <em>Cassa Presidiata</em> oppure allarme rosso <em>Cassa Scoperta!</em> se nessuna risorsa è allocata.
         </p>
       </div>
     </div>
 
-    <h3 class="sub-title">Elenco Collaboratori Raggruppati per Reparto</h3>
+    <h3 class="sub-title">Barra Filtri per Reparto (Pillole Interattive)</h3>
     <p>
-      Scorrendo la schermata, tutti i colleghi in servizio oggi sono suddivisi in comodi blocchi di reparto:
+      Sotto il banner personale è presente una barra a scorrimento orizzontale con pulsanti a pillola per filtrare l'elenco delle presenze:
     </p>
     <ul>
-      <li><strong>Cassa e Accoglienza Clienti:</strong> Personale dedicato ai banchi cassa e prima assistenza.</li>
-      <li><strong>Fioreria e Confezionamento:</strong> Personale specializzato nella composizione floreale e bouquet.</li>
-      <li><strong>Serra Calda (Piante da interno):</strong> Personale curante piante verdi e fiorite da appartamento.</li>
-      <li><strong>Serra Fredda e Vivai Esterni:</strong> Personale dedicato ad arbusti, perenni, terricci e concimi.</li>
-      <li><strong>Decor, Vasi e Arredo Giardino:</strong> Personale addetto all'allestimento e oggettistica.</li>
+      <li><strong>Tutti i Reparti:</strong> Mostra l'organico complessivo in servizio oggi con il relativo contatore totale.</li>
+      <li><strong>Pillole di Reparto:</strong> Cliccando su una pillola (es. <em>Cassa</em>, <em>Fioreria</em>, <em>Decor</em>, <em>Serra Calda</em>, <em>Serra Fredda</em>, <em>Area Tecnica</em>, <em>Emporio</em> o <em>Natale</em>), la lista mostra esclusivamente i colleghi operativi in quel determinato reparto.</li>
     </ul>
 
-    <p>Ogni card collaboratore riporta il nome, l'avatar, l'orario del turno e un <strong>badge temporale dinamico</strong>:</p>
+    <h3 class="sub-title">Elenco dei Collaboratori in Turno</h3>
+    <p>
+      Ciascun collaboratore in servizio nella giornata è visualizzato con una card dedicata contenente:
+    </p>
     <ul>
-      <li><span class="badge badge-published">IN SERVIZIO</span> con pallino verde: Il collega è attualmente presente in negozio.</li>
-      <li><span class="badge badge-afternoon">IN ARRIVO (14:30)</span> con pallino azzurro: Il collega inizierà il proprio turno nel pomeriggio.</li>
-      <li><span class="badge badge-rest">SMONTANTE</span> con pallino grigio: Il collega ha completato il turno mattutino.</li>
+      <li><strong>Avatar e Ruolo:</strong> Avatar con iniziali e pallino verde di presenza, affiancato dal badge arancione <span class="badge badge-morning">TU</span> se si tratta della propria scheda, o dal badge <span class="badge badge-draft">RESP</span> se il collaboratore ha il ruolo di responsabile di sede.</li>
+      <li><strong>Reparto Assegnato:</strong> Badge con colore distintivo del reparto per cui è programmato il turno.</li>
+      <li><strong>Fascia Oraria:</strong> Orario programmato di inizio e fine servizio (es. 08:30 — 12:30 o 08:30 — 19:30).</li>
+      <li><strong>Tipologia di Turno:</strong> Dicitura riassuntiva (<em>Giornata Intera</em>, <em>Mattina (Mezza g.)</em> o con icona e spunta verde <em>In Cassa</em>).</li>
+      <li><strong>Modifica Rapida (solo per la Direzione):</strong> In modalità Responsabile, cliccando sulla card si apre la finestra di modifica del turno per intervenire su orari o reparto in caso di esigenze dell'ultimo minuto.</li>
+    </ul>
+
+    <h3 class="sub-title">Sezione Collaboratori a Riposo, Ferie o Assenti</h3>
+    <p>
+      In fondo alla pagina, un'apposita sezione contrassegnata dall'icona della tazzina di caffè elenca tutti i colleghi dell'organico che oggi non sono di turno, evidenziando chiaramente per ciascuno:
+    </p>
+    <ul>
+      <li><strong>☕ Giorno di Riposo:</strong> Giorno di riposo settimanale compensativo.</li>
+      <li><strong>🌴 In Ferie:</strong> Assenza programmata per ferie o permesso approvato dalla direzione.</li>
+      <li><strong>🏥 In Malattia:</strong> Assenza per malattia o infortunio regolarmente registrata.</li>
     </ul>
 
     <h2 class="section-title" id="cap-2-2">2.2 Scheda "I Miei Turni" (Pianificazione Personale e Ore)</h2>
@@ -740,8 +755,23 @@ html_content = """<!DOCTYPE html>
           <td>Voto 6/10</td>
         </tr>
         <tr>
-          <td><strong>Decor e Arredo</strong></td>
-          <td>Visual merchandising, decorazioni stagionali (es. Villaggio di Natale), oggettistica, candele e complementi d'arredo.</td>
+          <td><strong>Decor</strong></td>
+          <td>Visual merchandising, oggettistica per la casa, candele, vasi e complementi d'arredo.</td>
+          <td>Voto 6/10</td>
+        </tr>
+        <tr>
+          <td><strong>Area Tecnica</strong></td>
+          <td>Manutenzione strutture vivaio, impianti di irrigazione, scarico e movimentazione carrelli, logistica magazzino (Gazzada).</td>
+          <td>Voto 6/10</td>
+        </tr>
+        <tr>
+          <td><strong>Emporio</strong></td>
+          <td>Presidio corsie alimentari, prodotti tipici e cura casa/giardino (Varese).</td>
+          <td>Voto 6/10</td>
+        </tr>
+        <tr>
+          <td><strong>Natale</strong></td>
+          <td>Allestimento Villaggio di Natale, luci, alberi sintetici e decorazioni festive (alta stagione a Varese).</td>
           <td>Voto 6/10</td>
         </tr>
       </tbody>
