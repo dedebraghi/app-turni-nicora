@@ -51,12 +51,26 @@ Quando l'app entrerà nell'operatività quotidiana con tutti i collaboratori, Vi
 
 Per evitare attriti e rendere l'app semplice per tutti:
 
-1. **Accesso Dipendenti**:
-   - Ogni collaboratore ha il suo accesso personale (email e password/PIN).
+1. **Accesso Collaboratori & Gestione PIN**:
+   - Ogni collaboratore accede selezionando il proprio nominativo e digitando il suo **PIN numerico riservato** (codice provvisorio iniziale di fabbrica: `1234`).
+   - **Privacy garantita**: Per tutelare la riservatezza, il datore di lavoro non vede in chiaro i codici personali scelti dai dipendenti.
+   - **Cosa fare se un collaboratore dimentica il PIN**:
+     - Nella schermata di login è presente il link **"Hai dimenticato il PIN?"**, che apre una finestra con i 3 passaggi di sblocco e un pulsante rapido per inviare un messaggio WhatsApp precompilato al responsabile.
+     - La Direzione (Vittore), dalla sezione **Personale**, apre la scheda del collaboratore o preme il tasto rapido **"Reset PIN"** accanto al nome: con un clic di conferma il PIN viene ripristinato al codice provvisorio `1234`.
+     - Il collaboratore entra immediatamente con `1234` e un promemoria discreto a inizio schermata gli ricorderà di reimpostare un nuovo codice segreto dal proprio profilo.
    - **Cosa può fare**: Vede solo i suoi orari, chi è presente oggi nel proprio negozio e invia richieste di ferie/permessi/cambio turno.
    - **Cosa NON può fare**: Non può modificare i turni, non può vedere i dati riservati dei colleghi.
 
-2. **Assegnazione Sede e Mobilità (Dilemma Aperto: Fissi vs Scambiabili)**:
+2. **Accesso Direzione & Master Recovery Key di Emergenza**:
+   - La Direzione accede tramite la tab **Responsabile** inserendo l'email aziendale e la password amministratore (password iniziale di fabbrica: `admin`).
+   - Vittore può cambiare la password in qualunque momento toccando il proprio profilo in alto a destra.
+   - **Cosa fare se la Direzione dimentica la nuova password**:
+     - È stata configurata nel sistema una **Master Recovery Key** d'emergenza:
+       > **Master Recovery Key**: `NicoraMaster2026!`
+     - Digitando questa parola chiave nel campo password della Direzione, il sistema apre sempre il tabellone amministrativo anche in caso di totale smarrimento della password memorizzata, permettendo di impostarne subito una nuova.
+     - In alternativa estrema, dalla console cloud del database (Supabase), basta aprire la tabella `employees` e riscrivere `admin` nella casella `pin` dell'utente Vittore Nicora.
+
+3. **Assegnazione Sede e Mobilità (Dilemma Aperto: Fissi vs Scambiabili)**:
    - *Punto da chiarire con Vittore*: I collaboratori appartengono in modo fisso a una specifica sede (solo Gazzada o solo Varese), oppure c'è mobilità e una persona può essere assegnata a Gazzada in una settimana e a Varese nella successiva (o fare giorni alterni a seconda delle necessità)?
    - *Impostazione consigliata nell'app*: Rendere il collaboratore "flessibile", potendo impostare una **"Sede Prevalente"** di default ma permettendo al generatore o al manager di pianificare turni sull'altra sede se si verificano emergenze o picchi di lavoro.
 

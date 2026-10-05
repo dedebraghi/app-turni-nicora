@@ -22,14 +22,15 @@ Documento riservato a uso consuntivo e rendicontazione finale per Vittore Nicora
 | **21/09/2026** | **2.5h** | **Risoluzione Bug & Refactoring UI** | Risoluzione Bug #1-#8 di `Bug.txt`: filtro dipendenti archiviati in sostituzioni emergenza, correzione distribuzione presenze e bilanciamento riposi, aggiornamento dinamico contatore dipendenti slider sedi, sincronizzazione banner coperture con assegnazione automatica sostituti e correzione data 'oggi' nel tabellone. | ✅ Completato |
 | **22/09/2026** | **3.0h** | **Analisi Storico Turni & Algoritmo Selezione** | Analisi documentazione e fogli turni storici Nicora (`Turni_GZ_26.pdf` e `Turni_VA_2026.pdf`). Estrazione ed elaborazione in `.md` (`ANALISI_REPARTI_E_DIPENDENTI.md`, `SKILL_MATRIX_DIPENDENTI.md`, `PRESENZE_MEDIE_STORICHE.md`). Mappatura presenze medie storiche per reparto e costruzione matrice abilità dipendenti reali (1-10 per reparto). | ✅ Completato |
 | **23/09/2026** | **2.0h** | **Gestione Dipendenti Mobili Multi-Sede & Bug #9** | Risoluzione Bug #9 (inserimento Marco a Gazzada, archiviazione ex dipendenti). Introduzione modello collaboratori mobili/jolly (`isMobile`) con gestione trasferte multi-sede. Visualizzazione badge trasferta nel tabellone turni (`🔄 Trasferta - In turno a [Altra Sede]`) e integrazione nell'algoritmo di pianificazione e sostituzioni emergenza. | ✅ Completato |
+| **05/10/2026** | **1.5h** | **Auth, Recupero PIN & Master Recovery Key** | Implementazione flusso completo di recupero credenziali: dialog 'PIN dimenticato?' al login con contatto WhatsApp rapido per i collaboratori; azione 'Reset PIN a 1234' dal pannello Direzione con dialog di sicurezza e sync cloud; attivazione Master Recovery Key (`NicoraMaster2026!`) per la Direzione; promemoria PIN di default nell'orario personale; documentazione operativa in `docs/NOTE_E_DECISIONI_VITTORE.md`. | ✅ Completato |
 
 ---
 
 ## 📈 Riepilogo Progressivo
 
-- **Ore Completate e Validate**: **24.0 ore** (**480,00 €**)
+- **Ore Completate e Validate**: **25.5 ore** (**510,00 €**)
 - **Inizio Progetto**: 18 Settembre 2026
-- **Stato**: ✅ Sviluppo & Bug Fix completati, pronto per deploy finale demo.
+- **Stato**: ✅ Sviluppo, Auth Security & Recupero PIN completati, pronto per deploy finale demo.
 
 *(Il presente file viene aggiornato al termine di ciascun task operativo).*
 
