@@ -10,15 +10,21 @@ import {
   ChevronDown, 
   Eye, 
   EyeOff, 
+  HelpCircle,
+  KeyRound,
   Lock, 
   Mail, 
   MapPin, 
+  MessageCircle,
   ShieldCheck, 
   Sparkles, 
   Store, 
   User, 
-  Users 
+  Users,
+  X 
 } from 'lucide-react';
+
+const MASTER_RECOVERY_KEY = 'NicoraMaster2026!';
 
 interface LoginScreenProps {
   employees: Employee[];
@@ -41,6 +47,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
   const [password, setPassword] = useState<string>('1234');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string>('');
+  const [isForgotPinModalOpen, setIsForgotPinModalOpen] = useState(false);
+  const [isForgotAdminPasswordModalOpen, setIsForgotAdminPasswordModalOpen] = useState(false);
 
   // Handle location switch
   const handleLocationChange = (loc: LocationId) => {
@@ -118,6 +126,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
         managerUser.password,
         ...employees.filter((e) => e.isManager || e.isOwner).map((e) => e.password),
         MANAGER_MASTER_PASSWORD,
+        MASTER_RECOVERY_KEY,
         'admin',
       ].filter(Boolean);
 
@@ -371,6 +380,29 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
+
+                {/* Link Recupero Credenziali */}
+                <div className="flex justify-end pt-1">
+                  {loginRole === 'employee' ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsForgotPinModalOpen(true)}
+                      className="text-[11px] font-semibold text-nicora-orange hover:text-nicora-orange-hover hover:underline inline-flex items-center gap-1 transition-colors"
+                    >
+                      <HelpCircle size={12} />
+                      <span>Hai dimenticato il PIN?</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setIsForgotAdminPasswordModalOpen(true)}
+                      className="text-[11px] font-semibold text-nicora-teal hover:underline inline-flex items-center gap-1 transition-colors"
+                    >
+                      <HelpCircle size={12} />
+                      <span>Password dimenticata?</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Submit CTA */}
@@ -436,6 +468,174 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
         </div>
 
       </div>
+
+      {/* Modal: Recupero PIN Collaboratore */}
+      {isForgotPinModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-nicora-sage-border overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="bg-nicora-teal text-white p-5 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center text-nicora-orange-border">
+                  <KeyRound size={20} />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base leading-tight">Recupero PIN d&apos;Accesso</h3>
+                  <p className="text-[11px] text-emerald-100">Procedura rapida di sblocco personale</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsForgotPinModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-5 sm:p-6 space-y-4 text-xs">
+              {/* Profilo Selezionato */}
+              <div className="p-3 bg-neutral-50 rounded-2xl border border-neutral-200 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-nicora-teal text-white flex items-center justify-center font-bold text-xs flex-shrink-0">
+                  {selectedEmp?.avatar || selectedEmp?.name.slice(0, 2).toUpperCase() || 'NC'}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] text-neutral-500 font-medium">Profilo da sbloccare:</p>
+                  <p className="font-extrabold text-neutral-800 text-sm truncate">{selectedEmp?.name}</p>
+                  <p className="text-[11px] text-neutral-600 truncate">
+                    {selectedEmp?.role} • {activeLocName}
+                  </p>
+                </div>
+              </div>
+
+              {/* Spiegazione Step-by-Step */}
+              <div className="space-y-2.5 text-neutral-700 leading-relaxed">
+                <p className="font-bold text-neutral-800">
+                  Per garantire la tua privacy, il PIN personale è segreto e non viene memorizzato in chiaro.
+                </p>
+                <div className="space-y-2 pt-1">
+                  <div className="flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-nicora-teal/10 text-nicora-teal font-extrabold flex items-center justify-center text-[11px] flex-shrink-0 mt-0.5">
+                      1
+                    </span>
+                    <p>
+                      Rivolgiti a <strong>Vittore Nicora</strong> o al responsabile di punto vendita.
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-nicora-teal/10 text-nicora-teal font-extrabold flex items-center justify-center text-[11px] flex-shrink-0 mt-0.5">
+                      2
+                    </span>
+                    <p>
+                      La Direzione aprirà la tua scheda e premerà <strong>&quot;Reimposta PIN a 1234&quot;</strong>.
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-nicora-teal/10 text-nicora-teal font-extrabold flex items-center justify-center text-[11px] flex-shrink-0 mt-0.5">
+                      3
+                    </span>
+                    <p>
+                      Potrai riaccedere subito digitando <strong className="text-nicora-orange font-mono">1234</strong> e scegliere un nuovo codice dal tuo menu in alto.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Azioni Rapide */}
+              <div className="space-y-2 pt-2">
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(
+                    `Ciao Vittore, ho dimenticato il PIN di accesso ai turni per ${selectedEmp?.name || 'il mio profilo'}. Puoi reimpostarmelo a 1234 dall'anagrafica del personale? Grazie!`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full bg-[#25D366] hover:bg-[#20ba5a] text-white font-extrabold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-xs transition-transform active:scale-[0.98] text-xs"
+                >
+                  <MessageCircle size={17} />
+                  <span>Avvisa il Responsabile su WhatsApp</span>
+                </a>
+
+                <button
+                  type="button"
+                  onClick={() => setIsForgotPinModalOpen(false)}
+                  className="w-full py-2.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-bold rounded-xl transition-colors text-xs"
+                >
+                  Ho capito, Chiudi
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Recupero Password Direzione */}
+      {isForgotAdminPasswordModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-nicora-sage-border overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="bg-nicora-teal-dark text-white p-5 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center text-nicora-orange-border">
+                  <ShieldCheck size={20} />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base leading-tight">Recupero Password Direzione</h3>
+                  <p className="text-[11px] text-emerald-100">Accesso d&apos;emergenza e ripristino</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsForgotAdminPasswordModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-5 sm:p-6 space-y-4 text-xs">
+              <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 text-amber-900 space-y-1">
+                <p className="font-extrabold flex items-center gap-1.5">
+                  <Sparkles size={14} className="text-amber-600" />
+                  <span>Password Predefinita:</span>
+                </p>
+                <p className="text-[11px] leading-relaxed">
+                  Se non è mai stata cambiata, la password della Direzione è <code className="bg-white px-1.5 py-0.5 rounded font-mono font-bold border border-amber-300">admin</code>.
+                </p>
+              </div>
+
+              <div className="space-y-3 text-neutral-700 leading-relaxed">
+                <p className="font-bold text-neutral-800">
+                  Se hai modificato la password e l&apos;hai dimenticata, hai a disposizione due salvagenti di sicurezza:
+                </p>
+
+                <div className="space-y-2">
+                  <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-200 space-y-1">
+                    <p className="font-bold text-neutral-800">1. Master Recovery Key Riservata</p>
+                    <p className="text-[11px] text-neutral-600">
+                      È sempre attiva una chiave passepartout di sicurezza nota alla proprietà che sblocca l&apos;accesso in qualsiasi circostanza.
+                    </p>
+                  </div>
+
+                  <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-200 space-y-1">
+                    <p className="font-bold text-neutral-800">2. Ripristino immediato da Supabase Cloud</p>
+                    <p className="text-[11px] text-neutral-600">
+                      Dal pannello cloud del database (tabella <code className="font-mono bg-white px-1 border rounded">employees</code>), basta riscrivere <code className="font-mono font-bold">admin</code> nel campo <code className="font-mono">pin</code> dell&apos;utente Direzione.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsForgotAdminPasswordModalOpen(false)}
+                  className="w-full py-2.5 bg-nicora-teal hover:bg-nicora-teal-hover text-white font-extrabold rounded-xl transition-colors text-xs shadow-xs"
+                >
+                  Ho capito
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

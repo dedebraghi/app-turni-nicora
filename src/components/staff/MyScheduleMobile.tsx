@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Employee, LocationId, Shift } from '../../domain/types';
 import { formatLocalDate, getSundayOfWeek, getWeekDays } from '../../engine/schedulerEngine';
 import { MobileHeader } from '../layout/MobileHeader';
-import { ChevronLeft, ChevronRight, Clock, Coffee, Calendar, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, Coffee, Calendar, KeyRound, RefreshCw } from 'lucide-react';
 
 interface MyScheduleMobileProps {
   currentEmployee: Employee;
@@ -102,6 +102,21 @@ export const MyScheduleMobile: React.FC<MyScheduleMobileProps> = ({
           ======================================================== */}
       <div className="pt-[calc(6.25rem+env(safe-area-inset-top,0px))] px-4 pb-24 space-y-4">
         
+        {/* Banner Promemoria PIN Predefinito */}
+        {(!currentEmployee.password || currentEmployee.password === '1234') && !currentEmployee.isManager && !currentEmployee.isOwner && (
+          <div className="bg-amber-50/95 border border-amber-200/90 rounded-2xl p-3 flex items-start gap-2.5 text-xs text-amber-900 shadow-xs animate-in fade-in">
+            <div className="w-7 h-7 rounded-xl bg-amber-500/15 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+              <KeyRound size={15} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-[12px] leading-tight">Stai usando il PIN predefinito (1234)</p>
+              <p className="text-[11px] text-amber-800/90 mt-0.5 leading-snug">
+                Per la tua riservatezza, tocca la tua icona profilo in alto a destra per scegliere un codice segreto a tua scelta.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Collaborator Profile Hero Card */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#002f32] via-[#0a474b] to-[#072e31] text-white shadow-clean p-4 border border-white/10">
           <div className="relative z-10 flex flex-col gap-3">

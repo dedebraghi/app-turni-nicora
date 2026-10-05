@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Employee, LocationId, Shift } from '../../domain/types';
 import { formatLocalDate, getSundayOfWeek, getWeekDays } from '../../engine/schedulerEngine';
-import { ChevronLeft, ChevronRight, Clock, Coffee, Calendar, MapPin, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, Coffee, Calendar, KeyRound, MapPin, RefreshCw } from 'lucide-react';
 
 interface MyScheduleDesktopProps {
   currentEmployee: Employee;
@@ -82,6 +82,26 @@ export const MyScheduleDesktop: React.FC<MyScheduleDesktopProps> = ({
 
   return (
     <div className="max-w-[1080px] w-full mx-auto space-y-6 pb-16">
+      {/* Banner Promemoria PIN Predefinito */}
+      {(!currentEmployee.password || currentEmployee.password === '1234') && !currentEmployee.isManager && !currentEmployee.isOwner && (
+        <div className="bg-amber-50/95 border border-amber-200/90 rounded-2xl p-4 flex items-center justify-between gap-4 text-xs text-amber-900 shadow-xs animate-in fade-in">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-700 flex items-center justify-center shrink-0">
+              <KeyRound size={17} />
+            </div>
+            <div>
+              <p className="font-bold text-sm leading-tight">Stai utilizzando il PIN predefinito (1234)</p>
+              <p className="text-xs text-amber-800/90 mt-0.5">
+                Per la tua riservatezza personale, clicca sul tuo profilo in alto a destra nella barra di navigazione per impostare un codice segreto a tua scelta.
+              </p>
+            </div>
+          </div>
+          <span className="shrink-0 px-2.5 py-1 bg-amber-200/70 text-amber-900 font-bold rounded-lg text-[11px]">
+            PIN Provvisorio
+          </span>
+        </div>
+      )}
+
       {/* 1. Collaborator Profile Hero Card */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#002f32] via-[#0a474b] to-[#072e31] text-white shadow-xl p-6 sm:p-7 border border-white/10">
         <div className="pointer-events-none absolute -right-24 -top-24 w-80 h-80 rounded-full bg-emerald-500/15 blur-3xl"></div>

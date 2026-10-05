@@ -21,6 +21,8 @@ import {
   Edit3,
   FileSpreadsheet,
   Info,
+  KeyRound,
+  Lock,
   Mail,
   MapPin,
   Phone,
@@ -71,7 +73,18 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
+  const [employeeToResetPin, setEmployeeToResetPin] = useState<Employee | null>(null);
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+
+  const handleConfirmResetPin = () => {
+    if (!employeeToResetPin) return;
+    const updated: Employee = {
+      ...employeeToResetPin,
+      password: '1234',
+    };
+    onSaveEmployee(updated);
+    setEmployeeToResetPin(null);
+  };
 
   // Mese e Anno selezionati per il report analitico
   const now = new Date();
@@ -658,6 +671,27 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                             <Edit3 size={13} />
                             <span>Modifica Anagrafica</span>
                           </button>
+
+                          {/* Pulsante Reset PIN per sblocco rapido dipendente */}
+                          {!emp.isOwner && !emp.isManager && (
+                            <button
+                              type="button"
+                              onClick={() => setEmployeeToResetPin(emp)}
+                              className={`px-3 py-2 font-bold text-xs rounded-xl border flex items-center justify-center gap-1.5 transition-colors min-h-[38px] ${
+                                emp.password && emp.password !== '1234'
+                                  ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200'
+                                  : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-600 border-neutral-200'
+                              }`}
+                              title={
+                                emp.password && emp.password !== '1234'
+                                  ? 'PIN personale impostato: clicca per reimpostare a 1234'
+                                  : 'PIN attualmente a 1234 (predefinito)'
+                              }
+                            >
+                              <KeyRound size={13} className={emp.password && emp.password !== '1234' ? 'text-amber-600' : 'text-neutral-400'} />
+                              <span>Reset PIN</span>
+                            </button>
+                          )}
 
                           {isArchived ? (
                             <button
@@ -1435,6 +1469,39 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                   </label>
                 </div>
 
+                {/* Box Gestione PIN / Reset Credenziali (Visibile solo per collaboratori esistenti) */}
+                {editingEmployee && !editingEmployee.isOwner && !editingEmployee.isManager && (
+                  <div className="p-3.5 bg-neutral-50 rounded-2xl border border-neutral-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-1.5 font-bold text-neutral-800">
+                        <KeyRound size={14} className="text-amber-600" />
+                        <span>Stato PIN Personale:</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                          editingEmployee.password && editingEmployee.password !== '1234'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}>
+                          {editingEmployee.password && editingEmployee.password !== '1234' ? 'Codice Personalizzato Attivo' : 'Predefinito (1234)'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-neutral-500">
+                        Se il collaboratore ha dimenticato il suo codice, puoi ripristinare il PIN al valore iniziale 1234.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsNewModalOpen(false);
+                        setEmployeeToResetPin(editingEmployee);
+                      }}
+                      className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-colors self-start sm:self-auto shrink-0"
+                    >
+                      <KeyRound size={13} />
+                      <span>Reimposta a 1234</span>
+                    </button>
+                  </div>
+                )}
+
                 <div className="flex gap-2 pt-2">
                   {editingEmployee && onDeleteEmployee && (
                     <button
@@ -1466,6 +1533,65 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Conferma Reset PIN Collaboratore */}
+        {employeeToResetPin && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+            <div className="w-full max-w-sm bg-white rounded-3xl shadow-2xl border border-nicora-sage-border overflow-hidden animate-in zoom-in-95 duration-200">
+              <div className="bg-amber-500 text-white p-5 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                    <KeyRound size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-base leading-tight">Reimposta PIN</h3>
+                    <p className="text-[11px] text-amber-100">Sblocco accesso collaboratore</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEmployeeToResetPin(null)}
+                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="p-5 space-y-4 text-xs">
+                <p className="text-neutral-700 leading-relaxed">
+                  Sei sicuro di voler reimpostare il PIN di <strong>{employeeToResetPin.name}</strong> al codice predefinito provvisorio <strong className="font-mono text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">1234</strong>?
+                </p>
+
+                <div className="text-[11px] text-neutral-600 bg-neutral-50 p-3 rounded-2xl border border-neutral-200 space-y-1">
+                  <p className="font-bold text-neutral-800">Cosa accadrà dopo il reset:</p>
+                  <ul className="list-disc list-inside space-y-0.5 pl-1">
+                    <li>La modifica viene salvata subito nel cloud Supabase.</li>
+                    <li>Il collaboratore potrà accedere inserendo subito <code className="font-mono font-bold">1234</code>.</li>
+                    <li>Potrà scegliere un nuovo PIN riservato dal proprio profilo.</li>
+                  </ul>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setEmployeeToResetPin(null)}
+                    className="flex-1 py-2.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-bold rounded-xl transition-colors text-xs"
+                  >
+                    Annulla
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmResetPin}
+                    className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-xl shadow-xs transition-transform active:scale-[0.98] text-xs flex items-center justify-center gap-1.5"
+                  >
+                    <Check size={14} />
+                    <span>Reimposta a 1234</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
