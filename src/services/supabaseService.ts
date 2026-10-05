@@ -88,10 +88,8 @@ export const fetchCloudEmployees = async (): Promise<Employee[]> => {
       saveStoredEmployees(mapped);
       return mapped;
     } else {
-      // Se la tabella era vuota, inserisci i dipendenti reali
-      for (const emp of INITIAL_EMPLOYEES) {
-        await supabase.from('employees').upsert(mapEmployeeToDb(emp));
-      }
+      // Se la tabella era vuota, inserisci i dipendenti reali in un unico batch
+      await supabase.from('employees').upsert(INITIAL_EMPLOYEES.map(mapEmployeeToDb));
       return INITIAL_EMPLOYEES;
     }
   } catch (err) {
