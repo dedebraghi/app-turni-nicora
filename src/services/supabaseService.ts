@@ -111,7 +111,7 @@ export const saveCloudEmployee = async (emp: Employee): Promise<{ success: boole
   saveStoredEmployees(updated);
 
   if (!isSupabaseConfigured || !supabase) {
-    return { success: true };
+    return { success: false, error: 'Database Supabase Cloud non raggiungibile.' };
   }
 
   try {
@@ -140,7 +140,7 @@ export const archiveCloudEmployee = async (
   saveStoredEmployees(updated);
 
   if (!isSupabaseConfigured || !supabase) {
-    return { success: true };
+    return { success: false, error: 'Database Supabase Cloud non raggiungibile.' };
   }
 
   try {
@@ -175,7 +175,7 @@ export const deleteCloudEmployee = async (
   );
 
   if (!isSupabaseConfigured || !supabase) {
-    return { success: true };
+    return { success: false, error: 'Database Supabase Cloud non raggiungibile.' };
   }
 
   try {
@@ -232,7 +232,7 @@ export const deleteCloudShifts = async (
   endDate?: string
 ): Promise<{ success: boolean; error?: string }> => {
   if (!isSupabaseConfigured || !supabase) {
-    return { success: true };
+    return { success: false, error: 'Database Supabase Cloud non raggiungibile.' };
   }
   try {
     let query = supabase.from('shifts').delete();
@@ -321,7 +321,10 @@ export const saveCloudShifts = async (shifts: Shift[]): Promise<{ success: boole
   saveStoredShifts(merged);
 
   if (!isSupabaseConfigured || !supabase) {
-    return { success: true };
+    return {
+      success: false,
+      error: 'Database Supabase Cloud non raggiungibile. I turni sono stati memorizzati solo temporaneamente nella cache locale di questo browser.',
+    };
   }
 
   try {
@@ -347,7 +350,7 @@ export const saveCloudRequest = async (req: ShiftRequest): Promise<{ success: bo
   saveStoredRequests(updated);
 
   if (!isSupabaseConfigured || !supabase) {
-    return { success: true };
+    return { success: false, error: 'Database Supabase Cloud non raggiungibile.' };
   }
 
   try {
@@ -387,7 +390,7 @@ export const updateCloudRequestStatus = async (
   saveStoredRequests(updated);
 
   if (!isSupabaseConfigured || !supabase) {
-    return { success: true };
+    return { success: false, error: 'Database Supabase Cloud non raggiungibile.' };
   }
 
   try {

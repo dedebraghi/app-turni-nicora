@@ -1,8 +1,12 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Employee, LocationId, Shift, ShiftRequest } from '../domain/types';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
+const defaultSupabaseUrl = 'https://orxvvlgaguekvdnhqqft.supabase.co';
+const defaultAnonKey =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9yeHZ2bGdhZ3Vla3ZkbmhxcWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5MDM1NDQsImV4cCI6MjEwNTQ3OTU0NH0.m2RLp51PV_-v3T3zgmsZmMyh7ecy_8K_CUIptsyAReQ';
+
+const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || defaultSupabaseUrl)?.trim();
+const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || defaultAnonKey)?.trim();
 
 // Verifica che le credenziali siano effettivamente presenti e non placeholder
 export const isSupabaseConfigured: boolean = Boolean(
