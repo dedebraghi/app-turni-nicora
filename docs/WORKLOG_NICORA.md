@@ -28,14 +28,15 @@ Documento riservato a uso consuntivo e rendicontazione finale per Vittore Nicora
 | **30/09/2026** | **3.5h** | **Gestione Bozze Mensili, Pubblicazione allo Staff, Tutorial & PWA Update** | Flusso bozze per sede/mese: generazione in bozza riservata e pulsante esplicito "Pubblica Turni allo Staff" per rendere visibili i turni ai collaboratori, con sincronizzazione stato pubblicazione su Supabase. Onboarding tutorial interattivo guidato (bottom-sheet mobile e dialog desktop a 6 slide). Meccanismo PWA auto-update e formattazione date in italiano. | ✅ Completato |
 | **02/10/2026** | **1.5h** | **Sync Realtime Push & Auto-Aggiornamento Turni** | Ottimizzazione del canale WebSocket Supabase Realtime con buffering anti-flapping (250ms). I collaboratori ricevono i turni aggiornati sul proprio smartphone all'istante senza dover premere manualmente il tasto "Aggiorna". Toast informativo mirato per notifiche di variazione turno in tempo reale. | ✅ Completato |
 | **05/10/2026** | **2.0h** | **Batch Upsert Supabase, Recupero PIN, Reset Direzione & Master Key** | Risoluzione del problema N+1 query al login tramite batch upsert multi-record su Supabase. Sviluppo del flusso di recupero credenziali: link 'PIN dimenticato?' al login con dialog WhatsApp precompilato; pulsante 'Reset PIN a 1234' dal pannello Direzione con dialog di sicurezza e sync cloud; attivazione Master Recovery Key (`NicoraMaster2026!`); promemoria PIN di default nell'orario personale; documentazione in `docs/NOTE_E_DECISIONI_VITTORE.md`. | ✅ Completato |
+| **05/10/2026** | **1.5h** | **Manuale Operativo PDF Completo & Download In-App nell'Header Account** | Generazione script Playwright per compilazione del Manuale Operativo Ufficiale in PDF editoriale A4 (13 pagine, grafica Nicora Garden `#0a474b` e `#fd651e`, indice interattivo con 33 link ipertestuali interni navigabili). Dettaglio esaustivo di ogni schermata per collaboratori e direzione (Oggi in Sede, I Miei Turni, Richieste Ferie, Scambio Turno a 2 consensi, Pianificatore con bozze/pubblicazione cloud, Generazione algoritmica, Wizard sostituzioni emergenze, Skills Matrix e Fairness Tracker, glossario iconografico completo di tutti i badge e stati, FAQ e installazione PWA). Salvataggio del PDF statico per consultazione offline/PWA e integrazione voce 'Scarica istruzioni complete' con icona documento nel menu account di AppHeader desktop e MobileHeader. | ✅ Completato |
 
 ---
 
 ## 📈 Riepilogo Progressivo
 
-- **Ore Completate e Validate**: **40.5 ore** (**810,00 €**)
+- **Ore Completate e Validate**: **42.0 ore** (**840,00 €**)
 - **Inizio Progetto**: 18 Settembre 2026
-- **Stato**: ✅ Sviluppo, Design System Stitch, Auth Security & Recupero PIN completati, pronto per deploy finale demo.
+- **Stato**: ✅ Sviluppo completo, Design System Stitch, Auth Security, Manuale PDF Completo in-app & Build validata.
 
 *(Il presente file viene aggiornato al termine di ciascun task operativo).*
 

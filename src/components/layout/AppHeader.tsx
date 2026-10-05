@@ -3,7 +3,7 @@ import { NicoraLogo } from '../NicoraLogo';
 import { InstallPWAButton } from '../InstallPWAButton';
 import { LOCATIONS } from '../../domain/mockData';
 import { Employee, LocationId, UserSession } from '../../domain/types';
-import { AlertCircle, Check, ChevronDown, HelpCircle, KeyRound, LogOut, MapPin, RefreshCw, X } from 'lucide-react';
+import { AlertCircle, Check, ChevronDown, FileText, HelpCircle, KeyRound, LogOut, MapPin, RefreshCw, X } from 'lucide-react';
 
 interface AppHeaderProps {
   session: UserSession;
@@ -238,6 +238,18 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                           <span>Guida rapida all'app</span>
                         </button>
                       )}
+
+                      <a
+                        href="/manuale_istruzioni_app_turni.pdf"
+                        download="Manuale_Istruzioni_Nicora_Garden.pdf"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setIsProfileMenuOpen(false)}
+                        className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-semibold transition-colors cursor-pointer"
+                      >
+                        <FileText size={14} className="text-amber-700" />
+                        <span>Scarica istruzioni complete</span>
+                      </a>
 
                       {onSaveEmployee && (
                         <button
