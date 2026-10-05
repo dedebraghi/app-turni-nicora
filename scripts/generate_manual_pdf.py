@@ -738,9 +738,12 @@ html_content = """<!DOCTYPE html>
 
     <h2 class="section-title" id="cap-3-8">3.8 Svuotamento e Pulizia Controllata dei Turni</h2>
     <p>
-      Nel caso in cui si desideri ripartire da zero nella pianificazione, il pulsante <strong>"Svuota Turni"</strong> apre una modale con doppia conferma: 
-      è possibile scegliere se cancellare solo i turni della settimana visualizzata o dell'intero mese, preservando intatte le anagrafiche del personale e le richieste di ferie approvate.
+      Nel caso in cui si desideri azzerare la pianificazione per rigenerarla o riorganizzarla, il pulsante <strong>"Svuota Turni"</strong> presente nel tabellone Direzione apre una finestra dedicata con due livelli operativi ben distinti:
     </p>
+    <ul>
+      <li><strong>Opzione Consigliata ("Elimina solo i turni da oggi in poi"):</strong> Rimuove esclusivamente i turni futuri a partire dalla data odierna in avanti. Tutti i turni dei giorni passati rimangono protetti al 100%, preservando intatto lo storico delle presenze per i conteggi ore e le buste paga.</li>
+      <li><strong>Danger Zone ("Svuota TUTTO il database, incluso lo storico"):</strong> Azzeramento totale e irreversibile di qualsiasi turno registrato per la sede selezionata (passato e futuro). Questa opzione richiede una seconda conferma esplicita tramite avviso di sicurezza a schermo. In ogni caso, le anagrafiche dei collaboratori, i PIN, i parametri contrattuali e le competenze non vengono mai toccati.</li>
+    </ul>
 
     <h2 class="section-title" id="cap-3-9">3.9 Esportazione e Stampa Ufficiale per Bacheca</h2>
     <p>
