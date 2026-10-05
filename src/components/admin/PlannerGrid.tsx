@@ -128,13 +128,45 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
   // Metriche di equità
   const fairnessMetrics = calculateFairnessMetrics(storeEmployees, storeShifts);
 
+  // Helper per verificare se un turno corrisponde a un determinato reparto
+  const isShiftInDept = (s: Shift, targetDept: string, empRole?: string) => {
+    if (s.type === 'riposo' || s.type === 'ferie' || s.type === 'malattia') {
+      return false;
+    }
+    const effectiveDept = s.department || empRole;
+    if (targetDept === 'Cassa') {
+      return effectiveDept === 'Cassa' || Boolean(s.areaNote && s.areaNote.toLowerCase().includes('cassa'));
+    }
+    return effectiveDept === targetDept;
+  };
+
+  // Rilevamento presenza di turni lavorativi nella settimana visualizzata
+  const weekDateSet = new Set(weekDays.map((d) => d.dateStr));
+  const weekStoreShifts = storeShifts.filter((s) => weekDateSet.has(s.date) && s.locationId === location.id);
+  const weekHasWorkingShifts = weekStoreShifts.some(
+    (s) => s.type !== 'riposo' && s.type !== 'ferie' && s.type !== 'malattia'
+  );
+
+  // Calcolo se il collaboratore lavora nel reparto durante i 7 giorni della settimana visualizzata
+  const doesEmployeeBelongToDeptInWeek = (emp: Employee, targetDept: string) => {
+    if (targetDept === 'all') return true;
+    if (!weekHasWorkingShifts) {
+      // Se non ci sono ancora turni generati per questa settimana, fallback al ruolo nominale
+      return emp.role === targetDept;
+    }
+    // Ha almeno un turno lavorato nel reparto durante i 7 giorni della settimana
+    return weekDays.some((d) => {
+      const shift = storeShifts.find((s) => s.employeeId === emp.id && s.date === d.dateStr);
+      return shift ? isShiftInDept(shift, targetDept, emp.role) : false;
+    });
+  };
+
   // Filtro collaboratori
   const filteredEmployees = storeEmployees.filter((emp) => {
     const matchesSearch =
       emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       emp.role.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesDept =
-      selectedDeptFilter === 'all' || emp.role === selectedDeptFilter;
+    const matchesDept = doesEmployeeBelongToDeptInWeek(emp, selectedDeptFilter);
     return matchesSearch && matchesDept;
   });
 
@@ -479,7 +511,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
               Tutti ({storeEmployees.length})
             </button>
             {getLocationDepartments(location.id, true).map((dept) => {
-              const count = storeEmployees.filter((e) => e.role === dept).length;
+              const count = storeEmployees.filter((e) => doesEmployeeBelongToDeptInWeek(e, dept)).length;
               const isSelected = selectedDeptFilter === dept;
               return (
                 <button
@@ -488,7 +520,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                   onClick={() => setSelectedDeptFilter(dept)}
                   className={`px-3 py-1.5 rounded-full font-semibold text-xs whitespace-nowrap shadow-2xs transition-all ${
                     isSelected
-                      ? 'bg-nicora-orange text-white shadow-xs'
+                      ? 'bg-nicora-orange text-white shadow-xs ring-2 ring-nicora-orange/30'
                       : 'bg-white hover:bg-neutral-50 text-neutral-700 border border-nicora-sage-border'
                   }`}
                 >
@@ -762,6 +794,8 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                       const isFerie = shift.type === 'ferie';
                       const isMalattia = shift.type === 'malattia';
                       const isCassa = shift.department === 'Cassa';
+                      const isTargetDeptMatch = selectedDeptFilter !== 'all' && isShiftInDept(shift, selectedDeptFilter, emp.role);
+                      const isDimmed = selectedDeptFilter !== 'all' && !isTargetDeptMatch;
 
                       return (
                         <td
@@ -771,7 +805,9 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                             isManagerMode
                               ? 'cursor-pointer hover:bg-nicora-orange-light/30 active:scale-[0.98]'
                               : ''
-                          } ${day.isToday ? 'bg-nicora-orange-light/10' : ''}`}
+                          } ${day.isToday ? 'bg-nicora-orange-light/10' : ''} ${
+                            isDimmed ? 'opacity-35 hover:opacity-100' : ''
+                          }`}
                         >
                           {isOff ? (
                             <div className="py-1 px-1 rounded-lg bg-neutral-100 text-neutral-500 text-[10px] font-medium flex flex-col items-center justify-center gap-0.5">
@@ -794,6 +830,8 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                           ) : (
                             <div
                               className={`p-1 rounded-lg border text-center transition-colors relative group ${
+                                isTargetDeptMatch ? 'ring-2 ring-nicora-teal/70 shadow-xs' : ''
+                              } ${
                                 isCassa
                                   ? 'bg-rose-50 border-rose-200 text-rose-900 font-extrabold'
                                   : shift.department === 'Fioreria'
@@ -862,16 +900,58 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                   <div className="flex items-center gap-1.5">
                     <ShieldCheck size={14} className="text-nicora-teal" />
                     <span className="font-black text-xs text-nicora-title">
-                      {location.id === 'gazzada' ? 'Presidio Gazzada (5 Rep.)' : 'Presidio Varese'}
+                      {selectedDeptFilter === 'all'
+                        ? (location.id === 'gazzada' ? 'Presidio Gazzada (5 Rep.)' : 'Presidio Varese')
+                        : `Presidio ${selectedDeptFilter}`}
                     </span>
                   </div>
-                  <span className="text-[10px] text-neutral-500 font-medium">Copertura e Competenze</span>
+                  <span className="text-[10px] text-neutral-500 font-medium">
+                    {selectedDeptFilter === 'all' ? 'Copertura e Competenze' : 'Copertura e presidi del reparto'}
+                  </span>
                 </td>
                 {weekDays.map((day, idx) => {
                   const cov = calculateDayCoverage(day.dateStr, storeShifts, employees, location.id);
                   const activeLocationDepts = getLocationDepartments(location.id, true);
                   const shouldSkip = dayStats[idx]?.shouldSkipAlerts;
                   const isOk = shouldSkip ? true : cov.uncoveredDepartments.length === 0;
+
+                  // Se c'è un filtro di reparto attivo, mostriamo il presidio puntuale di quel reparto
+                  if (selectedDeptFilter !== 'all') {
+                    const deptStaff = cov.departmentStaff?.[selectedDeptFilter as Department] || [];
+                    const isDeptCovered = deptStaff.length > 0;
+                    return (
+                      <td
+                        key={day.dateStr}
+                        className={`py-2 px-1 text-center border-r border-nicora-border last:border-r-0 ${
+                          !isDeptCovered && !shouldSkip ? 'bg-rose-50/80' : 'bg-nicora-teal/5'
+                        }`}
+                      >
+                        {isDeptCovered ? (
+                          <div className="space-y-0.5">
+                            <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md block text-emerald-800 bg-emerald-100">
+                              ✓ {deptStaff.length} {deptStaff.length === 1 ? 'presidio' : 'presidi'}
+                            </span>
+                            <div className="text-[9px] text-neutral-700 font-bold leading-tight truncate" title={deptStaff.map((s) => s.name).join(', ')}>
+                              {deptStaff.map((s) => s.name).join(', ')}
+                            </div>
+                          </div>
+                        ) : shouldSkip ? (
+                          <span className="text-[9.5px] text-neutral-400 font-medium block py-1">
+                            {dayStats[idx]?.isPastDay ? 'Passato' : 'Non pianificato'}
+                          </span>
+                        ) : (
+                          <div className="p-1 rounded-lg bg-rose-100 border border-rose-300 text-rose-800">
+                            <span className="text-[9px] font-black block leading-tight">
+                              ⚠️ Scoperto
+                            </span>
+                            <span className="text-[8px] font-bold text-rose-700 block truncate">
+                              0 {selectedDeptFilter}
+                            </span>
+                          </div>
+                        )}
+                      </td>
+                    );
+                  }
 
                   return (
                     <td
