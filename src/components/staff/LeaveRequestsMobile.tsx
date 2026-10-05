@@ -110,6 +110,10 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
   }, [requestType, shiftDate, targetShiftDate, targetEmployeeId]);
 
   const storeRequests = requests.filter((r) => r.locationId === activeLocation);
+  // Privacy collaboratore: un dipendente normale vede ESCLUSIVAMENTE le proprie richieste o scambi in cui è destinatario
+  const visibleRequests = isManagerUser
+    ? storeRequests
+    : storeRequests.filter((r) => r.requesterId === currentEmployeeId || r.targetEmployeeId === currentEmployeeId);
   const locationInfo = LOCATIONS.find((l) => l.id === activeLocation);
 
   // Proposte di scambio turno ricevute dal dipendente loggato in attesa della sua approvazione
@@ -750,18 +754,24 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
         <div className="space-y-2">
           <div className="flex items-center justify-between px-0.5">
             <h3 className="font-serif text-sm font-semibold text-nicora-title">
-              Richieste di Sede ({storeRequests.length})
+              {isManagerUser 
+                ? `Richieste di Sede (${visibleRequests.length})` 
+                : `Le mie richieste (${visibleRequests.length})`}
             </h3>
-            <span className="text-[10px] text-neutral-400">Archivio e attive</span>
+            <span className="text-[10px] text-neutral-400">
+              {isManagerUser ? 'Archivio e attive' : 'Storico personale'}
+            </span>
           </div>
 
-          {storeRequests.length === 0 ? (
+          {visibleRequests.length === 0 ? (
             <div className="bg-white rounded-xl p-5 text-center text-xs text-neutral-400 border border-dashed border-nicora-sage-border">
-              Nessuna richiesta presentata al momento.
+              {isManagerUser
+                ? 'Nessuna richiesta presentata al momento per questa sede.'
+                : 'Non hai ancora presentato alcuna richiesta.'}
             </div>
           ) : (
             <div className="space-y-2.5">
-              {storeRequests.map((req) => {
+              {visibleRequests.map((req) => {
                 const requester = getEmployee(req.requesterId);
                 const target = req.targetEmployeeId ? getEmployee(req.targetEmployeeId) : null;
                 const isMyReq = req.requesterId === currentEmployeeId;

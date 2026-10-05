@@ -103,6 +103,10 @@ export const LeaveRequestsDesktop: React.FC<LeaveRequestsDesktopProps> = ({
   }, [requestType, shiftDate, targetShiftDate, targetEmployeeId]);
 
   const storeRequests = requests.filter((r) => r.locationId === activeLocation);
+  // Privacy collaboratore: un dipendente normale vede ESCLUSIVAMENTE le proprie richieste o scambi in cui è destinatario
+  const visibleRequests = isManagerUser
+    ? storeRequests
+    : storeRequests.filter((r) => r.requesterId === currentEmployeeId || r.targetEmployeeId === currentEmployeeId);
   const locationInfo = LOCATIONS.find((l) => l.id === activeLocation);
 
   // Proposte di scambio indirizzate specificamente all'utente loggato
@@ -787,18 +791,24 @@ export const LeaveRequestsDesktop: React.FC<LeaveRequestsDesktopProps> = ({
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-serif text-base font-semibold text-nicora-title">
-                Tutte le richieste — {locationInfo?.name} ({storeRequests.length})
+                {isManagerUser
+                  ? `Tutte le richieste — ${locationInfo?.name} (${visibleRequests.length})`
+                  : `Le mie richieste (${visibleRequests.length})`}
               </h3>
-              <span className="text-xs text-neutral-400">Archivio e richieste attive</span>
+              <span className="text-xs text-neutral-400">
+                {isManagerUser ? 'Archivio e richieste attive' : 'Storico personale'}
+              </span>
             </div>
 
-            {storeRequests.length === 0 ? (
+            {visibleRequests.length === 0 ? (
               <div className="bg-white rounded-2xl p-8 text-center text-xs text-neutral-400 border border-dashed border-nicora-sage-border">
-                Nessuna richiesta presentata al momento per questa sede.
+                {isManagerUser
+                  ? 'Nessuna richiesta presentata al momento per questa sede.'
+                  : 'Non hai ancora presentato alcuna richiesta.'}
               </div>
             ) : (
               <div className="space-y-3">
-                {storeRequests.map((req) => {
+                {visibleRequests.map((req) => {
                   const requester = getEmployee(req.requesterId);
                   const target = req.targetEmployeeId ? getEmployee(req.targetEmployeeId) : null;
                   const isMyReq = req.requesterId === currentEmployeeId;

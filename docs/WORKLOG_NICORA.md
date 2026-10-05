@@ -30,14 +30,15 @@ Documento riservato a uso consuntivo e rendicontazione finale per Vittore Nicora
 | **05/10/2026** | **2.0h** | **Batch Upsert Supabase, Recupero PIN, Reset Direzione & Master Key** | Risoluzione del problema N+1 query al login tramite batch upsert multi-record su Supabase. Sviluppo del flusso di recupero credenziali: link 'PIN dimenticato?' al login con dialog WhatsApp precompilato; pulsante 'Reset PIN a 1234' dal pannello Direzione con dialog di sicurezza e sync cloud; attivazione Master Recovery Key (`NicoraMaster2026!`); promemoria PIN di default nell'orario personale; documentazione in `docs/NOTE_E_DECISIONI_VITTORE.md`. | ✅ Completato |
 | **05/10/2026** | **1.5h** | **Manuale Operativo PDF Completo & Download In-App nell'Header Account** | Generazione script Playwright per compilazione del Manuale Operativo Ufficiale in PDF editoriale A4 (13 pagine, grafica Nicora Garden `#0a474b` e `#fd651e`, indice interattivo con 33 link ipertestuali interni navigabili). Dettaglio esaustivo di ogni schermata per collaboratori e direzione (Oggi in Sede, I Miei Turni, Richieste Ferie, Scambio Turno a 2 consensi, Pianificatore con bozze/pubblicazione cloud, Generazione algoritmica, Wizard sostituzioni emergenze, Skills Matrix e Fairness Tracker, glossario iconografico completo di tutti i badge e stati, FAQ e installazione PWA). Salvataggio del PDF statico per consultazione offline/PWA e integrazione voce 'Scarica istruzioni complete' con icona documento nel menu account di AppHeader desktop e MobileHeader. | ✅ Completato |
 | **05/10/2026** | **1.0h** | **Architettura Bozze Cloud Cross-Device & Sincronizzazione Centralizzata** | Sviluppo del ciclo di vita bozze centralizzato su Supabase Cloud: salvataggio immediato dei turni in bozza su Supabase con persistenza dello stato di pubblicazione (`sys-app-config` con `published_months`). La bozza è ora accessibile e modificabile da qualsiasi responsabile su qualsiasi dispositivo (PC ufficio, smartphone, tablet), rimanendo completamente invisibile ai collaboratori fino al click su "Pubblica Turni allo Staff". Allineamento della Sezione 3.3 del Manuale PDF. | ✅ Completato |
+| **05/10/2026** | **0.5h** | **Privacy & Isolamento Richieste Personali Collaboratori (GDPR)** | Correzione e blindatura della privacy nelle schede Richieste (Desktop e Mobile): i collaboratori visualizzano rigorosamente solo le proprie richieste personali di ferie, permessi, cambi orario e scambi turno in cui sono direttamente coinvolti (mittente o destinatario), proteggendo motivi di salute e numeri di protocollo INPS, mentre la Direzione mantiene la visibilità completa di tutte le richieste della sede per l'approvazione. Intestazione dinamica contestuale ('Le mie richieste' per lo staff, 'Tutte le richieste' per la Direzione). | ✅ Completato |
 
 ---
 
 ## 📈 Riepilogo Progressivo
 
-- **Ore Completate e Validate**: **43.0 ore** (**860,00 €**)
+- **Ore Completate e Validate**: **43.5 ore** (**870,00 €**)
 - **Inizio Progetto**: 18 Settembre 2026
-- **Stato**: ✅ Sviluppo completo, Design System Stitch, Auth Security, Bozze Cloud Cross-Device, Manuale PDF in-app & Build validata.
+- **Stato**: ✅ Sviluppo completo, Design System Stitch, Auth Security, Bozze Cloud Cross-Device, Manuale PDF in-app, Privacy Staff & Build validata.
 
 *(Il presente file viene aggiornato al termine di ciascun task operativo).*
 
