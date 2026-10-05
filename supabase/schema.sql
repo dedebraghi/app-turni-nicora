@@ -108,6 +108,7 @@ CREATE POLICY "Modifica e salvataggio turni" ON shifts FOR ALL USING (true) WITH
 CREATE POLICY "Lettura richieste consentita a tutti" ON shift_requests FOR SELECT USING (true);
 CREATE POLICY "Inserimento richieste da collaboratori" ON shift_requests FOR INSERT WITH CHECK (true);
 CREATE POLICY "Aggiornamento e approvazione richieste" ON shift_requests FOR UPDATE USING (true) WITH CHECK (true);
+CREATE POLICY "Eliminazione richieste" ON shift_requests FOR DELETE USING (true);
 
 -- ----------------------------------------------------------------
 -- 8. ABILITAZIONE REALTIME (Per Sprint 2)

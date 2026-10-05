@@ -115,11 +115,20 @@ export const saveStoredShifts = (shifts: Shift[]) => {
 export const loadStoredRequests = (): ShiftRequest[] => {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.REQUESTS);
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const parsed: ShiftRequest[] = JSON.parse(saved);
+      const clean = parsed.filter(
+        (r) => !['req-1', 'req-2', 'req-3', 'req-4'].includes(r.id)
+      );
+      if (clean.length !== parsed.length) {
+        saveStoredRequests(clean);
+      }
+      return clean;
+    }
   } catch (e) {
     console.error('Errore caricamento richieste:', e);
   }
-  return INITIAL_REQUESTS;
+  return [];
 };
 
 export const saveStoredRequests = (requests: ShiftRequest[]) => {
