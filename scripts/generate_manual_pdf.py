@@ -396,7 +396,7 @@ html_content = """<!DOCTYPE html>
 
       <div class="toc-item level-1"><a href="#cap-2">2. Guida Completa per i Collaboratori (Staff)</a></div>
       <div class="toc-item level-2"><a href="#cap-2-1">2.1 Scheda "Oggi in Sede" (Presenze e Colleghi di Turno)</a></div>
-      <div class="toc-item level-2"><a href="#cap-2-2">2.2 Scheda "I Miei Turni" (Pianificazione Personale e Ore)</a></div>
+      <div class="toc-item level-2"><a href="#cap-2-2">2.2 Scheda "I Miei Turni" (Pianificazione Personale della Settimana)</a></div>
       <div class="toc-item level-2"><a href="#cap-2-3">2.3 Scheda "Richieste Ferie & Permessi" (Inoltro e Tracciamento)</a></div>
       <div class="toc-item level-2"><a href="#cap-2-4">2.4 Procedura Guidata di Scambio Turno con un Collega</a></div>
 
@@ -561,21 +561,56 @@ html_content = """<!DOCTYPE html>
       <li><strong>🏥 In Malattia:</strong> Assenza per malattia o infortunio regolarmente registrata.</li>
     </ul>
 
-    <h2 class="section-title" id="cap-2-2">2.2 Scheda "I Miei Turni" (Pianificazione Personale e Ore)</h2>
+    <h2 class="section-title" id="cap-2-2">2.2 Scheda "I Miei Turni" (Pianificazione Personale della Settimana)</h2>
     <p>
-      Questa sezione offre la vista completa e trasparente di tutti i propri turni passati, presenti e futuri:
+      Questa sezione offre al collaboratore la vista chiara e trasparente di tutta la propria programmazione oraria settimanale:
+    </p>
+
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-title">Hero Card Profilo & 3 Indicatori Settimanali</div>
+        <p style="font-size: 8pt; color: #4a5568;">
+          In cima alla pagina compare il tuo profilo personale (nome, reparto di appartenenza e sede). 
+          Nel riquadro sono integrati 3 contatori sintetici ricalcolati per la settimana selezionata:
+          <br>• <strong>Turni:</strong> numero totale di giornate di lavoro previste (es. 5 turni).
+          <br>• <strong>Riposi:</strong> numero di giornate di riposo settimanale programmate (es. 2 riposi).
+          <br>• <strong>Assenze:</strong> eventuali giornate di ferie, permesso o malattia ricadenti nella settimana.
+        </p>
+      </div>
+      <div class="card">
+        <div class="card-title">Promemoria di Sicurezza PIN</div>
+        <p style="font-size: 8pt; color: #4a5568;">
+          Se stai ancora utilizzando il codice provvisorio di fabbrica (<em>1234</em>), in cima alla schermata compare 
+          un promemoria color ambra che ti invita a personalizzare il tuo PIN a 4 cifre dal menu del profilo per proteggere la tua riservatezza.
+        </p>
+      </div>
+    </div>
+
+    <h3 class="sub-title">Barra di Navigazione Settimanale (Domenica – Sabato)</h3>
+    <p>
+      L'organizzazione oraria in Nicora Garden segue il ciclo settimanale da Domenica a Sabato. 
+      Tramite i pulsanti freccia (<em>Precedente</em> e <em>Successiva</em>) è possibile scorrere le settimane:
     </p>
     <ul>
-      <li><strong>Navigazione Settimanale e Mensile:</strong> Tramite le frecce direzionali o il selettore del mese è possibile scorrere la programmazione oraria.</li>
-      <li><strong>Riepilogo Ore Settimanali:</strong> In cima è visibile una barra di avanzamento che confronta le ore effettivamente pianificate 
-      nella settimana con le ore previste dal proprio contratto individuale (es. <em>40h pianificate su 40h contrattuali</em>, oppure <em>24h su 24h</em> per contratti part-time).</li>
-      <li><strong>Badge Stato Pubblicazione del Mese:</strong>
-        <br>Se la Direzione sta ancora calibrando la turnazione per il mese successivo, comparirà l'avviso arancione 
-        <span class="badge badge-draft">BOZZA IN PREPARAZIONE</span> (i turni potrebbero ancora subire variazioni).
-        <br>Quando la Direzione conferma e pubblica ufficialmente il tabellone, compare il badge verde 
-        <span class="badge badge-published">UFFICIALE E CONFERMATO</span>.
-      </li>
+      <li>Un indicatore testuale evidenzia immediatamente se stai consultando la <span class="badge badge-published">SETTIMANA IN CORSO</span>, la <span class="badge badge-afternoon">PROSSIMA SETTIMANA</span> oppure un periodo precedente o futuro.</li>
+      <li>Viene riportato l'intervallo esatto di date (es. <em>Domenica 4 — Sabato 10 Ottobre</em>).</li>
     </ul>
+
+    <h3 class="sub-title">Elenco delle 7 Giornate della Settimana</h3>
+    <p>
+      Per ciascuno dei 7 giorni della settimana selezionata viene visualizzata una scheda dettagliata:
+    </p>
+    <ul>
+      <li><strong>Giorno e Data:</strong> Il giorno della settimana con numero e mese. La scheda corrispondente alla giornata di <strong>OGGI</strong> è evidenziata con una cornice arancione di risalto.</li>
+      <li><strong>Giornata Lavorativa:</strong> Se sei di turno, la scheda riporta la fascia oraria precisa (es. <em>08:30 — 12:30</em> o <em>08:30 — 19:30</em>), la tipologia (<em>Giornata Intera</em> o <em>Mezza Giornata</em>) e il badge colorato del reparto in cui presterai servizio.</li>
+      <li><strong>Giornata Non Lavorativa:</strong> Se non lavori, la scheda indica in modo rassicurante il motivo con un badge dedicato: <em>☕ Riposo Settimanale</em>, <em>🌴 Ferie</em> oppure <em>🏥 Malattia</em>.</li>
+    </ul>
+
+    <div class="info-box">
+      <strong>Visibilità dei Mesi Futuri (Bozze vs Ufficiali):</strong> Per tutelare i collaboratori ed evitare fraintendimenti, 
+      i turni dei mesi futuri diventano visibili nell'app solo dopo che la Direzione ha terminato le verifiche e ha premuto il pulsante 
+      di pubblicazione ufficiale sul cloud. Fino a quel momento, i turni rimangono in bozza riservata alla sola Direzione.
+    </div>
 
     <h2 class="section-title" id="cap-2-3">2.3 Scheda "Richieste Ferie & Permessi" (Inoltro e Tracciamento)</h2>
     <p>
