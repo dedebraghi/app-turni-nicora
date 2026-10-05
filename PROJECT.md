@@ -61,11 +61,11 @@
 | # | Name | Scope | Dependencies | Status |
 |---|------|-------|-------------|--------|
 | M0 | Safety Pre-flight & Snapshot | Verify Git branch isolation and ensure pristine snapshot is captured and verifiable | none | DONE |
-| M1 | Draft/Publish Lifecycle & Staff Privacy | Reproduce bug via automated test, fix client Realtime echo, fix storage sync, fix cloud fallback, add cross-device publication sync, and seal staff privacy | M0 | IN_PROGRESS |
-| M2 | Full Functional Audit & Defect Remediation | Audit & fix all 13 R2 flows: PIN login, Oggi in Sede (mobile label typo), I Miei Turni, Planner calculations, single-shift delta saving, Emergency wizard, Svuota Turni state reset, Leave/Swap request type preservation and conflict check, staff privacy, Personale/CSV export | M1 | PLANNED |
-| M3 | E2E Test Suite Pass & Adversarial Hardening | Run 100% of E2E test suite (Tiers 1-4) published by E2E track, then run Tier 5 adversarial coverage hardening | M2, E2E | PLANNED |
-| M4 | Final Database Safety & Fresh Install Cleanup | Execute `node scripts/safety/db-safety.mjs clean`, verify `shifts = 0`, `shift_requests = 0`, `published_months = []`, restore pristine employees, verify clean | M3 | PLANNED |
-| E2E | E2E Testing Track | Design and build comprehensive opaque-box test runner and test cases across Tiers 1-4 | M0 | IN_PROGRESS |
+| M1 | Draft/Publish Lifecycle & Staff Privacy | Reproduce bug via automated test, fix client Realtime echo, fix storage sync, fix cloud fallback, add cross-device publication sync, and seal staff privacy | M0 | DONE |
+| M2 | Full Functional Audit & Defect Remediation | Audit & fix all 13 R2 flows: PIN login, Oggi in Sede (mobile label typo), I Miei Turni, Planner calculations, single-shift delta saving, Emergency wizard, Svuota Turni state reset, Leave/Swap request type preservation and conflict check, staff privacy, Personale/CSV export | M1 | DONE |
+| M3 | E2E Test Suite Pass & Adversarial Hardening | Run 100% of E2E test suite (Tiers 1-4) published by E2E track, then run Tier 5 adversarial coverage hardening | M2, E2E | DONE |
+| M4 | Final Database Safety & Fresh Install Cleanup | Execute `node scripts/safety/db-safety.mjs clean`, verify `shifts = 0`, `shift_requests = 0`, `published_months = []`, restore pristine employees, verify clean | M3 | DONE |
+| E2E | E2E Testing Track | Design and build comprehensive opaque-box test runner and test cases across Tiers 1-4 | M0 | DONE |
 
 ## Interface Contracts
 ### Client Storage ↔ Cloud Supabase (`storageService` ↔ `supabaseService`)
