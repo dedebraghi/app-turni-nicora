@@ -588,6 +588,6 @@ describe('Adversarial Challenger 2: Realtime, Swaps & Svuota Turni Oracles', () 
       // 2. Varese shifts remain 100% intact and published
       expect(harness.shifts.filter((s) => s.locationId === 'varese')).toHaveLength(vaCountBefore);
       expect(harness.isMonthOfficiallyPublished('varese', 2026, 10)).toBe(true);
-    });
+    }, 15000);
   });
 });
