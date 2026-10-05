@@ -31,6 +31,7 @@ import {
   saveStoredSession,
   saveStoredShifts,
   resetDraftGenerated,
+  recordDraftGenerated,
   clearStoredShifts,
   isMonthPublished,
   recordMonthPublished,
@@ -288,29 +289,36 @@ export const App: React.FC = () => {
     if (generatedShifts.length > 0) {
       const sample = generatedShifts[0];
       const [yStr, mStr] = sample.date.split('-');
-      recordMonthUnpublished(sample.locationId, parseInt(yStr, 10), parseInt(mStr, 10));
+      const yNum = parseInt(yStr, 10);
+      const mNum = parseInt(mStr, 10);
+      recordDraftGenerated(sample.locationId, yNum, mNum);
+      recordMonthUnpublished(sample.locationId, yNum, mNum);
     }
 
-    let nextShifts: Shift[] = [];
-    setShifts((prev) => {
-      const genKeys = new Set(generatedShifts.map((s) => `${s.employeeId}_${s.date}`));
-      const remaining = prev.filter((s) => !genKeys.has(`${s.employeeId}_${s.date}`));
-      nextShifts = [...remaining, ...generatedShifts];
-      // Salvataggio immediato in cache locale
-      saveStoredShifts(nextShifts);
-      return nextShifts;
-    });
+    const genKeys = new Set(generatedShifts.map((s) => `${s.employeeId}_${s.date}`));
+    const remaining = shifts.filter((s) => !genKeys.has(`${s.employeeId}_${s.date}`));
+    const nextShifts = [...remaining, ...generatedShifts];
 
-    // Sincronizza la bozza su Supabase Cloud:
-    // I turni vengono memorizzati su Supabase, ma poiché il mese non è in published_months,
+    // Salvataggio immediato in stato e cache locale
+    setShifts(nextShifts);
+    saveStoredShifts(nextShifts);
+
+    // Sincronizza IMMEDIATAMENTE i turni generati su Supabase Cloud:
+    // I turni vengono memorizzati su Supabase, ma poiché il mese è registrato come non pubblicato,
     // restano visibili unicamente alla Direzione su tutti i dispositivi (PC, tablet, smartphone)!
-    saveCloudShifts(nextShifts).catch((err) => {
-      console.warn('[Cloud] Errore sincronizzazione bozza su Supabase:', err);
+    saveCloudShifts(generatedShifts).then((res) => {
+      if (res.success) {
+        console.log('[Cloud] Bozza di', generatedShifts.length, 'turni sincronizzata su Supabase con successo.');
+      } else {
+        console.warn('[Cloud] Errore sincronizzazione bozza su Supabase:', res.error);
+      }
+    }).catch((err) => {
+      console.warn('[Cloud] Errore di rete salvataggio bozza su Supabase:', err);
     });
 
     const msg = pastPreserved > 0
-      ? `${futureGenerated} turni generati in bozza e salvati su Supabase (${pastPreserved} passati preservati). Visibili solo alla Direzione su qualsiasi dispositivo finché non clicchi "Pubblica Turni allo Staff".`
-      : `${generatedShifts.length} turni generati in bozza e salvati su Supabase. Visibili solo alla Direzione finché non clicchi "Pubblica Turni allo Staff".`;
+      ? `${futureGenerated} turni generati in bozza e salvati su Supabase (${pastPreserved} passati preservati). Controlla il tabellone e clicca "Pubblica Turni Ora" per renderli ufficiali.`
+      : `${generatedShifts.length} turni generati in bozza e salvati su Supabase. Clicca "Pubblica Turni Ora" quando desideri renderli visibili ai collaboratori.`;
 
     setToast({
       id: `toast-gen-${Date.now()}`,

@@ -315,11 +315,15 @@ export const saveCloudShifts = async (shifts: Shift[]): Promise<{ success: boole
 
   try {
     const rows = normalizedShifts.map(mapShiftToDb);
-    const { error } = await supabase
-      .from('shifts')
-      .upsert(rows, { onConflict: 'employee_id,date' });
+    const CHUNK_SIZE = 100;
+    for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
+      const chunk = rows.slice(i, i + CHUNK_SIZE);
+      const { error } = await supabase
+        .from('shifts')
+        .upsert(chunk, { onConflict: 'employee_id,date' });
 
-    if (error) throw error;
+      if (error) throw error;
+    }
     return { success: true };
   } catch (err: any) {
     console.error('[Supabase] Errore sincronizzazione turni:', err);

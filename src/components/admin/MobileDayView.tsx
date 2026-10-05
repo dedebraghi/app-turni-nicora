@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Department, Employee, LocationId, LocationInfo, Shift, WeekDayMeta } from '../../domain/types';
 import { DEPARTMENT_COLORS, getLocationDepartments, SHIFT_COLORS } from '../../domain/rules';
 import {
@@ -188,6 +188,12 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
     ignoreGapId(gapId);
     setIgnoredGapIds(getIgnoredGapIds());
   };
+
+  // Turni della settimana correntemente visualizzata (per calcolo monte ore settimanale)
+  const currentWeekShifts = useMemo(() => {
+    const weekSet = new Set(weekDays.map((d) => d.dateStr));
+    return shifts.filter((s) => weekSet.has(s.date));
+  }, [weekDays, shifts]);
 
   // Analisi completa delle scoperture della settimana (sia critiche che orarie parziali) per la sede attiva
   const weekAnalysis: WeekCoverageAnalysis = calculateWeekHourlyCoverage(
@@ -669,7 +675,7 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
               const shiftStyle = shift ? SHIFT_COLORS[shift.type] : SHIFT_COLORS.riposo;
 
               // Monte ore settimanale
-              const weeklyHours = calculateEmployeeWeeklyHours(emp, shifts);
+              const weeklyHours = calculateEmployeeWeeklyHours(emp, currentWeekShifts);
 
               return (
                 <div

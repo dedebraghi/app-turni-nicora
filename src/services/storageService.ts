@@ -273,15 +273,20 @@ export const isMonthPublished = (locationId: string, year: number, month: number
     return false;
   }
 
-  // Per mesi passati storici rispetto a oggi, sono considerati visibili di default
+  // Se c'è una bozza generata (in locale o su cloud) e non è in pubMap con true, NON è pubblicata!
+  if (hasDraftGenerated(locationId, year, month)) {
+    return false;
+  }
+
+  // Per mesi passati storici già terminati rispetto a oggi, sono considerati visibili di default
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1;
-  if (year < currentYear || (year === currentYear && month <= currentMonth)) {
+  if (year < currentYear || (year === currentYear && month < currentMonth)) {
     return true;
   }
 
-  // Per mesi futuri senza pubblicazione esplicita, è considerato bozza
+  // Per il mese corrente o mesi futuri senza pubblicazione esplicita, è considerato bozza
   return false;
 };
 

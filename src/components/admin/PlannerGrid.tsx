@@ -125,8 +125,12 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
   const storeEmployees = employees.filter((e) => (e.locationId === location.id || e.isMobile) && e.isActive !== false && !e.isOwner);
   const storeShifts = shifts; // Conserviamo tutti i turni per poter rilevare i turni dei dipendenti mobili nell'altra sede
 
-  // Metriche di equità
-  const fairnessMetrics = calculateFairnessMetrics(storeEmployees, storeShifts);
+  // Turni della sola settimana correntemente visualizzata (per calcolo monte ore settimanale e presenze)
+  const weekDateSet = new Set(weekDays.map((d) => d.dateStr));
+  const currentWeekShifts = storeShifts.filter((s) => weekDateSet.has(s.date));
+
+  // Metriche di equità settimanali
+  const fairnessMetrics = calculateFairnessMetrics(storeEmployees, currentWeekShifts);
 
   // Helper per verificare se un turno corrisponde a un determinato reparto
   const isShiftInDept = (s: Shift, targetDept: string, empRole?: string) => {
@@ -141,7 +145,6 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
   };
 
   // Rilevamento presenza di turni lavorativi nella settimana visualizzata
-  const weekDateSet = new Set(weekDays.map((d) => d.dateStr));
   const weekStoreShifts = storeShifts.filter((s) => weekDateSet.has(s.date) && s.locationId === location.id);
   const weekHasWorkingShifts = weekStoreShifts.some(
     (s) => s.type !== 'riposo' && s.type !== 'ferie' && s.type !== 'malattia'
@@ -727,7 +730,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
 
                         {/* Indicatore Ore Contratto & Giorni */}
                         {(() => {
-                          const weeklyHours = calculateEmployeeWeeklyHours(emp, storeShifts);
+                          const weeklyHours = calculateEmployeeWeeklyHours(emp, currentWeekShifts);
                           return (
                             <div className="flex flex-col items-end gap-0.5">
                               <span
