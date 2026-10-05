@@ -403,7 +403,7 @@ html_content = """<!DOCTYPE html>
       <div class="toc-item level-1"><a href="#cap-3">3. Guida Completa per la Direzione e i Responsabili (Admin)</a></div>
       <div class="toc-item level-2"><a href="#cap-3-1">3.1 Modalità Responsabile e Monitoraggio Presenze</a></div>
       <div class="toc-item level-2"><a href="#cap-3-2">3.2 Scheda "Pianificatore Turni" (Tabellone Settimanale e Mensile)</a></div>
-      <div class="toc-item level-2"><a href="#cap-3-3">3.3 Ciclo di Vita dei Turni: Bozza Locale vs Pubblicazione Cloud</a></div>
+      <div class="toc-item level-2"><a href="#cap-3-3">3.3 Ciclo di Vita dei Turni: Bozza Cloud Riservata vs Pubblicazione allo Staff</a></div>
       <div class="toc-item level-2"><a href="#cap-3-4">3.4 Banner e Gestione Rapida Richieste Pendenti</a></div>
       <div class="toc-item level-2"><a href="#cap-3-5">3.5 Generazione Automatica Intelligente dei Turni</a></div>
       <div class="toc-item level-2"><a href="#cap-3-6">3.6 Modifica Manuale e Assegnazione Postazione Turno</a></div>
@@ -666,19 +666,22 @@ html_content = """<!DOCTYPE html>
       <li><strong>Celle Turno:</strong> Ogni cella riporta il tipo di turno, gli orari precisi, il reparto assegnato ed eventuali note speciali. Cliccando su qualsiasi cella si apre la modale di modifica immediata.</li>
     </ul>
 
-    <h2 class="section-title" id="cap-3-3">3.3 Ciclo di Vita dei Turni: Bozza Locale vs Pubblicazione Cloud</h2>
+    <h2 class="section-title" id="cap-3-3">3.3 Ciclo di Vita dei Turni: Bozza Cloud Riservata vs Pubblicazione allo Staff</h2>
     <p>
-      Per evitare di generare ansia o notifiche premature ai collaboratori mentre la Direzione sta ancora costruendo o sperimentando la turnazione, 
-      l'applicazione adotta un sofisticato sistema a doppio stadio:
+      Per consentire alla Direzione la massima serenità e flessibilità operativa durante la stesura dei turni, 
+      l'applicazione adotta un sofisticato sistema a doppio stadio con sincronizzazione cloud centralizzata:
     </p>
     <div class="warning-box">
-      <strong>Stato "Bozza Locale":</strong> Quando la Direzione genera o modifica i turni di un mese futuro, tali modifiche restano inizialmente 
-      visibili <em>soltanto</em> alla Direzione. Un banner giallo in cima al tabellone segnala: <em>"Mese in Bozza: i turni non sono ancora visibili al personale"</em>.
+      <strong>Stato "Bozza nel Cloud" (Visibile solo ai Responsabili):</strong> Quando la Direzione genera o modifica i turni di un mese futuro, 
+      i dati vengono salvati immediatamente nel database Supabase Cloud. Grazie al sistema di permessi basato sullo stato di pubblicazione, 
+      la bozza è <strong>visibile a qualsiasi responsabile su qualsiasi dispositivo</strong> (PC dell'ufficio, smartphone o tablet da casa), 
+      permettendo di perfezionare la turnazione ovunque ci si trovi, rimanendo nel contempo <em>completamente invisibile</em> a tutti i collaboratori di reparto. 
+      Un banner giallo in cima al tabellone segnala: <em>"Bozza del mese in elaborazione (non ancora visibile allo staff)"</em>.
     </div>
     <div class="success-box">
-      <strong>Pulsante "Pubblica Turni per lo Staff":</strong> Quando la pianificazione è completata e verificata, la Direzione preme il pulsante verde 
-      <strong>"Pubblica Mese Ufficiale"</strong>. In quel preciso istante, i turni vengono sincronizzati su Supabase Cloud e resi ufficialmente visibili 
-      sulle app di tutti i collaboratori della sede.
+      <strong>Pulsante "Pubblica Turni allo Staff":</strong> Una volta che la Direzione ha verificato coperture e riposi, 
+      basta premere il pulsante verde <strong>"Pubblica Turni allo Staff"</strong>. In quel preciso istante, il mese viene registrato 
+      come ufficiale sul Cloud Supabase e i turni diventano immediatamente visibili e notificati a tutto lo staff su tutti i loro dispositivi.
     </div>
 
     <h2 class="section-title" id="cap-3-4">3.4 Banner e Gestione Rapida Richieste Pendenti</h2>

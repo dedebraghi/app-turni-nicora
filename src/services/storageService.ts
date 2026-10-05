@@ -202,7 +202,12 @@ export const getGeneratedDraftsMap = (): Record<string, boolean> => {
 export const hasDraftGenerated = (locationId: string, year: number, month: number): boolean => {
   const map = getGeneratedDraftsMap();
   const key = `${locationId}_${year}-${String(month).padStart(2, '0')}`;
-  return !!map[key];
+  if (map[key]) return true;
+
+  // Se ci sono turni presenti in memoria (anche sincronizzati dal cloud) per questo mese, è generata
+  const shifts = loadStoredShifts();
+  const prefix = `${year}-${String(month).padStart(2, '0')}`;
+  return shifts.some((s) => s.locationId === locationId && s.date.startsWith(prefix));
 };
 
 export const recordDraftGenerated = (locationId: string, year: number, month: number): void => {
@@ -256,16 +261,28 @@ export const getPublishedMonthsMap = (): Record<string, boolean> => {
 };
 
 export const isMonthPublished = (locationId: string, year: number, month: number): boolean => {
-  const draftMap = getGeneratedDraftsMap();
   const pubMap = getPublishedMonthsMap();
   const key = `${locationId}_${year}-${String(month).padStart(2, '0')}`;
   
-  // Se non è mai stata generata una bozza (es. turni storici o standard di default), è considerato visibile
-  if (!draftMap[key]) {
+  // Se è esplicitamente registrato come pubblicato, è visibile
+  if (pubMap[key] === true) {
     return true;
   }
-  // Se è stata generata una bozza, è pubblico solo se esplicitamente marcato come pubblicato
-  return !!pubMap[key];
+  // Se è esplicitamente registrato come non pubblicato
+  if (pubMap[key] === false) {
+    return false;
+  }
+
+  // Per mesi passati storici rispetto a oggi, sono considerati visibili di default
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  if (year < currentYear || (year === currentYear && month <= currentMonth)) {
+    return true;
+  }
+
+  // Per mesi futuri senza pubblicazione esplicita, è considerato bozza
+  return false;
 };
 
 export const recordMonthPublished = (locationId: string, year: number, month: number): void => {

@@ -75,7 +75,9 @@ export const fetchCloudEmployees = async (): Promise<Employee[]> => {
         }
       }
 
-      const mapped = data.map((row: any) => {
+      const mapped = data
+        .filter((row: any) => !row.id?.startsWith('sys-'))
+        .map((row: any) => {
         const emp = mapDbToEmployee(row);
         if (emp.id === 'emp-gz-5' && emp.contractHours === 30) {
           emp.contractHours = 40;
@@ -444,9 +446,9 @@ export const verifyEmployeePin = async (
 };
 
 /**
- * Carica da Supabase l'elenco dei mesi (location + anno + mese) per cui esistono turni salvati nel cloud.
- * Questi mesi sono considerati "pubblicati" perché handlePublishMonth li ha inviati a Supabase.
- * Usato per sincronizzare lo stato di pubblicazione cross-device.
+ * Carica da Supabase l'elenco dei mesi ufficialmente pubblicati (location + anno + mese).
+ * Legge lo stato centralizzato dal record 'sys-app-config' sul cloud.
+ * Usato per sincronizzare lo stato di pubblicazione cross-device per tutti i dispositivi.
  */
 export const fetchCloudPublishedMonths = async (): Promise<Set<string>> => {
   const result = new Set<string>();
@@ -456,6 +458,23 @@ export const fetchCloudPublishedMonths = async (): Promise<Set<string>> => {
   }
 
   try {
+    // 1. Prova a leggere l'elenco centralizzato dal record di sistema
+    const { data: configData, error: configError } = await supabase
+      .from('employees')
+      .select('skills')
+      .eq('id', 'sys-app-config')
+      .maybeSingle();
+
+    if (!configError && configData && configData.skills && Array.isArray((configData.skills as any).published_months)) {
+      for (const m of (configData.skills as any).published_months) {
+        if (typeof m === 'string') {
+          result.add(m);
+        }
+      }
+      return result;
+    }
+
+    // 2. Fallback: se sys-app-config non è ancora popolato, deduci dai turni storici
     const { data, error } = await supabase
       .from('shifts')
       .select('location_id, date');
@@ -475,6 +494,56 @@ export const fetchCloudPublishedMonths = async (): Promise<Set<string>> => {
   }
 
   return result;
+};
+
+/**
+ * Pubblica ufficialmente un mese su Supabase Cloud (sys-app-config).
+ * Rende i turni di quel mese immediatamente visibili a tutti i collaboratori su qualsiasi dispositivo.
+ */
+export const publishCloudMonth = async (
+  locationId: LocationId,
+  year: number,
+  month: number
+): Promise<{ success: boolean; error?: string }> => {
+  const monthKey = `${locationId}_${year}-${String(month).padStart(2, '0')}`;
+
+  if (!isSupabaseConfigured || !supabase) {
+    return { success: false, error: 'Database Supabase Cloud non raggiungibile.' };
+  }
+
+  try {
+    const { data } = await supabase
+      .from('employees')
+      .select('skills')
+      .eq('id', 'sys-app-config')
+      .maybeSingle();
+
+    const currentMonths: string[] = Array.isArray(data?.skills?.published_months)
+      ? [...data.skills.published_months]
+      : ['gazzada_2026-09', 'varese_2026-09', 'gazzada_2026-10', 'varese_2026-10'];
+
+    if (!currentMonths.includes(monthKey)) {
+      currentMonths.push(monthKey);
+    }
+
+    const { error: upsertErr } = await supabase.from('employees').upsert({
+      id: 'sys-app-config',
+      name: 'Configurazione Sistema',
+      location_id: 'gazzada',
+      role: 'Area Tecnica',
+      avatar: 'CF',
+      email: 'system-config@nicoragarden.local',
+      is_active: false,
+      skills: { published_months: currentMonths },
+      updated_at: new Date().toISOString(),
+    });
+
+    if (upsertErr) throw upsertErr;
+    return { success: true };
+  } catch (err: any) {
+    console.error('[Supabase] Errore salvataggio pubblicazione mese su cloud:', err);
+    return { success: false, error: err.message || 'Errore pubblicazione cloud' };
+  }
 };
 
 // ==========================================

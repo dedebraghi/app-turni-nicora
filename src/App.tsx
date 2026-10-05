@@ -48,6 +48,7 @@ import {
   saveCloudRequest,
   deleteCloudShifts,
   saveCloudShifts,
+  publishCloudMonth,
   subscribeToRealtimeChanges,
   updateCloudRequestStatus,
 } from './services/supabaseService';
@@ -290,22 +291,30 @@ export const App: React.FC = () => {
       recordMonthUnpublished(sample.locationId, parseInt(yStr, 10), parseInt(mStr, 10));
     }
 
+    let nextShifts: Shift[] = [];
     setShifts((prev) => {
       const genKeys = new Set(generatedShifts.map((s) => `${s.employeeId}_${s.date}`));
       const remaining = prev.filter((s) => !genKeys.has(`${s.employeeId}_${s.date}`));
-      const next = [...remaining, ...generatedShifts];
-      // Salvataggio immediato in cache locale (senza inviare a Supabase, evitando sovraccarico e notifiche anticipate)
-      saveStoredShifts(next);
-      return next;
+      nextShifts = [...remaining, ...generatedShifts];
+      // Salvataggio immediato in cache locale
+      saveStoredShifts(nextShifts);
+      return nextShifts;
+    });
+
+    // Sincronizza la bozza su Supabase Cloud:
+    // I turni vengono memorizzati su Supabase, ma poiché il mese non è in published_months,
+    // restano visibili unicamente alla Direzione su tutti i dispositivi (PC, tablet, smartphone)!
+    saveCloudShifts(nextShifts).catch((err) => {
+      console.warn('[Cloud] Errore sincronizzazione bozza su Supabase:', err);
     });
 
     const msg = pastPreserved > 0
-      ? `${futureGenerated} turni generati in bozza (${pastPreserved} passati preservati). Controlla il tabellone e clicca "Pubblica Turni allo Staff" per renderli ufficiali.`
-      : `${generatedShifts.length} turni generati in bozza. Clicca "Pubblica Turni allo Staff" quando desideri renderli visibili ai collaboratori.`;
+      ? `${futureGenerated} turni generati in bozza e salvati su Supabase (${pastPreserved} passati preservati). Visibili solo alla Direzione su qualsiasi dispositivo finché non clicchi "Pubblica Turni allo Staff".`
+      : `${generatedShifts.length} turni generati in bozza e salvati su Supabase. Visibili solo alla Direzione finché non clicchi "Pubblica Turni allo Staff".`;
 
     setToast({
       id: `toast-gen-${Date.now()}`,
-      title: 'Bozza Mensile Generata 📝',
+      title: 'Bozza Cloud Salvata 📝',
       message: msg,
       type: 'info',
     });
@@ -325,26 +334,30 @@ export const App: React.FC = () => {
       return;
     }
 
-    // Salva su Supabase esclusivamente il delta dei turni del mese (veloce e leggero)
-    const res = await saveCloudShifts(monthShifts);
-    if (res.success) {
-      recordMonthPublished(locId, year, month);
-      // Forza l'aggiornamento dello stato per aggiornare i filtri di visibilità
-      setShifts((prev) => [...prev]);
-      setToast({
-        id: `toast-pub-${Date.now()}`,
-        title: 'Turni Pubblicati! 🚀',
-        message: `I turni di ${monthPrefix} sono stati pubblicati e sono ora visibili a tutto lo staff.`,
-        type: 'success',
-      });
-    } else {
+    // 1. Assicura che tutti i turni del mese siano sincronizzati su Supabase
+    const resShifts = await saveCloudShifts(monthShifts);
+    if (!resShifts.success) {
       setToast({
         id: `toast-pub-err-${Date.now()}`,
         title: 'Errore Pubblicazione',
-        message: res.error || 'Impossibile pubblicare i turni sul cloud.',
+        message: resShifts.error || 'Impossibile pubblicare i turni sul cloud.',
         type: 'warning',
       });
+      return;
     }
+
+    // 2. Registra la pubblicazione ufficiale del mese su Supabase Cloud (sys-app-config)
+    await publishCloudMonth(locId, year, month);
+    recordMonthPublished(locId, year, month);
+
+    // Forza l'aggiornamento dello stato per aggiornare i filtri di visibilità
+    setShifts((prev) => [...prev]);
+    setToast({
+      id: `toast-pub-${Date.now()}`,
+      title: 'Turni Pubblicati! 🚀',
+      message: `I turni di ${monthPrefix} sono stati pubblicati e sono ora visibili a tutto lo staff su tutti i dispositivi.`,
+      type: 'success',
+    });
   };
 
   const handleRefreshShifts = async () => {
