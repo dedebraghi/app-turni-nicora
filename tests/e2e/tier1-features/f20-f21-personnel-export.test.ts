@@ -36,7 +36,7 @@ describe('Tier 1: Features F20 & F21 (Personnel, CSV Export, & Responsive Layout
     it('F20.2: skills matrix scores range between 1 and 10 per department', () => {
       const sabrina = app.employees.find((e) => e.id === 'emp-gz-1')!;
       expect(sabrina.skills.Cassa).toBe(10);
-      expect(sabrina.skills.Fioreria).toBe(7);
+      expect(sabrina.skills.Fioreria).toBe(5);
 
       // Update skill
       sabrina.skills['Area Tecnica'] = 8;
@@ -165,7 +165,7 @@ describe('Tier 1: Features F20 & F21 (Personnel, CSV Export, & Responsive Layout
       const vaStaff = app.employees.filter((e) => e.locationId === 'varese');
 
       expect(gzStaff.length).toBe(12);
-      expect(vaStaff.length).toBe(20);
+      expect(vaStaff.length).toBe(22);
       expect(gzStaff.every((e) => e.locationId === 'gazzada')).toBe(true);
       expect(vaStaff.every((e) => e.locationId === 'varese')).toBe(true);
     });

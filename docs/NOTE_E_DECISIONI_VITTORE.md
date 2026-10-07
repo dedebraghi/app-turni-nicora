@@ -107,6 +107,40 @@ Dato che a Gazzada ci sono 10 persone (~7-8 presenti al giorno) e a Varese 14 (~
 
 ---
 
+---
+
+## 📌 Questione 5: Aggiornamento Specifiche e Competenze Dipendenti (File del 07/10/2026)
+
+In data 07/10/2026 Vittore Nicora ha inviato il file ufficiale di configurazione **"Specifiche dipendenti turni.xlsx"** contenente i fogli *Reparti*, *Necessità Personale* e *Competenze Personale*.
+
+### 1. Applicazione Regola "Abilità Più Alta = Reparto Primario"
+- Ciascun collaboratore ha ora il proprio **Reparto Primario strettamente e dinamicamente legato al valore massimo** presente nella matrice delle sue competenze.
+- Se l'amministratore modifica i punteggi delle abilità dalla schermata Competenze o Anagrafica, il reparto primario del collaboratore si aggiorna in tempo reale.
+- **Risoluzione parità e casi particolari (Carlo con tutti 0)**: In caso di parità di punteggio massimo (es. tra reparto ordinario e stagionale Natale, o punteggio 0), il sistema adotta come discriminante oggettivo la **frequenza storica dei turni 2026** estratti dai prospetti ufficiali (`Turni_GZ_26.pdf` e `Turni_VA_2026.pdf`):
+  - *Carlo*: Supporto Corsia / Vivaio piante esterne $\rightarrow$ **Serra Fredda**;
+  - *Giancarla* e *Giovanna*: Prevalenza annuale continua $\rightarrow$ **Decor**;
+  - *Matteo Z.*: Prevalenza annuale continua $\rightarrow$ **Emporio**;
+  - *Stefano*: Prevalenza su 8 mesi annui $\rightarrow$ **Serra Fredda**;
+  - *Cinzia*: Presidio storico $\rightarrow$ **Serra Calda**;
+  - *Elina*: Presidio storico $\rightarrow$ **Serra Fredda**;
+  - *Denis (Gazzada)*: Presidio storico continuo $\rightarrow$ **Serra Calda**;
+  - *Luigi* e *Ivan (nuovi collaboratori Varese)*: Assegnati al reparto **Natale** (loro competenza di riferimento).
+
+### 2. Punti da chiarire con Vittore: Incongruenza "DECOR/ARREDO" a Gazzada
+Analizzando i tre fogli del file Excel fornito da Vittore emergono le seguenti asimmetrie su Gazzada:
+1. Nel foglio **"Reparti"**, il reparto `DECOR/ARREDO` a Gazzada ha **IMPORTANZA = 0**.
+2. Nel foglio **"Competenze Personale"**, la tabella di Gazzada **non include alcuna colonna Decor** (sono presenti solo *Cassa, Fioreria, Emporio, Serra Calda, Serra Fredda*). Nessun collaboratore di Gazzada ha quindi punteggi su Decor. Al contempo compare stabilmente `EMPORIO` con presidio di Ivano (10), Denis (9) e Daniela (5).
+3. Tuttavia, nel foglio **"Necessità Personale"**, la riga `DECOR/ARREDO` di Gazzada riporta **1 persona al giorno da Domenica a Sabato**.
+   - Con 9 collaboratori a Gazzada (che lavorano 5 giorni su 7 per 40h), l'organico totale genera $9 \times 5 = 45$ turni settimanali (~6 presenti al giorno).
+   - Richiedere 6 presidi fissi (Cassa, Fioreria, Decor, Emporio, Serra Calda, Serra Fredda) tutti i giorni vincolerebbe $6 \times 7 = 42$ turni su 45, azzerando la flessibilità per i carichi merci del venerdì/sabato e forzando a rotazione dipendenti con competenza zero sul Decor.
+   - **Impostazione attuale nell'algoritmo**: Abbiamo impostato per Gazzada la necessità di Decor a **0**, garantendo la copertura dei 5 reparti reali di Gazzada (*Cassa, Fioreria, Emporio/Area Tecnica, Serra Calda, Serra Fredda*) e destinando i collaboratori disponibili al supporto vivaio e seconda cassa.
+   - 👉 **Domanda per Vittore**: Il reparto Decor a Gazzada deve essere effettivamente presidiato da 1 persona dedicata ogni giorno (e in tal caso, quale collaboratore deve esserne il referente), oppure si tratta di un refuso di copia/incolla nel foglio *Necessità* e la necessità reale per Gazzada è 0 come indicato nel foglio *Reparti*?
+
+### 3. Riposi Settimanali Disaccoppiati
+- Recependo il feedback di Vittore ("*preferisco i giorni disaccoppiati, con 2 gg contigui al mese*"), l'algoritmo settimanale include una penalità sui riposi contigui: distribuisce i 2 giorni di riposo settimanale garantendo che **non siano consecutivi** (es. Martedì e Venerdì anziché Lunedì e Martedì consecutivi), massimizzando la continuità operativa del negozio.
+
+---
+
 ## 📝 Registro Decisioni di Vittore Nicora
 
 *(Questa sezione verrà aggiornata man mano che Vittore esprimerà le sue preferenze durante i test della demo)*
@@ -115,6 +149,8 @@ Dato che a Gazzada ci sono 10 persone (~7-8 presenti al giorno) e a Varese 14 (~
 - [ ] **Hosting a regime**: Scelta tra piano gratuito con riattivazione o piano low-cost sempre attivo (~5€/mese)
 - [ ] **Sottodominio**: Richiesta all'agenzia web del puntamento `turni.nicoragarden.it`
 - [ ] **Mobilità Sedi**: Definizione se i dipendenti sono ancorati a una sola sede o possono ruotare tra Gazzada e Varese
-- [ ] **Validazione competenze**: Conferma dei punteggi e reparti per i dipendenti di Gazzada e Varese
-- [ ] **Priorità Reparti & Risorse Extra**: Definizione dell'ordine con cui assegnare i collaboratori eccedenti ai reparti e condizioni per la seconda cassa
-- [ ] **Ferie e Monte Ore Contrattuale**: Conferma inclusione di ferie e permessi approvati nel computo del monte ore settimanale e mensile
+- [x] **Validazione competenze**: Caricata la matrice ufficiale da "Specifiche dipendenti turni.xlsx" (07/10/2026) con regola Abilità Più Alta = Reparto Primario
+- [ ] **Chiarimento Decor Gazzada**: Conferma se Decor a Gazzada ha necessità 0 o 1
+- [x] **Riposi disaccoppiati**: Implementata distribuzione riposi non consecutivi su 5 giorni lavorativi
+- [x] **Nuovi inserimenti Varese**: Integrati Luigi e Ivan a 40h dedicati al reparto Natale
+- [x] **Ridenominazioni**: Allineato Teo $\rightarrow$ Matteo F. (Gazzada) e Matteo $\rightarrow$ Matteo Z. (Varese)

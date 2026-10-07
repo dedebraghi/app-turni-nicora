@@ -1,0 +1,39 @@
+18/09/26, 21:08 - I messaggi e le chiamate sono crittografati end-to-end. Solo le persone in questa chat possono leggerne, ascoltarne o condividerne il contenuto. *Per saperne di più*
+18/09/26, 21:08 - Davide Braghiroli: davide.braghiroli12@gmail.com
+20/09/26, 16:39 - Davide Braghiroli: Ciao Vittore! Come va il weekend? Scusa se ti rompo di domenica ma essendo che settimana prossima andiamo in kenya e non so quanto riuscirò ad avere internet da là sto cercando di sbrigare più lavoro possibile.
+Comunque ti volevo aggiornare al volo sull'app dei turni: 
+Per farti vedere e provare la demo direttamente con i vostri dati veri (senza usare nomi inventati), quando hai 5 minuti mi manderesti un paio di cose?
+- Il foglio turni attuale: mi basta anche solo una foto al volo qui su WhatsApp dei turni di questa settimana per Gazzada e Varese.
+- Reparti: una panoramica rapida dei reparti e il livello di priorità (tipo mi dicevi che la cassa non può essere scoperta, se ci sono altri reparti più importanti se riesci mandameli con un ordine di importanza, invece se a parte cassa sono tutti equivalenti non serve)
+- Info sulle sedi: i ragazzi sono fissi al 100% sulla loro sede o vi capita che qualcuno ruoti tra Gazzada e Varese?
+Nessuna fretta, quando riesci mandami tutto e ti carico tutto dentro pronto da testare!
+
+Buona domenica!
+21/09/26, 18:35 - Vittore Nicora: Questo messaggio è stato eliminato.
+21/09/26, 18:35 - Vittore Nicora: ‎Turni_GZ_26.pdf (file allegato)
+Turni_GZ_26
+21/09/26, 19:11 - Vittore Nicora: ‎Turni_VA_2026.pdf (file allegato)
+Turni_VA_2026
+05/10/26, 17:40 - Davide Braghiroli: Ciao Vittore,
+l'applicazione per la gestione dei turni è pronta per essere provata in demo:
+https://app-turni-nicora.vercel.app/
+
+Puoi aprirla sia da computer che direttamente dal telefono. Sullo smartphone, se fai "Aggiungi alla schermata Home" (o segui le istruzioni del tasto "installa app") dal browser, ti compare l'icona e si comporta come un'app normale.
+
+I PIN predefiniti per tutti i collaboratori al momento sono impostati a 1234 mentre la direzione ha come password "Admin" per facilitare le prove (comunque è tutto scritto in bella vista). All'interno dell'app, cliccando in alto a destra sul profilo, trovi anche il pulsante per scaricare il manuale completo (per ora il pulsante per scaricare il manuale funziona solo da pc, o meglio, su smartphone tende a non funzionare ma lo sistemo appena arrivo a Milano, stiamo partendo ora).
+
+Se mi lasci il tuo indirizzo mail ti invio poi:
+- Il documento con le Note e Scelte di Gestione che abbiamo concordato (regole turni, privacy ferie e la chiave di recupero PIN) così possiamo discutere eventualmente di modificare, aggiungere o togliere funzioni.
+- Il Consuntivo Ore con il riepilogo delle attività di sviluppo.
+
+Un saluto a tutti dal Kenya! Ci sentiamo presto!
+
+PS: ovviamente potrebbero esserci bug e malfunzionamenti quindi nel caso ne noti non farti problemi a farmelo sapere.
+05/10/26, 18:12 - Vittore Nicora: Grande Davide!
+05/10/26, 18:13 - Vittore Nicora: la mia mail privata è vittore@nicora.eu
+05/10/26, 18:14 - Vittore Nicora: Svevo preparato qualche tabella per te, ora te le giro per l'import.
+05/10/26, 18:14 - Vittore Nicora: Nei prossimi giorni possiamo sentirci condovodento lo schermo per alcune domande
+05/10/26, 18:15 - Vittore Nicora: es. non vedo il banner 'criticità’
+05/10/26, 18:15 - Vittore Nicora: Inoltre vedo che ora il sw genera 2 gg di riposo continuativi, preferisco i giorni disaccoppiati, con 2 gg contigui al mese
+05/10/26, 18:16 - Vittore Nicora: Ti giro le tabelle poi ci sentiremo.
+05/10/26, 18:16 - Vittore Nicora: Buon viaggio!

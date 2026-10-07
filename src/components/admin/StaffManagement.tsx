@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Department, Employee, LocationId, SkillScores } from '../../domain/types';
-import { ALL_DEPARTMENTS, DEPARTMENTS, DEPARTMENT_COLORS, getLocationDepartments } from '../../domain/rules';
+import { ALL_DEPARTMENTS, DEPARTMENTS, DEPARTMENT_COLORS, computePrimaryRole, getLocationDepartments } from '../../domain/rules';
 import { Archive, Award, Check, Edit3, KeyRound, Mail, Phone, Plus, RefreshCw, Search, ShieldCheck, UserCheck, UserPlus, Users, UserX, X } from 'lucide-react';
 
 interface StaffManagementProps {
@@ -98,11 +98,13 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
       .slice(0, 2)
       .toUpperCase();
 
+    const computedRole = computePrimaryRole(formData.skills, activeLocation, formData.id, formData.name);
+
     const employeeToSave: Employee = {
       id: formData.id,
       name: formData.name.trim(),
       locationId: activeLocation,
-      role: formData.role,
+      role: computedRole,
       skills: formData.skills,
       avatar,
       email: formData.email.trim() || `${formData.name.toLowerCase().replace(/\s+/g, '.')}@nicoragarden.it`,
@@ -398,17 +400,9 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
                   <label className="block font-bold text-neutral-800 mb-1">
                     Reparto Primario:
                   </label>
-                  <select
-                    value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value as Department })}
-                    className="w-full bg-neutral-50 border border-nicora-border rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-nicora-teal min-h-[44px]"
-                  >
-                    {getLocationDepartments(activeLocation, true).map((d) => (
-                      <option key={d} value={d}>
-                        {d}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="w-full bg-neutral-100 border border-nicora-border rounded-xl px-3 py-2 text-xs font-black text-nicora-teal flex items-center min-h-[44px]">
+                    {computePrimaryRole(formData.skills, activeLocation, formData.id, formData.name)}
+                  </div>
                 </div>
 
                 <div>
@@ -491,12 +485,15 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
                           min={1}
                           max={10}
                           value={score}
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            const newSkills = { ...formData.skills, [dept]: Number(e.target.value) };
+                            const autoRole = computePrimaryRole(newSkills, activeLocation, formData.id, formData.name);
                             setFormData({
                               ...formData,
-                              skills: { ...formData.skills, [dept]: Number(e.target.value) },
-                            })
-                          }
+                              skills: newSkills,
+                              role: autoRole,
+                            });
+                          }}
                           className="flex-1 accent-nicora-teal"
                         />
                         <span className="font-black text-xs text-nicora-teal w-6 text-right">

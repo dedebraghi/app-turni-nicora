@@ -221,46 +221,43 @@ html_decisioni = """<!DOCTYPE html>
     </div>
   </div>
 
-  <div class="intro-banner">
-    Questo promemoria riassume in modo semplice e non tecnico le scelte di gestione e architettura dell'applicazione per i negozi di Gazzada Schianno e Varese, così puoi decidere serenamente sulle opzioni disponibili sapendo esattamente pro, contro e costi previsti.
-  </div>
-
   <!-- Questione 1: Database Cloud -->
   <div class="question-card">
-    <div class="question-title">1. Dove salvare i dati dell'app (Database Cloud vs Sito Web)</div>
+    <div class="question-title">1. Dove salvare i dati dell'app (Database Cloud Supabase vs Sito Web)</div>
     <div class="question-desc">
-      L'applicazione deve memorizzare in sicurezza i turni, le richieste ferie e le anagrafiche dei 24 collaboratori. Dobbiamo stabilire se appoggiarci a una struttura indipendente o al database del sito WordPress attuale del garden.
+      L'applicazione memorizza turni, richieste ferie e anagrafiche dei 24 collaboratori.
+      Attualmente è collegata alla piattaforma cloud professionale <strong>Supabase</strong>, registrata a costo zero con un account provvisorio (<code>turni.nicora@gmail.com</code>) che ho creato per permetterti di testare l'app subito: possiamo sostituirlo o trasferirlo in qualsiasi momento a una tua email personale o aziendale.
     </div>
     <div class="question-prompt">
-      Scelta per Vittore: Manteniamo il database cloud dedicato o colleghiamo tutto al sito web esistente?
+      La tua decisione: Manteniamo il database cloud dedicato (gratuito o base) o preferisci collegare tutto al tuo sito web attuale?
     </div>
     <div class="options-grid">
       <div class="option-box recommended">
         <div class="option-header">
-          <span>Opzione A: Database Cloud Separato</span>
+          <span>Opzione A: Database Cloud Supabase</span>
           <span class="badge-rec">Consigliata</span>
         </div>
         <div class="option-detail">
-          L'app turni gira su un server cloud indipendente moderno. Se il sito web aziendale ha un rallentamento o viene aggiornato, i turni dei dipendenti continuano a funzionare all'istante senza intoppi.
+          I dati risiedono su un server cloud indipendente e cifrato. Se il sito web aziendale rallenta, viene aggiornato o ha problemi, l'app dei turni continua a funzionare all'istante senza alcun rischio per il sito vetrina.<br><br>
+          <strong>Come funziona il piano attuale a 0 €:</strong> Il database è gratuito. L'unico vincolo dei piani gratuiti è che se l'app non registra accessi per 7 giorni consecutivi, il database entra in pausa automatica (si riattiva con un clic). Durante l'uso lavorativo normale il problema non si pone mai. Se in futuro preferisci una continuità garantita al 100% 24/7 senza pause, puoi passare a un piano continuativo da ~5-10 €/mese.
         </div>
         <div class="option-meta">
-          <strong>Pro:</strong> Massima velocità e zero rischi per il sito web.<br>
-          <strong>Contro:</strong> Due ambienti separati.<br>
-          <span class="cost-tag">Costi:</span> Gratuito in prova; poi forfettario di ~100-150 €/anno a regime.
+          <strong>Pro:</strong> Massima velocità, sicurezza dati collaboratori separata dal sito.<br>
+          <span class="cost-tag">Costi:</span> 0 € (piano gratuito attuale) oppure ~5-10 €/mese se desideri la garanzia no-pause continua.
         </div>
       </div>
       <div class="option-box">
         <div class="option-header">
-          <span>Opzione B: Integrazione in WordPress</span>
-          <span class="badge-alt">Alternativa</span>
+          <span>Opzione B: Integrazione nel database WordPress</span>
+          <span class="badge-alt">Sconsigliata</span>
         </div>
         <div class="option-detail">
-          I dati dei turni vengono scritti nello stesso database del sito WordPress attuale di Nicora Garden.
+          Scrivere i turni nello stesso database del sito WordPress attuale del garden.
         </div>
         <div class="option-meta">
-          <strong>Pro:</strong> Tutto concentrato su un unico pannello.<br>
-          <strong>Contro:</strong> Rischio di appesantire il sito vetrina; se WordPress va giù si bloccano i turni; manutenzione più complessa.<br>
-          <span class="cost-tag">Costi:</span> Più ore di sviluppo e manutenzione periodica.
+          <strong>Pro:</strong> Nessun servizio cloud esterno.<br>
+          <strong>Contro:</strong> Rischio di appesantire il sito vetrina; se WordPress ha un errore o va giù si bloccano anche i turni; non ottimizzato per sincronizzazioni istantanee su smartphone; richiede molte ore di riscrittura.<br>
+          <span class="cost-tag">Costi:</span> Spese di sviluppo e manutenzione periodica.
         </div>
       </div>
     </div>
@@ -270,15 +267,24 @@ html_decisioni = """<!DOCTYPE html>
   <div class="question-card">
     <div class="question-title">2. Indirizzo di accesso per il personale (turni.nicoragarden.it)</div>
     <div class="question-desc">
-      Per far accedere facilmente i collaboratori da smartphone e computer, possiamo attivare un indirizzo ufficiale semplice da ricordare come <code>turni.nicoragarden.it</code>.
+      Per far accedere comodamente i collaboratori senza fargli digitare indirizzi provvisori complessi, possiamo attivare un indirizzo ufficiale semplice da ricordare: <code>turni.nicoragarden.it</code>.
+      Un <strong>sottodominio</strong> è un indirizzo interno al vostro dominio esistente che <strong>non costa nulla in più (0 €)</strong>.
     </div>
     <div class="question-prompt">
-      Cosa serve da parte tua: Autorizzare una semplice richiesta email alla vostra agenzia web.
+      Cosa serve da parte tua: Inoltrare questa breve richiesta all'agenzia che ti gestisce il sito web
     </div>
-    <div class="single-box">
-      Basta inviare all'agenzia che gestisce il dominio <code>nicoragarden.it</code> il testo pronto che ti abbiamo predisposto. L'agenzia aggiungerà in due minuti un puntamento gratuito (record CNAME) e l'app sarà raggiungibile con lucchetto di sicurezza HTTPS.<br>
-      <strong>Pro:</strong> Immagine aziendale professionale e massima facilità per i dipendenti.<br>
-      <strong>Costo:</strong> 0 € (già incluso nell'infrastruttura).
+    <div class="single-box" style="background: #f8fafc; border-left: 3px solid #0a474b; padding: 10px 12px; margin-top: 6px;">
+      <div style="font-weight: 700; color: #0a474b; margin-bottom: 4px; font-size: 8.5pt;">✉️ Testo pronto da copiare e girare via email all'agenzia web:</div>
+      <div style="font-family: monospace; font-size: 8pt; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; padding: 8px; line-height: 1.4; color: #1e293b;">
+        <strong>Oggetto:</strong> Configurazione sottodominio turni.nicoragarden.it<br><br>
+        "Buongiorno,<br>
+        per la nuova applicazione interna dei turni del personale avremmo bisogno di creare il sottodominio <strong>turni.nicoragarden.it</strong> impostando un puntamento DNS di tipo <strong>CNAME</strong> verso l'applicazione.<br>
+        Potete confermarmi quando il record è attivo o indicarmi a chi far riferire Davide per i parametri di destinazione?<br>
+        Grazie mille, Vittore Nicora"
+      </div>
+      <div style="font-size: 8pt; color: #64748b; margin-top: 6px;">
+        <em>L'agenzia web impiega 2 minuti ad applicare la modifica nel pannello del dominio. Nessun costo aggiuntivo per l'azienda.</em>
+      </div>
     </div>
   </div>
 
@@ -286,34 +292,31 @@ html_decisioni = """<!DOCTYPE html>
   <div class="question-card">
     <div class="question-title">3. Gestione PIN collaboratori, privacy e recupero codici</div>
     <div class="question-desc">
-      Ogni dipendente ha un PIN personale a 4 cifre per accedere ai propri turni. Per tutelare la privacy e la conformità di legge, il datore di lavoro non può vedere in chiaro i codici scelti dai collaboratori.
-    </div>
-    <div class="question-prompt">
-      Soluzione implementata per evitare blocchi:
+      Ogni dipendente ha un PIN personale a 4 cifre per accedere ai propri turni. Per tutelare la privacy e la conformità di legge, non puoi vedere in chiaro i codici scelti dai collaboratori. Entrambe le procedure di sblocco rapido sono già configurate e pronte all'uso.
     </div>
     <div class="options-grid">
-      <div class="option-box recommended">
+      <div class="option-box" style="background: #f0fdf9; border-color: #99f6e4;">
         <div class="option-header">
           <span>Se un collaboratore dimentica il PIN</span>
-          <span class="badge-rec">Attivo</span>
+          <span class="badge-rec">Già Attivo</span>
         </div>
         <div class="option-detail">
-          Il collaboratore tocca <em>"PIN dimenticato?"</em> al login (ha anche il tasto per avvisarti su WhatsApp). Tu entri nella sezione <strong>Personale</strong> e premi <strong>"Reset PIN"</strong>. Con un solo clic il codice torna al valore provvisorio <strong>1234</strong>, così il dipendente rientra subito e ne imposta uno nuovo.
+          Il collaboratore tocca <em>"PIN dimenticato?"</em> al login (ha anche il tasto rapido per avvisarti direttamente su WhatsApp). Tu entri nella sezione <strong>Personale</strong> e premi <strong>"Reset PIN"</strong>. Con un solo clic il codice torna al valore provvisorio <strong>1234</strong>, così il dipendente rientra subito e ne imposta uno nuovo.
         </div>
         <div class="option-meta">
-          <strong>Costo:</strong> 0 € &bull; <strong>Tempo di sblocco:</strong> 10 secondi.
+          <strong>Costo:</strong> 0 € &bull; <strong>Tempo di sblocco:</strong> 10 secondi &bull; Autonomia totale.
         </div>
       </div>
-      <div class="option-box">
+      <div class="option-box" style="background: #f0fdf9; border-color: #99f6e4;">
         <div class="option-header">
-          <span>Se la Direzione dimentica la password</span>
-          <span class="badge-rec">Attivo</span>
+          <span>Se dimentichi la password Direzione</span>
+          <span class="badge-rec">Già Attivo</span>
         </div>
         <div class="option-detail">
-          La password iniziale di fabbrica è <code>admin</code>. Se viene cambiata e dimenticata, è attiva una chiave d'emergenza segreta di riserva: <code>NicoraMaster2026!</code> che ti garantisce sempre l'accesso, oltre al reset rapido dal database cloud.
+          La tua password iniziale di fabbrica è <code>admin</code>. Se la cambi e la dimentichi, è attiva una chiave d'emergenza segreta di riserva: <code>NicoraMaster2026!</code> che ti garantisce sempre l'accesso immediato, oltre alla possibilità di reset dal database.
         </div>
         <div class="option-meta">
-          <strong>Costo:</strong> 0 € &bull; Massima sicurezza per la proprietà.
+          <strong>Costo:</strong> 0 € &bull; Massima sicurezza e zero rischio di blocco.
         </div>
       </div>
     </div>
@@ -326,7 +329,7 @@ html_decisioni = """<!DOCTYPE html>
       A Gazzada l'organico tipo è di circa 10 collaboratori (~7-8 presenti al giorno), mentre a Varese è di circa 14-16 collaboratori (~10-11 presenti al giorno). L'algoritmo garantisce sempre la copertura dei 5 reparti minimi (Cassa, Fioreria, Serra Calda, Serra Fredda, Decor).
     </div>
     <div class="question-prompt">
-      Scelta per Vittore: Come gestiamo gli spostamenti tra i due negozi?
+      La tua decisione: Come preferisci gestire gli spostamenti tra i due negozi?
     </div>
     <div class="options-grid">
       <div class="option-box">
@@ -339,7 +342,7 @@ html_decisioni = """<!DOCTYPE html>
         </div>
         <div class="option-meta">
           <strong>Pro:</strong> Massima prevedibilità per lo staff.<br>
-          <strong>Contro:</strong> Se c'è un'ondata di influenze o ferie in una sede, non è possibile attingere dall'altra.
+          <strong>Contro:</strong> Se hai un'ondata di assenze o ferie in una sede, non puoi attingere dall'altra.
         </div>
       </div>
       <div class="option-box recommended">
@@ -351,8 +354,8 @@ html_decisioni = """<!DOCTYPE html>
           Ogni dipendente ha la sua sede di riferimento abituale, ma puoi contrassegnare 1 o 2 persone flessibili per sede che l'app può pianificare in trasferta se l'altro negozio è in emergenza.
         </div>
         <div class="option-meta">
-          <strong>Pro:</strong> Massima resilienza aziendale.<br>
-          <strong>Funzione già pronta:</strong> Spunta <em>"Collaboratore Mobile"</em> nella scheda del dipendente.
+          <strong>Pro:</strong> Massima flessibilità per te.<br>
+          <strong>Funzione già pronta:</strong> Ti basta spuntare <em>"Collaboratore Mobile"</em> nella scheda del dipendente.
         </div>
       </div>
     </div>
@@ -365,14 +368,20 @@ html_decisioni = """<!DOCTYPE html>
       Una volta presidiati i 5 reparti essenziali (1 cassa, 1 fioreria, 1 decor, 1 serra calda, 1 serra fredda), ogni giorno avanzano tra 2 e 5 persone che devono svolgere il proprio turno e le ore da contratto.
     </div>
     <div class="question-prompt">
-      Scelta per Vittore: Qual è la tua priorità per l'assegnazione delle risorse eccedenti?
+      La tua decisione: Ti ritrovi in queste priorità o preferisci variare l'ordine dei rinforzi?
     </div>
-    <div class="single-box">
-      <strong>Regola proposta dall'algoritmo in base allo storico:</strong><br>
-      &bull; <strong>1° risorsa extra:</strong> Seconda Cassa (fissa sabato, domenica e nei giorni di arrivo merci); negli altri giorni raddoppio scarico in serra.<br>
-      &bull; <strong>2° risorsa extra:</strong> Supporto confezioni in Fioreria o raddoppio Serra Calda.<br>
-      &bull; <strong>3° risorsa extra:</strong> Allestimento Decor o supporto generale in corsia per assistenza clienti.<br>
-      <em>Possiamo personalizzare questo ordine per punto vendita in base a cosa ritieni più urgente nei diversi periodi dell'anno.</em>
+    <div class="single-box" style="line-height: 1.5;">
+      <strong>Regola attualmente implementata nell'algoritmo (differenziata per sede in base al tuo storico):</strong><br><br>
+      <strong>A Gazzada (organico ~10 addetti):</strong><br>
+      &bull; <em>1° risorsa extra (Ven/Sab/Merci):</em> Rinforzo <strong>Serra Fredda</strong> (scarico merci e piante da esterno).<br>
+      &bull; <em>2° risorsa extra (Sabato):</em> <strong>Seconda Cassa</strong> per il picco di cassa del fine settimana.<br>
+      &bull; <em>Altre risorse:</em> Rinforzo automatico sul reparto di <strong>massima competenza</strong> del singolo collaboratore.<br><br>
+      <strong>A Varese (organico ~14 addetti):</strong><br>
+      &bull; <em>1° risorsa extra:</em> Rinforzo continuo al banco <strong>Fioreria</strong> (confezioni e bouquet).<br>
+      &bull; <em>2° risorsa extra (Sabato):</em> <strong>Seconda Cassa</strong> per smaltire l'afflusso del sabato.<br>
+      &bull; <em>3° risorsa extra:</em> Assistenza clienti e corsie in <strong>Serra Fredda</strong>.<br>
+      &bull; <em>Altre risorse:</em> Rinforzo automatico sul reparto di <strong>massima competenza</strong>.<br><br>
+      <span style="color: #64748b; font-size: 8pt;"><em>Possiamo modificare o calibrare questo ordine in qualsiasi momento (es. seconda cassa anche alla domenica o orari stagionali particolari).</em></span>
     </div>
   </div>
 

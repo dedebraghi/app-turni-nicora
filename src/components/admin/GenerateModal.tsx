@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Employee, LocationId, ScheduleMode, Shift, ShiftRequest } from '../../domain/types';
-import { formatLocalDate, generateMonthlySchedule } from '../../engine/schedulerEngine';
+import { formatItalianDate, formatLocalDate, generateMonthlySchedule } from '../../engine/schedulerEngine';
 import { recordDraftGenerated } from '../../services/storageService';
 import {
   AlertTriangle,
+  ArrowRight,
   Calendar,
   RefreshCw,
   Trash2,
@@ -11,6 +12,7 @@ import {
   Clock,
   ShieldCheck,
   Sparkles,
+  UserSearch,
   X,
   Zap,
 } from 'lucide-react';
@@ -23,6 +25,7 @@ interface GenerateModalProps {
   requests: ShiftRequest[];
   existingShifts?: Shift[];
   onApplyShifts: (newShifts: Shift[]) => void;
+  onJumpToDate?: (dateStr: string) => void;
 }
 
 const MONTH_NAMES = [
@@ -48,6 +51,7 @@ export const GenerateModal: React.FC<GenerateModalProps> = ({
   requests,
   existingShifts = [],
   onApplyShifts,
+  onJumpToDate,
 }) => {
   const now = new Date();
   const currentMonthNum = now.getMonth() + 1; // 1 - 12
@@ -396,10 +400,31 @@ export const GenerateModal: React.FC<GenerateModalProps> = ({
                   {resultStats.allDepartmentsCovered ? (
                     <strong className="text-emerald-800">✅ 100% Tutti i reparti presidiati per l'intero mese.</strong>
                   ) : (
-                    <span className="text-rose-800 font-bold flex items-center gap-1 mt-0.5">
-                      <AlertTriangle size={14} className="text-rose-600 flex-shrink-0" />
-                      <span>Rilevati {resultStats.uncoveredDays.length} giorni con presidi incompleti (il banner 'Criticità' ti guiderà nella ricerca sostituti).</span>
-                    </span>
+                    <div className="mt-2 p-3 bg-rose-100/80 border border-rose-300/80 rounded-2xl space-y-2">
+                      <div className="flex items-start gap-2 text-rose-950 font-bold">
+                        <AlertTriangle size={15} className="text-rose-600 shrink-0 mt-0.5" />
+                        <div>
+                          <span>Rilevati {resultStats.uncoveredDays.length} giorni con presidi incompleti</span>
+                          <span className="block text-[10px] text-rose-800 font-normal mt-0.5">
+                            Date: {resultStats.uncoveredDays.map((d: string) => formatItalianDate(d)).join(', ')}
+                          </span>
+                        </div>
+                      </div>
+                      {onJumpToDate && resultStats.uncoveredDays.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onClose();
+                            onJumpToDate(resultStats.uncoveredDays[0]);
+                          }}
+                          className="w-full bg-nicora-orange hover:bg-nicora-orange-hover text-white text-xs font-bold py-2 px-3 rounded-xl shadow-xs flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer"
+                        >
+                          <UserSearch size={14} />
+                          <span>Risolvi Prima Criticità ({formatItalianDate(resultStats.uncoveredDays[0])})</span>
+                          <ArrowRight size={14} />
+                        </button>
+                      )}
+                    </div>
                   )}
                 </p>
               </div>

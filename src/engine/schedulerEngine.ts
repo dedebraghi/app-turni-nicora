@@ -1,4 +1,11 @@
-import { CONTINUATO_SLOTS, DEPARTMENTS, getLocationDepartments, STANDARD_HOURS } from '../domain/rules';
+import {
+  CONTINUATO_SLOTS,
+  DAILY_DEPARTMENT_REQUIREMENTS,
+  DEPARTMENT_IMPORTANCE,
+  DEPARTMENTS,
+  getLocationDepartments,
+  STANDARD_HOURS,
+} from '../domain/rules';
 import {
   DayCoverageSummary,
   Department,
@@ -585,6 +592,112 @@ export const calculateWeekHourlyCoverage = (
   };
 };
 
+export interface MonthWeekCoverage {
+  weekIndex: number;
+  sundayStr: string;
+  weekDays: WeekDayMeta[];
+  weekGaps: DepartmentGap[];
+}
+
+export interface MonthCoverageAnalysis {
+  year: number;
+  month: number;
+  totalGapsCount: number;
+  criticalGapsCount: number;
+  partialGapsCount: number;
+  allGaps: DepartmentGap[];
+  firstGapDateStr: string | null;
+  firstGapDepartment: Department | null;
+  firstGap: DepartmentGap | null;
+  weeks: MonthWeekCoverage[];
+  gapsByDate: Record<string, DepartmentGap[]>;
+}
+
+/**
+ * Analizza l'intero mese aggregando le settimane (da Domenica a Sabato)
+ * e calcolando tutte le scoperture e presidi incompleti della sede.
+ */
+export const calculateMonthHourlyCoverage = (
+  year: number,
+  month: number,
+  shifts: Shift[],
+  mode: ScheduleMode = 'standard',
+  locationId?: LocationId,
+  employees?: Employee[],
+  includePastDays: boolean = false,
+  isChristmasSeason: boolean = false,
+  ignoredGapIds: string[] = []
+): MonthCoverageAnalysis => {
+  const firstDayOfMonth = new Date(year, month - 1, 1);
+  const lastDayOfMonth = new Date(year, month, 0);
+  const firstSunday = getSundayOfWeek(firstDayOfMonth);
+  const lastDayStr = formatLocalDate(lastDayOfMonth);
+
+  const weeks: MonthWeekCoverage[] = [];
+  const allGaps: DepartmentGap[] = [];
+  const gapsByDate: Record<string, DepartmentGap[]> = {};
+
+  const currSunday = new Date(firstSunday);
+  let weekIndex = 0;
+
+  while (formatLocalDate(currSunday) <= lastDayStr) {
+    const sundayStr = formatLocalDate(currSunday);
+    const weekDays = getWeekDays(sundayStr);
+
+    const weekAnalysis = calculateWeekHourlyCoverage(
+      weekDays,
+      shifts,
+      mode,
+      locationId,
+      employees,
+      includePastDays,
+      isChristmasSeason
+    );
+
+    const activeWeekGaps = weekAnalysis.weekGaps.filter(
+      (g) => !ignoredGapIds.includes(g.id)
+    );
+
+    weeks.push({
+      weekIndex,
+      sundayStr,
+      weekDays,
+      weekGaps: activeWeekGaps,
+    });
+
+    activeWeekGaps.forEach((g) => {
+      allGaps.push(g);
+      if (!gapsByDate[g.dateStr]) {
+        gapsByDate[g.dateStr] = [];
+      }
+      gapsByDate[g.dateStr].push(g);
+    });
+
+    currSunday.setDate(currSunday.getDate() + 7);
+    weekIndex++;
+  }
+
+  allGaps.sort((a, b) => a.dateStr.localeCompare(b.dateStr));
+
+  const criticalGapsCount = allGaps.filter((g) => g.severity === 'critical').length;
+  const partialGapsCount = allGaps.filter((g) => g.severity === 'partial').length;
+  const firstGap = allGaps.length > 0 ? allGaps[0] : null;
+
+  return {
+    year,
+    month,
+    totalGapsCount: allGaps.length,
+    criticalGapsCount,
+    partialGapsCount,
+    allGaps,
+    firstGapDateStr: firstGap ? firstGap.dateStr : null,
+    firstGapDepartment: firstGap ? firstGap.department : null,
+    firstGap,
+    weeks,
+    gapsByDate,
+  };
+};
+
 // ==========================================
 // PERSISTENZA PUNTUALE DEGLI AVVISI IGNORATI
 // ==========================================
@@ -599,18 +712,26 @@ export const getIgnoredGapIds = (): string[] => {
   }
 };
 
+export const saveIgnoredGapIds = (updated: string[]): void => {
+  try {
+    localStorage.setItem(IGNORED_GAPS_STORAGE_KEY, JSON.stringify(updated));
+  } catch {
+    // ignore
+  }
+};
+
 export const ignoreGapId = (gapId: string): void => {
   const current = getIgnoredGapIds();
   if (!current.includes(gapId)) {
     const updated = [...current, gapId];
-    localStorage.setItem(IGNORED_GAPS_STORAGE_KEY, JSON.stringify(updated));
+    saveIgnoredGapIds(updated);
   }
 };
 
 export const unignoreGapId = (gapId: string): void => {
   const current = getIgnoredGapIds();
   const updated = current.filter((id) => id !== gapId);
-  localStorage.setItem(IGNORED_GAPS_STORAGE_KEY, JSON.stringify(updated));
+  saveIgnoredGapIds(updated);
 };
 
 export const clearLegacyIgnoredAlerts = (): void => {
@@ -921,16 +1042,18 @@ function assignDepartmentsOptimal(
     }
 
     const targetDept = deptsToCover[deptIdx];
+    const candidates = availableStaff
+      .filter((e) => !usedEmpIds.has(e.id))
+      .map((emp) => ({ emp, w: getWeight(emp, targetDept) }))
+      .sort((a, b) => b.w - a.w)
+      .slice(0, 4);
 
-    for (const emp of availableStaff) {
-      if (!usedEmpIds.has(emp.id)) {
-        usedEmpIds.add(emp.id);
-        const w = getWeight(emp, targetDept);
-        currentMapping.push({ emp, dept: targetDept });
-        search(deptIdx + 1, usedEmpIds, currentScore + w, currentMapping);
-        currentMapping.pop();
-        usedEmpIds.delete(emp.id);
-      }
+    for (const { emp, w } of candidates) {
+      usedEmpIds.add(emp.id);
+      currentMapping.push({ emp, dept: targetDept });
+      search(deptIdx + 1, usedEmpIds, currentScore + w, currentMapping);
+      currentMapping.pop();
+      usedEmpIds.delete(emp.id);
     }
   }
 
@@ -1079,7 +1202,20 @@ export const generateWeeklySchedule = ({
         // Non assegnare un riposo se è già nei riposi, se ha lavorato o se è un giorno passato (si pianificano da oggi in avanti)
         if (!offDays.has(d) && !pastWorkDayIndices.has(d) && !isPastDay) {
           const weekendPenalty = (d === 0 || d === 6) ? 0.4 : 0;
-          const score = offCountsPerDay[d] + weekendPenalty;
+
+          // Regola Vittore Nicora: preferenza per giorni di riposo disaccoppiati (non contigui nella settimana)
+          let contiguityPenalty = 0;
+          for (const existingOff of offDays) {
+            const isContiguous =
+              Math.abs(d - existingOff) === 1 ||
+              (d === 0 && existingOff === 6) ||
+              (d === 6 && existingOff === 0);
+            if (isContiguous) {
+              contiguityPenalty += 3.0; // Penalizza riposi contigui per favorire riposi disaccoppiati
+            }
+          }
+
+          const score = offCountsPerDay[d] + weekendPenalty + contiguityPenalty;
           if (score < minScore) {
             minScore = score;
             bestDay = d;
@@ -1312,9 +1448,39 @@ export const generateWeeklySchedule = ({
         }
       }
 
-      // Regole Varese:
+      // Regole Varese (tarate sulle Necessità Personale di Vittore Nicora):
       if (locationId === 'varese') {
-        // 1° Eccedenza feriale/sabato: Fioreria (Varese ha stabilmente 2-3 addetti fioreria)
+        const cassaTarget = DAILY_DEPARTMENT_REQUIREMENTS.varese.Cassa(dayIndex);
+        const currentCassaCount = dayAssignments.filter((a) => a.dept === 'Cassa').length;
+        if (currentCassaCount < cassaTarget && (emp.skills?.['Cassa'] ?? 0) >= 4) {
+          const score = emp.skills?.['Cassa'] ?? 1;
+          dayAssignments.push({
+            emp,
+            dept: 'Cassa',
+            note: 'Cassa 2 (Rinforzo Weekend)',
+            assignedSkillScore: score,
+          });
+          assignedEmpIds.add(emp.id);
+          return;
+        }
+
+        if (isChristmasSeason && locDepts.includes('Natale')) {
+          const nataleTarget = DAILY_DEPARTMENT_REQUIREMENTS.varese.Natale(dayIndex, true);
+          const currentNataleCount = dayAssignments.filter((a) => a.dept === 'Natale').length;
+          if (currentNataleCount < nataleTarget && (emp.skills?.['Natale'] ?? 0) >= 4) {
+            const score = emp.skills?.['Natale'] ?? 1;
+            dayAssignments.push({
+              emp,
+              dept: 'Natale',
+              note: `Natale (Presidio Squadra ${currentNataleCount + 1}/${nataleTarget})`,
+              assignedSkillScore: score,
+            });
+            assignedEmpIds.add(emp.id);
+            return;
+          }
+        }
+
+        // Rinforzo Fioreria (Varese ha stabilmente 2 addetti fioreria di sabato o feriale)
         if (remIdx === 0 && (emp.skills?.['Fioreria'] ?? 0) >= 5 && locDepts.includes('Fioreria')) {
           const score = emp.skills?.['Fioreria'] ?? 1;
           dayAssignments.push({
@@ -1327,20 +1493,7 @@ export const generateWeeklySchedule = ({
           return;
         }
 
-        // 2° Eccedenza al Sabato: Cassa 2 (target storico 1.25)
-        if (dayIndex === 6 && remIdx === 1 && (emp.skills?.['Cassa'] ?? 0) >= 5) {
-          const score = emp.skills?.['Cassa'] ?? 1;
-          dayAssignments.push({
-            emp,
-            dept: 'Cassa',
-            note: 'Cassa 2 (Rinforzo Sabato)',
-            assignedSkillScore: score,
-          });
-          assignedEmpIds.add(emp.id);
-          return;
-        }
-
-        // 3° Eccedenza: Serra Fredda (target vivaio 2.5 - 2.8)
+        // Rinforzo Serra Fredda (target vivaio 2 - 3)
         if (remIdx <= 2 && locDepts.includes('Serra Fredda')) {
           const score = emp.skills?.['Serra Fredda'] ?? 1;
           dayAssignments.push({

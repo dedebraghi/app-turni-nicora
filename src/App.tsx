@@ -18,7 +18,14 @@ import { NotificationToast, ToastMessage } from './components/common/Notificatio
 
 import { ActiveTab, Department, Employee, LocationId, Shift, ShiftRequest, ShiftRequestStatus, ShiftType, SkillScores, UserSession } from './domain/types';
 import { LOCATIONS } from './domain/mockData';
-import { formatLocalDate, getSundayOfWeek, getWeekDays } from './engine/schedulerEngine';
+import { computePrimaryRole } from './domain/rules';
+import {
+  formatLocalDate,
+  getSundayOfWeek,
+  getWeekDays,
+  getIgnoredGapIds,
+  saveIgnoredGapIds,
+} from './engine/schedulerEngine';
 import {
   loadStoredEmployees,
   loadStoredLocation,
@@ -46,10 +53,12 @@ import {
   fetchCloudRequests,
   fetchCloudShifts,
   fetchCloudPublishedMonths,
+  fetchCloudIgnoredGaps,
   saveCloudEmployee,
   saveCloudRequest,
   deleteCloudShifts,
   saveCloudShifts,
+  saveCloudIgnoredGaps,
   publishCloudMonth,
   subscribeToRealtimeChanges,
   updateCloudRequestStatus,
@@ -84,6 +93,12 @@ export const App: React.FC = () => {
   const [isTutorialManualOpen, setIsTutorialManualOpen] = useState(false);
   const [emergencyTargetShift, setEmergencyTargetShift] = useState<Shift | null>(null);
 
+  // Navigazione diretta da modale criticità / generazione a tabellone
+  const [jumpToDateStr, setJumpToDateStr] = useState<string | null>(null);
+
+  // Stato scoperture ignorate con sincronizzazione locale e cloud
+  const [ignoredGapIds, setIgnoredGapIds] = useState<string[]>(getIgnoredGapIds);
+
   const todayStr = formatLocalDate(new Date());
 
   // Toast Notifica Realtime per il collaboratore
@@ -94,11 +109,12 @@ export const App: React.FC = () => {
     let isMounted = true;
     const initCloud = async () => {
       try {
-        const [cloudEmps, cloudShifts, cloudReqs, cloudPubMonths] = await Promise.all([
+        const [cloudEmps, cloudShifts, cloudReqs, cloudPubMonths, cloudIgnoredGaps] = await Promise.all([
           fetchCloudEmployees(),
           fetchCloudShifts(),
           fetchCloudRequests(),
           fetchCloudPublishedMonths(),
+          fetchCloudIgnoredGaps(),
         ]);
         if (isMounted) {
           if (cloudEmps && cloudEmps.length > 0) setEmployees(cloudEmps);
@@ -106,6 +122,11 @@ export const App: React.FC = () => {
           if (cloudReqs && cloudReqs.length > 0) setRequests(cloudReqs);
           // Sincronizza lo stato di pubblicazione dal cloud in modo autorevole
           syncPublishedMonthsFromCloud(cloudPubMonths);
+          if (cloudIgnoredGaps && cloudIgnoredGaps.length > 0) {
+            const merged = Array.from(new Set([...getIgnoredGapIds(), ...cloudIgnoredGaps]));
+            saveIgnoredGapIds(merged);
+            setIgnoredGapIds(merged);
+          }
         }
       } catch (err) {
         console.warn('[Cloud] Inizializzazione fallback:', err);
@@ -206,6 +227,10 @@ export const App: React.FC = () => {
         syncPublishedMonthsFromCloud(cloudPubMonths);
         // Forza il ricalcolo dei turni visibili e dei badge di pubblicazione in tempo reale
         setShifts((prev) => [...prev]);
+      },
+      onIgnoredGapsChange: (cloudIds) => {
+        saveIgnoredGapIds(cloudIds);
+        setIgnoredGapIds(cloudIds);
       },
     });
 
@@ -498,9 +523,29 @@ export const App: React.FC = () => {
     });
   };
 
+  const handleIgnoreGap = async (gapId: string) => {
+    const current = getIgnoredGapIds();
+    if (!current.includes(gapId)) {
+      const updated = [...current, gapId];
+      saveIgnoredGapIds(updated);
+      setIgnoredGapIds(updated);
+      try {
+        await saveCloudIgnoredGaps(updated);
+      } catch (err) {
+        console.warn('[Cloud] Errore salvataggio ignored gap:', err);
+      }
+    }
+  };
+
   const handleUpdateEmployeeSkills = (employeeId: string, newSkills: SkillScores) => {
     setEmployees((prev) =>
-      prev.map((emp) => (emp.id === employeeId ? { ...emp, skills: newSkills } : emp))
+      prev.map((emp) => {
+        if (emp.id === employeeId) {
+          const updatedRole = computePrimaryRole(newSkills, emp.locationId, emp.id, emp.name);
+          return { ...emp, skills: newSkills, role: updatedRole };
+        }
+        return emp;
+      })
     );
   };
 
@@ -578,17 +623,19 @@ export const App: React.FC = () => {
   };
 
   const handleSaveEmployee = async (emp: Employee) => {
+    const updatedRole = computePrimaryRole(emp.skills, emp.locationId, emp.id, emp.name);
+    const empToSave = { ...emp, role: updatedRole };
     setEmployees((prev) => {
-      const exists = prev.some((e) => e.id === emp.id);
-      const next = exists ? prev.map((e) => (e.id === emp.id ? emp : e)) : [emp, ...prev];
+      const exists = prev.some((e) => e.id === empToSave.id);
+      const next = exists ? prev.map((e) => (e.id === empToSave.id ? empToSave : e)) : [empToSave, ...prev];
       return next;
     });
-    setSession((prev) => (prev && prev.user.id === emp.id ? { ...prev, user: emp } : prev));
-    await saveCloudEmployee(emp);
+    setSession((prev) => (prev && prev.user.id === empToSave.id ? { ...prev, user: empToSave } : prev));
+    await saveCloudEmployee(empToSave);
     setToast({
       id: `toast-${Date.now()}`,
       title: 'Anagrafica Collaboratore Salvata',
-      message: `${emp.name} è stato aggiornato correttamente.`,
+      message: `${empToSave.name} è stato aggiornato correttamente (Reparto primario: ${empToSave.role}).`,
       type: 'info',
     });
   };
@@ -1054,6 +1101,10 @@ export const App: React.FC = () => {
             onPublishMonth={handlePublishMonth}
             onApproveRequest={(id) => handleUpdateRequestStatus(id, 'approved', 'Approvata 1-click dal responsabile')}
             onRejectRequest={(id) => handleUpdateRequestStatus(id, 'rejected', 'Non conciliabile con la copertura minima')}
+            jumpToDateStr={jumpToDateStr}
+            onClearJumpToDate={() => setJumpToDateStr(null)}
+            ignoredGapIds={ignoredGapIds}
+            onIgnoreGap={handleIgnoreGap}
           />
         )}
 
@@ -1089,9 +1140,13 @@ export const App: React.FC = () => {
             onDeleteEmployee={handleDeleteEmployee}
             onUpdateSkillsAndHours={(empId, newSkills, newHours) => {
               setEmployees((prev) =>
-                prev.map((emp) =>
-                  emp.id === empId ? { ...emp, skills: newSkills, contractHours: newHours } : emp
-                )
+                prev.map((emp) => {
+                  if (emp.id === empId) {
+                    const updatedRole = computePrimaryRole(newSkills, emp.locationId, emp.id, emp.name);
+                    return { ...emp, skills: newSkills, contractHours: newHours, role: updatedRole };
+                  }
+                  return emp;
+                })
               );
             }}
           />
@@ -1125,6 +1180,10 @@ export const App: React.FC = () => {
         requests={requests}
         existingShifts={shifts}
         onApplyShifts={handleApplyGeneratedShifts}
+        onJumpToDate={(dateStr) => {
+          setJumpToDateStr(dateStr);
+          setActiveTab('planner');
+        }}
       />
 
       {/* Modale Svuotamento Turni con Opzione Sicura e Danger Zone */}

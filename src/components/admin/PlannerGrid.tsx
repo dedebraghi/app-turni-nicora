@@ -1,30 +1,36 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Department, Employee, LocationId, LocationInfo, Shift, ShiftRequest } from '../../domain/types';
 import { getLocationDepartments } from '../../domain/rules';
 import { calculateFairnessMetrics } from '../../engine/fairnessTracker';
 import {
   calculateDayCoverage,
   calculateEmployeeWeeklyHours,
+  calculateMonthHourlyCoverage,
   calculateWeekHourlyCoverage,
   clearLegacyIgnoredAlerts,
+  DepartmentGap,
   formatItalianDate,
   formatLocalDate,
   getIgnoredGapIds,
   getSundayOfWeek,
   getWeekDays,
   ignoreGapId,
+  MonthCoverageAnalysis,
   WeekCoverageAnalysis,
 } from '../../engine/schedulerEngine';
 import { StaffSubstitutionWizard } from './StaffSubstitutionWizard';
 import { hasDraftGenerated, isMonthPublished } from '../../services/storageService';
 import {
   AlertTriangle,
+  ArrowRight,
   Award,
+  Calendar,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Clock,
   Coffee,
+  Info,
   MapPin,
   Monitor,
   Search,
@@ -62,6 +68,10 @@ interface PlannerGridProps {
   onChangeLocation?: (loc: LocationId) => void;
   onLogout?: () => void;
   onSaveEmployee?: (emp: Employee) => void;
+  jumpToDateStr?: string | null;
+  onClearJumpToDate?: () => void;
+  ignoredGapIds?: string[];
+  onIgnoreGap?: (gapId: string) => void;
 }
 
 export const PlannerGrid: React.FC<PlannerGridProps> = ({
@@ -85,6 +95,10 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
   onChangeLocation,
   onLogout,
   onSaveEmployee,
+  jumpToDateStr,
+  onClearJumpToDate,
+  ignoredGapIds: propIgnoredGapIds,
+  onIgnoreGap: propOnIgnoreGap,
 }) => {
   const [weekOffset, setWeekOffset] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState('');
@@ -98,20 +112,46 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
   const weekDays = getWeekDays(baseSundayStr);
 
   // Gestione stato "Ignora" puntuale per singola scopertura (sede + giorno + reparto + orario)
-  const [ignoredGapIds, setIgnoredGapIds] = useState<string[]>(() => {
+  const [localIgnoredGapIds, setLocalIgnoredGapIds] = useState<string[]>(() => {
     clearLegacyIgnoredAlerts();
     return getIgnoredGapIds();
   });
 
+  const effectiveIgnoredGapIds = propIgnoredGapIds ?? localIgnoredGapIds;
+
   const handleIgnoreGap = (gapId: string) => {
-    ignoreGapId(gapId);
-    setIgnoredGapIds(getIgnoredGapIds());
+    if (propOnIgnoreGap) {
+      propOnIgnoreGap(gapId);
+    } else {
+      ignoreGapId(gapId);
+      setLocalIgnoredGapIds(getIgnoredGapIds());
+    }
   };
 
   const [selectedMobileDateStr, setSelectedMobileDateStr] = useState<string>(() => {
     return formatLocalDate(new Date());
   });
   const [viewMode, setViewMode] = useState<'responsive' | 'mobile' | 'desktop'>('responsive');
+
+  // Funzione di salto rapido a una data specifica con sincronizzazione settimana e apertura wizard
+  const jumpToDate = (targetDateStr: string) => {
+    const [ty, tm, td] = targetDateStr.split('-').map(Number);
+    const targetDate = new Date(ty, tm - 1, td, 12, 0, 0);
+    const targetSunday = getSundayOfWeek(targetDate);
+    const baseTodaySunday = getSundayOfWeek(new Date());
+    const diffTime = targetSunday.getTime() - baseTodaySunday.getTime();
+    const diffWeeks = Math.round(diffTime / (7 * 24 * 60 * 60 * 1000));
+    setWeekOffset(diffWeeks);
+    setSelectedMobileDateStr(targetDateStr);
+    setIsWizardOpen(true);
+  };
+
+  useEffect(() => {
+    if (jumpToDateStr) {
+      jumpToDate(jumpToDateStr);
+      onClearJumpToDate?.();
+    }
+  }, [jumpToDateStr]);
 
   useEffect(() => {
     const exists = weekDays.some((d) => d.dateStr === selectedMobileDateStr);
@@ -233,6 +273,36 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
   const hasUnpublishedDraftInView = isViewMonthDraft && !isViewMonthPublished;
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
 
+  // Calcolo analisi mensile completa per avere la visibilità sull'intero mese a colpo d'occhio
+  const monthCoverage = useMemo(() => {
+    return calculateMonthHourlyCoverage(
+      viewYear,
+      viewMonth,
+      storeShifts,
+      'standard',
+      locId,
+      employees,
+      false,
+      false,
+      effectiveIgnoredGapIds
+    );
+  }, [viewYear, viewMonth, storeShifts, locId, employees, effectiveIgnoredGapIds]);
+
+  const monthName = useMemo(() => {
+    return new Date(viewYear, viewMonth - 1, 1).toLocaleDateString('it-IT', { month: 'long' });
+  }, [viewYear, viewMonth]);
+
+  // Controllo se la settimana precedente o successiva presenta scoperture
+  const nextSundayDate = new Date(baseSunday);
+  nextSundayDate.setDate(nextSundayDate.getDate() + 7);
+  const nextSundayStr = formatLocalDate(nextSundayDate);
+  const prevSundayDate = new Date(baseSunday);
+  prevSundayDate.setDate(prevSundayDate.getDate() - 7);
+  const prevSundayStr = formatLocalDate(prevSundayDate);
+
+  const prevWeekGapsCount = monthCoverage.weeks.find((w) => w.sundayStr === prevSundayStr)?.weekGaps.length || 0;
+  const nextWeekGapsCount = monthCoverage.weeks.find((w) => w.sundayStr === nextSundayStr)?.weekGaps.length || 0;
+
   const handlePublish = async () => {
     if (!onPublishMonth || isPublishing) return;
     setIsPublishing(true);
@@ -264,15 +334,15 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-neutral-100 text-neutral-600 font-semibold text-xs border border-neutral-200 shadow-2xs">
                 <span>Bozza non generata</span>
               </span>
-            ) : !isCassaWarningActive ? (
+            ) : monthCoverage.totalGapsCount === 0 ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 font-semibold text-xs border border-emerald-200 shadow-2xs">
                 <ShieldCheck size={14} className="text-emerald-600" />
-                <span>Presidio Cassa OK</span>
+                <span>Presidi e Cassa OK (Mese 100% Coperto)</span>
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 text-rose-800 font-bold text-xs border border-rose-200 shadow-2xs animate-pulse">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 text-rose-800 font-bold text-xs border border-rose-200 shadow-2xs">
                 <ShieldAlert size={14} className="text-rose-600" />
-                <span>Attenzione: Cassa Scoperta nella Settimana!</span>
+                <span>{monthCoverage.totalGapsCount} {monthCoverage.totalGapsCount === 1 ? 'Scopertura nel Mese' : 'Scoperture nel Mese'}</span>
               </span>
             )}
             <span className="hidden sm:inline-flex items-center gap-1 text-nicora-muted text-xs">
@@ -314,20 +384,26 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
             <div className="flex items-center gap-1 bg-nicora-sage-light p-1 rounded-full border border-nicora-sage-border">
               <button
                 onClick={() => setWeekOffset((p) => p - 1)}
-                className="p-1.5 rounded-full text-nicora-text hover:bg-white active:scale-90 transition-all shadow-xs"
-                title="Settimana precedente"
+                className="relative p-1.5 rounded-full text-nicora-text hover:bg-white active:scale-90 transition-all shadow-xs"
+                title={`Settimana precedente${prevWeekGapsCount > 0 ? ` (${prevWeekGapsCount} criticità rilevate)` : ''}`}
               >
                 <ChevronLeft size={16} />
+                {prevWeekGapsCount > 0 && (
+                  <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white animate-pulse" />
+                )}
               </button>
               <span className="font-serif font-semibold text-xs px-2.5 text-nicora-title whitespace-nowrap">
                 Dom {weekDays[0].dayNum} — Sab {weekDays[6].dayNum}
               </span>
               <button
                 onClick={() => setWeekOffset((p) => p + 1)}
-                className="p-1.5 rounded-full text-nicora-text hover:bg-white active:scale-90 transition-all shadow-xs"
-                title="Settimana successiva"
+                className="relative p-1.5 rounded-full text-nicora-text hover:bg-white active:scale-90 transition-all shadow-xs"
+                title={`Settimana successiva${nextWeekGapsCount > 0 ? ` (${nextWeekGapsCount} criticità rilevate)` : ''}`}
               >
                 <ChevronRight size={16} />
+                {nextWeekGapsCount > 0 && (
+                  <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white animate-pulse" />
+                )}
               </button>
             </div>
 
@@ -413,13 +489,48 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
             employees
           );
           const activeGaps = weekAnalysis.weekGaps.filter((g) => {
-            if (ignoredGapIds.includes(g.id)) return false;
+            if (effectiveIgnoredGapIds.includes(g.id)) return false;
             const parts = g.dateStr.split('-');
             const gYear = parseInt(parts[0], 10);
             const gMonth = parseInt(parts[1], 10);
             return hasDraftGenerated(activeLocation || location.id, gYear, gMonth);
           });
-          if (activeGaps.length === 0) return null;
+
+          // Se la settimana corrente è interamente coperta:
+          if (activeGaps.length === 0) {
+            // Ma il mese presenta scoperture in altre settimane:
+            if (monthCoverage.totalGapsCount > 0 && isViewMonthDraft) {
+              return (
+                <div className="border border-sky-200 bg-sky-50/70 text-sky-950 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in shadow-xs">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-sky-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <Info size={17} />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-xs sm:text-sm text-sky-900">
+                        Nessuna criticità in questa settimana
+                      </h4>
+                      <p className="text-[11px] text-sky-800 font-medium mt-0.5">
+                        Tutti i reparti sono presidiati in questi 7 giorni. Rilevati però <strong>{monthCoverage.totalGapsCount}</strong> presidi incompleti in altre settimane di {monthName} (prima scopertura: <span className="font-bold underline">{formatItalianDate(monthCoverage.firstGapDateStr)}</span> {monthCoverage.firstGapDepartment}).
+                      </p>
+                    </div>
+                  </div>
+                  {monthCoverage.firstGapDateStr && (
+                    <button
+                      type="button"
+                      onClick={() => jumpToDate(monthCoverage.firstGapDateStr!)}
+                      className="bg-nicora-teal-dark hover:bg-nicora-teal text-white font-semibold text-xs px-3.5 py-2 rounded-xl shadow-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all whitespace-nowrap self-start sm:self-auto cursor-pointer"
+                    >
+                      <Calendar size={14} />
+                      <span>Vai alla settimana scoperta</span>
+                      <ArrowRight size={14} />
+                    </button>
+                  )}
+                </div>
+              );
+            }
+            return null;
+          }
 
           const currentGap = activeGaps[0];
           const hasCritical = activeGaps.some((g) => g.severity === 'critical');
@@ -441,11 +552,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                   <AlertTriangle size={17} />
                 </div>
                 <div>
-                  <h4
-                    className={`font-bold text-xs sm:text-sm ${
-                      currentGap.severity === 'critical' ? 'text-[#ba1a1a]' : 'text-amber-800'
-                    }`}
-                  >
+                  <h4 className="font-bold text-xs sm:text-sm">
                     {currentGap.severity === 'critical'
                       ? 'Criticità Turno Rilevata: Reparto Privo di Presidio nella Settimana'
                       : 'Presidio Orario Incompleto: Rilevate Ore Scoperte nella Settimana'}
@@ -462,6 +569,11 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                     {activeGaps.length > 1 && (
                       <span className="text-neutral-500 font-normal ml-1">
                         (+ altre {activeGaps.length - 1} criticità nei giorni successivi)
+                      </span>
+                    )}
+                    {monthCoverage.totalGapsCount > activeGaps.length && (
+                      <span className="text-neutral-500 font-normal ml-1">
+                        • {monthCoverage.totalGapsCount - activeGaps.length} in altre settimane del mese
                       </span>
                     )}
                   </p>
@@ -571,6 +683,10 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
             onLogout={onLogout}
             onSaveEmployee={onSaveEmployee}
             allStoreEmployees={employees}
+            monthCoverage={monthCoverage}
+            onJumpToDate={jumpToDate}
+            ignoredGapIds={effectiveIgnoredGapIds}
+            onIgnoreGap={handleIgnoreGap}
           />
         </div>
       )}
@@ -1034,7 +1150,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
             activeLocation || location.id,
             employees
           ).weekGaps.filter((g) => {
-            if (ignoredGapIds.includes(g.id)) return false;
+            if (effectiveIgnoredGapIds.includes(g.id)) return false;
             const parts = g.dateStr.split('-');
             const gYear = parseInt(parts[0], 10);
             const gMonth = parseInt(parts[1], 10);

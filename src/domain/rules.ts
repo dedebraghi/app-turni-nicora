@@ -15,7 +15,7 @@ export const DEPARTMENTS = ALL_DEPARTMENTS;
 
 /**
  * Restituisce i reparti effettivi e presidiabili per la sede specificata.
- * A Gazzada: Cassa, Fioreria, Serra Fredda, Serra Calda, Area Tecnica.
+ * A Gazzada: Cassa, Fioreria, Emporio (Area Tecnica), Serra Calda, Serra Fredda.
  * A Varese: Cassa, Fioreria, Decor, Emporio, Serra Calda, Serra Fredda (+ Natale se attiva la stagione autunno/Natale).
  */
 export const getLocationDepartments = (
@@ -23,13 +23,194 @@ export const getLocationDepartments = (
   isChristmasSeason: boolean = false
 ): Department[] => {
   if (locationId === 'gazzada') {
-    return ['Cassa', 'Fioreria', 'Serra Fredda', 'Serra Calda', 'Area Tecnica'];
+    return ['Cassa', 'Fioreria', 'Emporio', 'Serra Calda', 'Serra Fredda'];
   }
   const vaDepts: Department[] = ['Cassa', 'Fioreria', 'Decor', 'Emporio', 'Serra Calda', 'Serra Fredda'];
   if (isChristmasSeason) {
     vaDepts.push('Natale');
   }
   return vaDepts;
+};
+
+/**
+ * Livelli di importanza per reparto specificati da Vittore Nicora (Specifiche dipendenti turni.xlsx)
+ */
+export const DEPARTMENT_IMPORTANCE: Record<LocationId, Record<Department, number | 'STAGIONALE'>> = {
+  varese: {
+    Cassa: 3,
+    Fioreria: 2,
+    Decor: 1,
+    Natale: 'STAGIONALE',
+    Emporio: 2,
+    'Serra Calda': 1,
+    'Serra Fredda': 2,
+    'Area Tecnica': 0,
+  },
+  gazzada: {
+    Cassa: 3,
+    Fioreria: 2,
+    Decor: 0,
+    Natale: 0,
+    Emporio: 3,
+    'Serra Calda': 3,
+    'Serra Fredda': 3,
+    'Area Tecnica': 3,
+  },
+};
+
+/**
+ * Fabbisogno minimo giornaliero di presidio per reparto estratto da "Necessità Personale" (Specifiche dipendenti turni.xlsx).
+ * 0 = Domenica, 1 = Lunedì, ..., 6 = Sabato.
+ */
+export const DAILY_DEPARTMENT_REQUIREMENTS: Record<
+  LocationId,
+  Record<Department, (dayIndex: number, isChristmasSeason?: boolean) => number>
+> = {
+  varese: {
+    Cassa: (day) => (day === 0 || day === 6 ? 2 : 1),
+    Fioreria: () => 1,
+    Decor: () => 1,
+    Natale: (day, isChristmas) => {
+      if (!isChristmas) return 0;
+      if (day === 0 || day === 6) return 4;
+      if (day === 5) return 3;
+      return 2;
+    },
+    Emporio: () => 1,
+    'Serra Calda': () => 1,
+    'Serra Fredda': () => 1,
+    'Area Tecnica': () => 0,
+  },
+  gazzada: {
+    Cassa: () => 1,
+    Fioreria: () => 1,
+    Decor: () => 0, // A Gazzada l'importanza è 0 e il personale ha 0 competenze sul Decor (incongruenza segnalata)
+    Natale: () => 0,
+    Emporio: () => 1,
+    'Serra Calda': () => 1,
+    'Serra Fredda': () => 1,
+    'Area Tecnica': () => 1,
+  },
+};
+
+/**
+ * Frequenza storica reale dei turni (Turni_VA_2026.pdf e Turni_GZ_26.pdf) utilizzata come criterio oggettivo
+ * di spareggio in caso di parità di punteggio massimo (o punteggio 0, come per Carlo).
+ */
+export const HISTORICAL_PREFERRED_DEPARTMENT: Record<string, Department> = {
+  // Varese
+  'emp-va-1': 'Cassa',        // Stefania: Cassa 10
+  'stefania': 'Cassa',
+  'emp-va-2': 'Fioreria',     // Katja: Fioreria 10
+  'katja': 'Fioreria',
+  'emp-va-3': 'Fioreria',     // Luisa: Fioreria 8
+  'luisa': 'Fioreria',
+  'emp-va-4': 'Decor',        // Giancarla: Decor 10, Natale 10 -> storico: Decor presidiato tutto l'anno
+  'giancarla': 'Decor',
+  'emp-va-5': 'Decor',        // Giovanna: Decor 8, Natale 8 -> storico: Decor presidiato tutto l'anno
+  'giovanna': 'Decor',
+  'emp-va-6': 'Emporio',      // Matteo Z.: Emporio 10, Natale 10 -> storico: Emporio permanente
+  'matteo z.': 'Emporio',
+  'matteo': 'Emporio',
+  'emp-va-7': 'Serra Fredda', // Stefano: Serra Fredda 8, Natale 8 -> storico: 8 mesi in Serra Fredda
+  'stefano': 'Serra Fredda',
+  'emp-va-8': 'Emporio',      // Andrea: Emporio 8
+  'andrea': 'Emporio',
+  'emp-va-9': 'Serra Calda',  // Francesca: Serra Calda 10
+  'francesca': 'Serra Calda',
+  'emp-va-10': 'Serra Calda', // Cinzia: Serra Calda 8, Decor 8, Natale 8 -> storico: Serra Calda
+  'cinzia': 'Serra Calda',
+  'emp-va-11': 'Serra Fredda',// Elina: Serra Fredda 6, Serra Calda 6 -> storico: Serra Fredda (anche in prestito a GZ)
+  'elina': 'Serra Fredda',
+  'emp-va-12': 'Serra Fredda',// Gionata: Serra Fredda 10
+  'gionata': 'Serra Fredda',
+  'emp-va-13': 'Serra Fredda',// Giulio: Serra Fredda 9
+  'giulio': 'Serra Fredda',
+  'emp-va-14': 'Serra Fredda',// Carlo: 0 in tutte le competenze -> storico: Supporto corsia / vivaio piante esterne
+  'carlo': 'Serra Fredda',
+  'emp-va-15': 'Natale',      // Luigi: Natale 6
+  'luigi': 'Natale',
+  'emp-va-16': 'Natale',      // Ivan: Natale 6
+  'ivan': 'Natale',
+  // Gazzada
+  'emp-gz-1': 'Cassa',        // Sabrina: Cassa 10
+  'sabrina': 'Cassa',
+  'emp-gz-2': 'Fioreria',     // Eleonora: Fioreria 10
+  'eleonora': 'Fioreria',
+  'emp-gz-3': 'Fioreria',     // Matteo F. (Teo): Fioreria 8
+  'matteo f.': 'Fioreria',
+  'teo': 'Fioreria',
+  'emp-gz-5': 'Serra Fredda', // Daniela: Serra Fredda 9
+  'daniela': 'Serra Fredda',
+  'emp-gz-6': 'Serra Fredda', // Ginevra: Serra Fredda 8
+  'ginevra': 'Serra Fredda',
+  'emp-gz-7': 'Serra Calda',  // Denis: Emporio 9, Serra Calda 9, Serra Fredda 9 -> storico: Serra Calda
+  'denis': 'Serra Calda',
+  'emp-gz-8': 'Serra Calda',  // Laura: Serra Calda 10
+  'laura': 'Serra Calda',
+  'emp-gz-9': 'Emporio',      // Ivano: Emporio 10 (Area Tecnica)
+  'ivano': 'Emporio',
+  'emp-gz-10': 'Serra Fredda',// Marco: Serra Fredda 10
+  'marco': 'Serra Fredda',
+};
+
+/**
+ * Calcola in modo univoco e dinamico il "Reparto Primario" di un collaboratore in base alla sua abilità più alta:
+ * abilità più alta = reparto primario.
+ * Se le abilità vengono modificate, il reparto primario si adegua immediatamente.
+ * In caso di parità (o 0 su tutto come Carlo), applica la frequenza storica dimostrata nei turni PDF ufficiali.
+ */
+export const computePrimaryRole = (
+  skills: Partial<Record<Department, number>> = {},
+  locationId: LocationId,
+  employeeId?: string,
+  employeeName?: string
+): Department => {
+  const validDepts = getLocationDepartments(locationId, true);
+
+  let maxScore = -1;
+  const topDepts: Department[] = [];
+
+  validDepts.forEach((dept) => {
+    // Normalizzazione: a Gazzada accetta anche 'Area Tecnica' se presente per mappare 'Emporio'
+    let score = skills[dept] ?? 0;
+    if (locationId === 'gazzada' && dept === 'Emporio' && (skills['Area Tecnica'] ?? 0) > score) {
+      score = skills['Area Tecnica'] ?? 0;
+    }
+
+    if (score > maxScore) {
+      maxScore = score;
+      topDepts.length = 0;
+      topDepts.push(dept);
+    } else if (score === maxScore && score > 0) {
+      topDepts.push(dept);
+    }
+  });
+
+  // 1. Vincitore univoco con punteggio positivo: assegnazione immediata
+  if (topDepts.length === 1 && maxScore > 0) {
+    return topDepts[0];
+  }
+
+  // 2. Parità o tutti 0: verifica lo storico documentale del dipendente
+  const lookupKeyId = employeeId ? employeeId.toLowerCase() : '';
+  const lookupKeyName = employeeName ? employeeName.toLowerCase().trim() : '';
+  const historical = HISTORICAL_PREFERRED_DEPARTMENT[lookupKeyId] || HISTORICAL_PREFERRED_DEPARTMENT[lookupKeyName];
+
+  if (historical) {
+    // Se lo storico è tra i candidati a pari merito o se tutte le abilità sono 0, vince lo storico
+    if (topDepts.includes(historical) || maxScore <= 0) {
+      return historical;
+    }
+  }
+
+  // 3. Tra pari merito contenenti Natale (stagionale) e reparti ordinari, privilegia il reparto ordinario
+  const nonNataleTops = topDepts.filter((d) => d !== 'Natale');
+  if (nonNataleTops.length === 1) {
+    return nonNataleTops[0];
+  }
+
+  return nonNataleTops[0] || topDepts[0] || validDepts[0] || 'Cassa';
 };
 
 export const SHIFT_TYPES: ShiftType[] = [

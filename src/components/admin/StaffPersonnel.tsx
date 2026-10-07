@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Department, Employee, LocationId, Shift, SkillScores } from '../../domain/types';
-import { ALL_DEPARTMENTS, DEPARTMENT_COLORS, getLocationDepartments } from '../../domain/rules';
+import { ALL_DEPARTMENTS, DEPARTMENT_COLORS, computePrimaryRole, getLocationDepartments } from '../../domain/rules';
 import { LOCATIONS } from '../../domain/mockData';
 import { MobileHeader } from '../layout/MobileHeader';
 import {
@@ -1347,19 +1347,9 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                     <label className="block font-bold text-neutral-800 mb-1">
                       Reparto Primario:
                     </label>
-                    <select
-                      value={formData.role}
-                      onChange={(e) =>
-                        setFormData({ ...formData, role: e.target.value as Department })
-                      }
-                      className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-nicora-teal min-h-[44px]"
-                    >
-                      {getLocationDepartments(formData.locationId, true).map((d) => (
-                        <option key={d} value={d}>
-                          {d}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="w-full bg-neutral-100 border border-nicora-sage-border rounded-xl px-3 py-2 text-xs font-black text-nicora-teal flex items-center min-h-[44px]">
+                      {computePrimaryRole(formData.skills, formData.locationId, formData.id, formData.name)}
+                    </div>
                   </div>
 
                   <div>
@@ -1426,12 +1416,15 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                             min={1}
                             max={10}
                             value={score}
-                            onChange={(e) =>
+                            onChange={(e) => {
+                              const newSkills = { ...formData.skills, [dept]: Number(e.target.value) };
+                              const autoRole = computePrimaryRole(newSkills, formData.locationId, formData.id, formData.name);
                               setFormData({
                                 ...formData,
-                                skills: { ...formData.skills, [dept]: Number(e.target.value) },
-                              })
-                            }
+                                skills: newSkills,
+                                role: autoRole,
+                              });
+                            }}
                             className="flex-1 accent-nicora-teal"
                           />
                           <span className="font-black text-xs text-nicora-teal w-6 text-right">

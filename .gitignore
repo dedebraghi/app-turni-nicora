@@ -24,3 +24,6 @@ dev-dist
 *.sln
 *.sw?
 brag-output/
+~$*.xlsx
+~$*.docx
+~$*.pptx

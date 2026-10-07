@@ -1,10 +1,11 @@
 import { INITIAL_EMPLOYEES, INITIAL_REQUESTS } from '../domain/mockData';
+import { computePrimaryRole } from '../domain/rules';
 import { Employee, LocationId, Shift, ShiftRequest, UserSession } from '../domain/types';
 import { formatLocalDate, generateWeeklySchedule, getSundayOfWeek } from '../engine/schedulerEngine';
 
 const STORAGE_KEYS = {
   LOCATION: 'nicora_v4_location',
-  EMPLOYEES: 'nicora_v4_employees',
+  EMPLOYEES: 'nicora_v5_employees',
   SHIFTS: 'nicora_v5_shifts',
   REQUESTS: 'nicora_v5_requests',
   SESSION: 'nicora_v4_session',
@@ -50,7 +51,7 @@ export const loadStoredEmployees = (): Employee[] => {
     const saved = localStorage.getItem(STORAGE_KEYS.EMPLOYEES);
     if (saved) {
       const list: Employee[] = JSON.parse(saved);
-      return list.map((e) => {
+      const updatedList = list.map((e) => {
         let updated = e;
         if (updated.id === 'emp-gz-5' && updated.contractHours === 30) {
           updated = { ...updated, contractHours: 40 };
@@ -58,8 +59,19 @@ export const loadStoredEmployees = (): Employee[] => {
         if (updated.id === 'emp-gz-4' || updated.email === 'vittore@nicoragarden.it') {
           updated = { ...updated, isOwner: true, contractHours: 0 };
         }
-        return updated;
+        // Riconcilia il reparto primario dinamico dall'abilità più alta
+        const computedRole = computePrimaryRole(updated.skills, updated.locationId, updated.id, updated.name);
+        return { ...updated, role: computedRole };
       });
+
+      // Se mancano collaboratori presenti in INITIAL_EMPLOYEES (es. Luigi, Ivan), integrali
+      INITIAL_EMPLOYEES.forEach((initEmp) => {
+        if (!updatedList.some((e) => e.id === initEmp.id)) {
+          updatedList.push(initEmp);
+        }
+      });
+
+      return updatedList;
     }
   } catch (e) {
     console.error('Errore caricamento impiegati:', e);

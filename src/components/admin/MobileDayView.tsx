@@ -9,6 +9,7 @@ import {
   formatItalianDate,
   getIgnoredGapIds,
   ignoreGapId,
+  MonthCoverageAnalysis,
   WeekCoverageAnalysis,
 } from '../../engine/schedulerEngine';
 import { StaffSubstitutionWizard } from './StaffSubstitutionWizard';
@@ -16,6 +17,7 @@ import { hasDraftGenerated, isMonthPublished } from '../../services/storageServi
 import { MobileHeader } from '../layout/MobileHeader';
 import {
   AlertTriangle,
+  ArrowRight,
   Calendar,
   ChevronLeft,
   ChevronRight,
@@ -24,6 +26,7 @@ import {
   Edit3,
   Flower2,
   Gift,
+  Info,
   MapPin,
   Receipt,
   Search,
@@ -64,6 +67,10 @@ interface MobileDayViewProps {
   onLogout?: () => void;
   onSaveEmployee?: (emp: Employee) => void;
   allStoreEmployees?: Employee[];
+  monthCoverage?: MonthCoverageAnalysis;
+  onJumpToDate?: (dateStr: string) => void;
+  ignoredGapIds?: string[];
+  onIgnoreGap?: (gapId: string) => void;
 }
 
 // Icone e temi per reparto in stile Stitch / Nicora
@@ -153,6 +160,10 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
   onLogout,
   onSaveEmployee,
   allStoreEmployees = employees,
+  monthCoverage,
+  onJumpToDate,
+  ignoredGapIds: propIgnoredGapIds,
+  onIgnoreGap: propOnIgnoreGap,
 }) => {
   const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -179,15 +190,32 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
   };
 
   // Gestione stato "Ignora" puntuale per singola scopertura (sede + giorno + reparto + orario)
-  const [ignoredGapIds, setIgnoredGapIds] = useState<string[]>(() => {
+  const [localIgnoredGapIds, setLocalIgnoredGapIds] = useState<string[]>(() => {
     clearLegacyIgnoredAlerts();
     return getIgnoredGapIds();
   });
+  const ignoredGapIds = propIgnoredGapIds ?? localIgnoredGapIds;
 
   const handleIgnoreGap = (gapId: string) => {
-    ignoreGapId(gapId);
-    setIgnoredGapIds(getIgnoredGapIds());
+    if (propOnIgnoreGap) {
+      propOnIgnoreGap(gapId);
+    } else {
+      ignoreGapId(gapId);
+      setLocalIgnoredGapIds(getIgnoredGapIds());
+    }
   };
+
+  const hasGapsInPrevWeeks = useMemo(() => {
+    if (!monthCoverage || monthCoverage.totalGapsCount === 0) return false;
+    const currentWeekStart = weekDays[0]?.dateStr || '';
+    return monthCoverage.allGaps.some((g) => g.dateStr < currentWeekStart);
+  }, [monthCoverage, weekDays]);
+
+  const hasGapsInNextWeeks = useMemo(() => {
+    if (!monthCoverage || monthCoverage.totalGapsCount === 0) return false;
+    const currentWeekEnd = weekDays[weekDays.length - 1]?.dateStr || '';
+    return monthCoverage.allGaps.some((g) => g.dateStr > currentWeekEnd);
+  }, [monthCoverage, weekDays]);
 
   // Turni della settimana correntemente visualizzata (per calcolo monte ore settimanale)
   const currentWeekShifts = useMemo(() => {
@@ -344,16 +372,28 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
               <button
                 onClick={onPrevWeek}
                 aria-label="Settimana precedente"
-                className="w-8 h-8 rounded-xl bg-neutral-100 flex items-center justify-center text-neutral-700 active:scale-95 transition-transform hover:bg-neutral-200"
+                className="relative w-8 h-8 rounded-xl bg-neutral-100 flex items-center justify-center text-neutral-700 active:scale-95 transition-transform hover:bg-neutral-200"
               >
                 <ChevronLeft size={16} />
+                {hasGapsInPrevWeeks && (
+                  <span
+                    className="absolute -top-0.5 -left-0.5 w-2.5 h-2.5 rounded-full bg-rose-500 border border-white"
+                    title="Ci sono criticità nelle settimane precedenti"
+                  />
+                )}
               </button>
               <button
                 onClick={onNextWeek}
                 aria-label="Settimana successiva"
-                className="w-8 h-8 rounded-xl bg-neutral-100 flex items-center justify-center text-neutral-700 active:scale-95 transition-transform hover:bg-neutral-200"
+                className="relative w-8 h-8 rounded-xl bg-neutral-100 flex items-center justify-center text-neutral-700 active:scale-95 transition-transform hover:bg-neutral-200"
               >
                 <ChevronRight size={16} />
+                {hasGapsInNextWeeks && (
+                  <span
+                    className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-rose-500 border border-white"
+                    title="Ci sono criticità nelle settimane successive"
+                  />
+                )}
               </button>
             </div>
           </div>
@@ -467,6 +507,11 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
                       (+ altre {activeGaps.length - 1} criticità nei giorni successivi)
                     </span>
                   )}
+                  {monthCoverage && monthCoverage.totalGapsCount > activeGaps.length && (
+                    <span className="block text-[11px] font-normal text-neutral-500 mt-0.5">
+                      • {monthCoverage.totalGapsCount - activeGaps.length} in altre settimane del mese
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
@@ -503,6 +548,44 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
           </div>
         )}
 
+        {/* --- BANNER INFORMATIVO COPERTURA MESE (quando la settimana è OK ma il mese ha criticità) --- */}
+        {isManagerMode &&
+          activeGaps.length === 0 &&
+          monthCoverage &&
+          monthCoverage.totalGapsCount > 0 &&
+          Boolean(monthCoverage.firstGapDateStr) &&
+          onJumpToDate && (
+            <div className="bg-amber-50/80 border border-amber-200/90 rounded-2xl p-3.5 shadow-sm space-y-2 relative overflow-hidden animate-in fade-in">
+              <div className="flex items-start gap-2.5">
+                <div className="w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center flex-shrink-0 shadow-xs mt-0.5">
+                  <Info size={15} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800">
+                    Settimana coperta • Altre criticità nel mese
+                  </span>
+                  <p className="text-xs font-semibold text-amber-950 mt-0.5 leading-snug">
+                    Nessuna criticità in questa settimana. Rilevati però{' '}
+                    <span className="font-bold underline decoration-amber-400">
+                      {monthCoverage.totalGapsCount} presidi incompleti
+                    </span>{' '}
+                    in altre settimane del mese.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center justify-end pt-1">
+                <button
+                  type="button"
+                  onClick={() => monthCoverage.firstGapDateStr && onJumpToDate(monthCoverage.firstGapDateStr)}
+                  className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold active:scale-95 transition-all shadow-xs flex items-center gap-1.5"
+                >
+                  <span>Vai alla settimana scoperta ({formatItalianDate(monthCoverage.firstGapDateStr!)})</span>
+                  <ArrowRight size={13} />
+                </button>
+              </div>
+            </div>
+          )}
+
         {/* --- SELETTORE GIORNI SETTIMANA A PILLOLE (7 Giorni) --- */}
         <div className="bg-white rounded-2xl p-2 border border-nicora-sage-border shadow-clean">
           <div className="grid grid-cols-7 gap-1">
@@ -522,6 +605,9 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
               const hasDraft = hasDraftGenerated(activeLocation, dYear, dMonth);
               const isPastDay = day.dateStr < (weekDays.find((d) => d.isToday)?.dateStr || '');
               const shouldSkipDotAlert = !hasDraft || isPastDay;
+
+              const dayActiveGaps = activeGaps.filter((g) => g.dateStr === day.dateStr);
+              const hasDayGaps = dayActiveGaps.length > 0;
 
               return (
                 <button
@@ -554,11 +640,13 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
                     {day.dayNum}
                   </span>
 
-                  {/* Dot stato copertura cassa / giorno */}
+                  {/* Dot stato copertura presidi / cassa */}
                   <div className="flex items-center gap-0.5 mt-0.5">
                     <span
                       className={`w-1.5 h-1.5 rounded-full ${
-                        curCassa
+                        hasDayGaps && !shouldSkipDotAlert
+                          ? 'bg-rose-500 animate-pulse'
+                          : curCassa
                           ? isSelected
                             ? 'bg-emerald-300'
                             : 'bg-emerald-500'
@@ -566,7 +654,15 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
                           ? 'bg-neutral-300'
                           : 'bg-rose-500 animate-pulse'
                       }`}
-                      title={curCassa ? 'Cassa coperta' : shouldSkipDotAlert ? (isPastDay ? 'Giorno passato' : 'Non pianificato') : 'Cassa scoperta!'}
+                      title={
+                        hasDayGaps && !shouldSkipDotAlert
+                          ? `Presidi scoperti (${dayActiveGaps.length}): ${dayActiveGaps.map((g) => g.department).join(', ')}`
+                          : curCassa
+                          ? 'Cassa coperta'
+                          : shouldSkipDotAlert
+                          ? (isPastDay ? 'Giorno passato' : 'Non pianificato')
+                          : 'Cassa scoperta!'
+                      }
                     />
                     {day.isMerchandiseArrival && (
                       <span className="text-[8px]" title="Arrivo Merci">

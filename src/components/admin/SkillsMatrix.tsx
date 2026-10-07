@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getLocationDepartments } from '../../domain/rules';
+import { computePrimaryRole, getLocationDepartments } from '../../domain/rules';
 import { Department, Employee, LocationId, SkillScores } from '../../domain/types';
 import { Award, Check, Info, Search, X } from 'lucide-react';
 
@@ -37,7 +37,7 @@ export const SkillsMatrix: React.FC<SkillsMatrixProps> = ({
   if (!isStandaloneTab && !isOpen) return null;
 
   const handleScoreChange = (empId: string, dept: Department, newScore: number) => {
-    const clamped = Math.max(1, Math.min(10, newScore));
+    const clamped = Math.max(0, Math.min(10, newScore));
     setEditableSkills((prev) => ({
       ...prev,
       [empId]: {
@@ -137,7 +137,7 @@ export const SkillsMatrix: React.FC<SkillsMatrixProps> = ({
                   <div>
                     <span className="font-extrabold text-sm text-nicora-title">{emp.name}</span>
                     <span className="text-xs text-neutral-400 ml-2">
-                      (Reparto primario: <strong>{emp.role}</strong>)
+                      (Reparto primario: <strong className="text-nicora-teal">{computePrimaryRole(currentScores, emp.locationId, emp.id, emp.name)}</strong>)
                     </span>
                   </div>
                 </div>

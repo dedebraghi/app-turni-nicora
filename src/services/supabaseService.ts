@@ -505,8 +505,9 @@ export const publishCloudMonth = async (
       .eq('id', 'sys-app-config')
       .maybeSingle();
 
-    const currentMonths: string[] = Array.isArray(data?.skills?.published_months)
-      ? [...data.skills.published_months]
+    const currentSkills = (data?.skills as any) || {};
+    const currentMonths: string[] = Array.isArray(currentSkills.published_months)
+      ? [...currentSkills.published_months]
       : [];
 
     if (!currentMonths.includes(monthKey)) {
@@ -521,7 +522,7 @@ export const publishCloudMonth = async (
       avatar: 'CF',
       email: 'system-config@nicoragarden.local',
       is_active: false,
-      skills: { published_months: currentMonths },
+      skills: { ...currentSkills, published_months: currentMonths },
       updated_at: new Date().toISOString(),
     });
 
@@ -530,6 +531,71 @@ export const publishCloudMonth = async (
   } catch (err: any) {
     console.error('[Supabase] Errore salvataggio pubblicazione mese su cloud:', err);
     return { success: false, error: err.message || 'Errore pubblicazione cloud' };
+  }
+};
+
+/**
+ * Carica dal cloud l'elenco degli ID di scoperture/presidi ignorati dalla Direzione.
+ */
+export const fetchCloudIgnoredGaps = async (): Promise<string[]> => {
+  if (!isSupabaseConfigured || !supabase) {
+    return [];
+  }
+  try {
+    const { data: configData, error: configError } = await supabase
+      .from('employees')
+      .select('skills')
+      .eq('id', 'sys-app-config')
+      .maybeSingle();
+
+    if (!configError && configData && configData.skills && Array.isArray((configData.skills as any).ignored_gaps)) {
+      return (configData.skills as any).ignored_gaps.filter((g: any) => typeof g === 'string');
+    }
+  } catch (err) {
+    console.warn('[Supabase] Errore caricamento avvisi ignorati dal cloud:', err);
+  }
+  return [];
+};
+
+/**
+ * Salva sul cloud l'elenco sincronizzato delle criticità/presidi ignorati.
+ */
+export const saveCloudIgnoredGaps = async (
+  gapIds: string[]
+): Promise<{ success: boolean; error?: string }> => {
+  if (!isSupabaseConfigured || !supabase) {
+    return { success: false, error: 'Database Supabase Cloud non raggiungibile.' };
+  }
+  try {
+    const { data } = await supabase
+      .from('employees')
+      .select('skills')
+      .eq('id', 'sys-app-config')
+      .maybeSingle();
+
+    const currentSkills = (data?.skills as any) || {};
+    const updatedSkills = {
+      ...currentSkills,
+      ignored_gaps: gapIds,
+    };
+
+    const { error: upsertErr } = await supabase.from('employees').upsert({
+      id: 'sys-app-config',
+      name: 'Configurazione Sistema',
+      location_id: 'gazzada',
+      role: 'Area Tecnica',
+      avatar: 'CF',
+      email: 'system-config@nicoragarden.local',
+      is_active: false,
+      skills: updatedSkills,
+      updated_at: new Date().toISOString(),
+    });
+
+    if (upsertErr) throw upsertErr;
+    return { success: true };
+  } catch (err: any) {
+    console.error('[Supabase] Errore salvataggio avvisi ignorati su cloud:', err);
+    return { success: false, error: err.message || 'Errore salvataggio cloud' };
   }
 };
 
@@ -549,6 +615,7 @@ export interface RealtimeSubscriptionHandlers {
     oldId?: string;
   }) => void;
   onConfigChange?: (publishedMonths: Set<string>) => void;
+  onIgnoredGapsChange?: (ignoredGapIds: string[]) => void;
 }
 
 /**
@@ -617,6 +684,12 @@ export const subscribeToRealtimeChanges = (
             }
           }
           handlers.onConfigChange?.(publishedMonths);
+
+          if (newRecord.skills && Array.isArray(newRecord.skills.ignored_gaps)) {
+            handlers.onIgnoredGapsChange?.(
+              newRecord.skills.ignored_gaps.filter((g: any) => typeof g === 'string')
+            );
+          }
         }
       }
     )
