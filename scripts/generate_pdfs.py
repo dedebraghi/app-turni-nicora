@@ -609,7 +609,7 @@ html_consuntivo = """<!DOCTYPE html>
       <div><strong>Committente:</strong> Nicora Verde & Paesaggi S.r.l.</div>
       <div><strong>Referente Direzione:</strong> Vittore Nicora</div>
       <div><strong>Sviluppatore:</strong> Davide Braghiroli</div>
-      <div><strong>Data Rendicontazione:</strong> 5 Ottobre 2026</div>
+      <div><strong>Data Rendicontazione:</strong> 7 Ottobre 2026</div>
     </div>
   </div>
 
@@ -617,7 +617,7 @@ html_consuntivo = """<!DOCTYPE html>
   <div class="summary-card">
     <div class="metric-pod">
       <div class="metric-label">Monte Ore Totale</div>
-      <div class="metric-value">40.5 h</div>
+      <div class="metric-value">47.5 h</div>
       <div class="metric-sub">Attività certificate</div>
     </div>
     <div class="metric-pod">
@@ -627,7 +627,7 @@ html_consuntivo = """<!DOCTYPE html>
     </div>
     <div class="metric-pod">
       <div class="metric-label">Importo Totale</div>
-      <div class="metric-value">810,00 €</div>
+      <div class="metric-value">950,00 €</div>
       <div class="metric-sub">Consuntivo finale</div>
     </div>
     <div class="metric-pod">
@@ -761,6 +761,41 @@ html_consuntivo = """<!DOCTYPE html>
         <td class="col-desc">Risoluzione N+1 query login via batch upsert Supabase. Dialog 'PIN dimenticato?' al login con contatto WhatsApp rapido; tasto 'Reset PIN a 1234' per Direzione con sync cloud; Master Recovery Key e documentazione operativa.</td>
         <td class="col-status"><span class="status-badge">&check; Validato</span></td>
       </tr>
+      <tr>
+        <td class="col-date">05/10/2026</td>
+        <td class="col-hours">1.5 h</td>
+        <td class="col-module">Manuale Operativo PDF & In-App Download</td>
+        <td class="col-desc">Compilazione Manuale Operativo Ufficiale in PDF editoriale A4 (13 pag., grafica Nicora Garden, indice navigabile). Salvataggio per PWA offline e download in-app da menu account (desktop e mobile).</td>
+        <td class="col-status"><span class="status-badge">&check; Validato</span></td>
+      </tr>
+      <tr>
+        <td class="col-date">05/10/2026</td>
+        <td class="col-hours">1.0 h</td>
+        <td class="col-module">Bozze Cloud Cross-Device & Sincronizzazione</td>
+        <td class="col-desc">Ciclo di vita bozze centralizzato su Supabase Cloud (sys-app-config): turni in bozza accessibili e modificabili da qualsiasi responsabile su ogni dispositivo, invisibili allo staff fino alla pubblicazione.</td>
+        <td class="col-status"><span class="status-badge">&check; Validato</span></td>
+      </tr>
+      <tr>
+        <td class="col-date">05/10/2026</td>
+        <td class="col-hours">0.5 h</td>
+        <td class="col-module">Privacy & Isolamento Richieste Staff (GDPR)</td>
+        <td class="col-desc">Blindatura privacy schede Richieste: i collaboratori visualizzano solo le proprie richieste personali, con protezione dati sanitari e INPS. Visibilità completa riservata alla Direzione.</td>
+        <td class="col-status"><span class="status-badge">&check; Validato</span></td>
+      </tr>
+      <tr>
+        <td class="col-date">05/10/2026</td>
+        <td class="col-hours">1.5 h</td>
+        <td class="col-module">Audit Funzionale & Suite Test 176 Casi</td>
+        <td class="col-desc">Risoluzione root cause banner bozza, rimozione auto-pubblicazione spuria, fix su 5 difetti funzionali e costruzione suite automatizzata da 176 test (unit, integration, adversarial stress test) con pass rate 100%.</td>
+        <td class="col-status"><span class="status-badge">&check; Validato</span></td>
+      </tr>
+      <tr>
+        <td class="col-date">07/10/2026</td>
+        <td class="col-hours">2.5 h</td>
+        <td class="col-module">Copertura Oraria Mensile & Competenze Vittore</td>
+        <td class="col-desc">Calcolo copertura oraria mensile (calculateMonthHourlyCoverage). Navigazione rapida alle criticità ("Risolvi Prima Criticità"), indicatori pillola e frecce. Sync cloud regole ignorate e allineamento competenze con specifiche di Vittore Nicora (179 test passati).</td>
+        <td class="col-status"><span class="status-badge">&check; Validato</span></td>
+      </tr>
     </tbody>
   </table>
 
@@ -780,7 +815,7 @@ html_consuntivo = """<!DOCTYPE html>
 
   <div class="footer-note">
     <span>Registro consuntivo ore a tariffa concordata di 20,00 €/h &bull; Codice sorgente e release su repository privato</span>
-    <span>Totale: 40.5 ore (810,00 €)</span>
+    <span>Totale: 47.5 ore (950,00 €)</span>
   </div>
 
 </body>
