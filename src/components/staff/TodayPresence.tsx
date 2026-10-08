@@ -14,6 +14,7 @@ interface TodayPresenceProps {
   onEditShift: (shift: Shift) => void;
   onLogout?: () => void;
   onSaveEmployee?: (emp: Employee) => void;
+  onOpenTutorial?: () => void;
 }
 
 export const TodayPresence: React.FC<TodayPresenceProps> = (props) => {

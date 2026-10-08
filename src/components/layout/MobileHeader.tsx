@@ -12,6 +12,7 @@ import {
   RefreshCw,
   X 
 } from 'lucide-react';
+import { forceAppUpdate } from '../../services/appUpdateService';
 
 export interface MobileHeaderProps {
   title: string;
@@ -126,6 +127,15 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
     }, 1500);
   };
 
+  const handleOpenTutorialClick = () => {
+    setIsProfileMenuOpen(false);
+    if (onOpenTutorial) {
+      onOpenTutorial();
+    } else {
+      window.dispatchEvent(new CustomEvent('nicora:open-tutorial'));
+    }
+  };
+
   return (
     <>
       <header className="fixed top-0 inset-x-0 z-40 bg-[#f2fcf7]/95 backdrop-blur-xl shadow-[0_4px_20px_-4px_rgba(10,71,75,0.06)] border-b border-[#e2e8e4]/60 pt-safe">
@@ -209,63 +219,72 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
                       </div>
 
                       <div className="pt-2 flex flex-col gap-1.5">
-                        {onOpenTutorial && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                            setIsProfileMenuOpen(false);
-                            onOpenTutorial();
-                          }}
+                        <button
+                          type="button"
+                          onClick={handleOpenTutorialClick}
                           className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-[#e6f0eb] hover:bg-[#d8e8e0] text-[#0a474b] text-xs font-semibold transition-colors cursor-pointer"
                         >
                           <HelpCircle size={14} className="text-[#0a474b]" />
                           <span>Guida rapida all'app</span>
                         </button>
-                      )}
 
-                      <a
-                        href="/manuale_istruzioni_app_turni.pdf"
-                        download="Manuale_Istruzioni_Nicora_Garden.pdf"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={() => setIsProfileMenuOpen(false)}
-                        className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-semibold transition-colors cursor-pointer"
-                      >
-                        <FileText size={14} className="text-amber-700" />
-                        <span>Scarica istruzioni complete</span>
-                      </a>
+                        <a
+                          href="/manuale_istruzioni_app_turni.pdf"
+                          download="Manuale_Istruzioni_Nicora_Garden.pdf"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => setIsProfileMenuOpen(false)}
+                          className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-semibold transition-colors cursor-pointer"
+                        >
+                          <FileText size={14} className="text-amber-700" />
+                          <span>Scarica istruzioni complete</span>
+                        </a>
 
-                      {/* Opzione Modifica PIN / Password sopra a Esci */}
-                      {onSaveEmployee && (
+                        {/* Opzione Modifica PIN / Password sopra a Esci */}
+                        {onSaveEmployee && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsProfileMenuOpen(false);
+                              handleOpenPinModal();
+                            }}
+                            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-semibold transition-colors cursor-pointer"
+                          >
+                            <KeyRound size={14} className="text-[#a73a00]" />
+                            <span>{isManagerAccount ? 'Modifica Password' : 'Modifica PIN'}</span>
+                          </button>
+                        )}
+
+                        {/* Verifica aggiornamenti app */}
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            setIsProfileMenuOpen(false);
+                            await forceAppUpdate();
+                          }}
+                          className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-teal-50 hover:bg-teal-100 text-[#0a474b] text-xs font-semibold transition-colors cursor-pointer"
+                          title="Scarica l'ultima versione del codice mantenendo intatti login e dati"
+                        >
+                          <RefreshCw size={14} className="text-[#0a474b]" />
+                          <span>Verifica aggiornamenti app</span>
+                        </button>
+
+                        {/* Esci dalla sessione */}
                         <button
                           type="button"
                           onClick={() => {
                             setIsProfileMenuOpen(false);
-                            handleOpenPinModal();
+                            onLogout?.();
                           }}
-                          className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-semibold transition-colors"
+                          className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-colors cursor-pointer"
                         >
-                          <KeyRound size={14} className="text-[#a73a00]" />
-                          <span>{isManagerAccount ? 'Modifica Password' : 'Modifica PIN'}</span>
+                          <LogOut size={14} />
+                          <span>Esci dalla sessione</span>
                         </button>
-                      )}
-
-                      {/* Esci dalla sessione */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsProfileMenuOpen(false);
-                          onLogout?.();
-                        }}
-                        className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-colors"
-                      >
-                        <LogOut size={14} />
-                        <span>Esci dalla sessione</span>
-                      </button>
+                      </div>
                     </div>
-                  </div>
-                </>
-              )}
+                  </>
+                )}
               </div>
             </div>
           </div>

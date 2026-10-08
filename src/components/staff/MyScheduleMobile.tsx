@@ -13,6 +13,7 @@ interface MyScheduleMobileProps {
   onLogout?: () => void;
   onSaveEmployee?: (emp: Employee) => void;
   onRefreshShifts?: () => Promise<void> | void;
+  onOpenTutorial?: () => void;
 }
 
 export const MyScheduleMobile: React.FC<MyScheduleMobileProps> = ({
@@ -24,6 +25,7 @@ export const MyScheduleMobile: React.FC<MyScheduleMobileProps> = ({
   onLogout,
   onSaveEmployee,
   onRefreshShifts,
+  onOpenTutorial,
 }) => {
   const [weekOffset, setWeekOffset] = useState<number>(0);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -95,6 +97,7 @@ export const MyScheduleMobile: React.FC<MyScheduleMobileProps> = ({
         onLogout={onLogout}
         onSaveEmployee={onSaveEmployee}
         onRefreshShifts={onRefreshShifts}
+        onOpenTutorial={onOpenTutorial}
       />
 
       {/* ========================================================

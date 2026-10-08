@@ -72,6 +72,7 @@ interface PlannerGridProps {
   onClearJumpToDate?: () => void;
   ignoredGapIds?: string[];
   onIgnoreGap?: (gapId: string) => void;
+  onOpenTutorial?: () => void;
 }
 
 export const PlannerGrid: React.FC<PlannerGridProps> = ({
@@ -99,6 +100,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
   onClearJumpToDate,
   ignoredGapIds: propIgnoredGapIds,
   onIgnoreGap: propOnIgnoreGap,
+  onOpenTutorial,
 }) => {
   const [weekOffset, setWeekOffset] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState('');
@@ -688,6 +690,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
             onJumpToDate={jumpToDate}
             ignoredGapIds={effectiveIgnoredGapIds}
             onIgnoreGap={handleIgnoreGap}
+            onOpenTutorial={onOpenTutorial}
           />
         </div>
       )}

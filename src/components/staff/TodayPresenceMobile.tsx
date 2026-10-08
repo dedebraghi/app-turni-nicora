@@ -20,6 +20,7 @@ interface TodayPresenceMobileProps {
   onEditShift: (shift: Shift) => void;
   onLogout?: () => void;
   onSaveEmployee?: (emp: Employee) => void;
+  onOpenTutorial?: () => void;
 }
 
 export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
@@ -33,6 +34,7 @@ export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
   onEditShift,
   onLogout,
   onSaveEmployee,
+  onOpenTutorial,
 }) => {
   const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>('all');
 
@@ -131,6 +133,7 @@ export const TodayPresenceMobile: React.FC<TodayPresenceMobileProps> = ({
         vareseStaffCount={vareseStaffCount}
         onLogout={onLogout}
         onSaveEmployee={onSaveEmployee}
+        onOpenTutorial={onOpenTutorial}
       />
 
       {/* ========================================================

@@ -12,6 +12,7 @@ interface MyScheduleProps {
   onLogout?: () => void;
   onSaveEmployee?: (emp: Employee) => void;
   onRefreshShifts?: () => Promise<void> | void;
+  onOpenTutorial?: () => void;
 }
 
 export const MySchedule: React.FC<MyScheduleProps> = (props) => {

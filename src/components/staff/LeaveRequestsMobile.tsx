@@ -29,6 +29,7 @@ interface LeaveRequestsMobileProps {
   onChangeLocation?: (loc: LocationId) => void;
   onLogout?: () => void;
   onSaveEmployee?: (emp: Employee) => void;
+  onOpenTutorial?: () => void;
 }
 
 const isWorkingShift = (s?: Shift): boolean =>
@@ -47,6 +48,7 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
   onChangeLocation,
   onLogout,
   onSaveEmployee,
+  onOpenTutorial,
 }) => {
   const [requestType, setRequestType] = useState<ShiftRequestType>('leave');
   
@@ -339,6 +341,7 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
         vareseStaffCount={vareseStaffCount}
         onLogout={onLogout}
         onSaveEmployee={onSaveEmployee}
+        onOpenTutorial={onOpenTutorial}
       />
 
       {/* ========================================================

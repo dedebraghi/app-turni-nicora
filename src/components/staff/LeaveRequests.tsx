@@ -16,6 +16,7 @@ export interface LeaveRequestsProps {
   onChangeLocation?: (loc: LocationId) => void;
   onLogout?: () => void;
   onSaveEmployee?: (emp: Employee) => void;
+  onOpenTutorial?: () => void;
 }
 
 export const LeaveRequests: React.FC<LeaveRequestsProps> = (props) => {

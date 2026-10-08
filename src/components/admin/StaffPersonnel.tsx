@@ -53,6 +53,7 @@ interface StaffPersonnelProps {
     skills: SkillScores,
     contractHours: number
   ) => void;
+  onOpenTutorial?: () => void;
 }
 
 export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
@@ -66,6 +67,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
   onArchiveEmployee,
   onDeleteEmployee,
   onUpdateSkillsAndHours,
+  onOpenTutorial,
 }) => {
   // Sotto-vista unificata: 'staff' (Organico, Anagrafica, Ore Contratto & Competenze) o 'monthly-report' (Report Ore & Export Mese)
   const [activeSubView, setActiveSubView] = useState<'staff' | 'monthly-report'>('staff');
@@ -371,6 +373,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
           vareseStaffCount={vareseStaffCount}
           onLogout={onLogout}
           onSaveEmployee={onSaveEmployee}
+          onOpenTutorial={onOpenTutorial}
         />
       </div>
 

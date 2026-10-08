@@ -104,6 +104,13 @@ export const App: React.FC = () => {
   // Toast Notifica Realtime per il collaboratore
   const [toast, setToast] = useState<ToastMessage | null>(null);
 
+  // Ascolto evento apertura manuale tutorial anche da componenti figli profondi (es. MobileHeader)
+  useEffect(() => {
+    const handleOpenTutorialEvent = () => setIsTutorialManualOpen(true);
+    window.addEventListener('nicora:open-tutorial', handleOpenTutorialEvent);
+    return () => window.removeEventListener('nicora:open-tutorial', handleOpenTutorialEvent);
+  }, []);
+
   // Inizializzazione Cloud al mount con fallback trasparente a locale
   useEffect(() => {
     let isMounted = true;
@@ -1058,6 +1065,7 @@ export const App: React.FC = () => {
             onEditShift={(shift) => setEditingShift(shift)}
             onLogout={handleLogout}
             onSaveEmployee={handleSaveEmployee}
+            onOpenTutorial={() => setIsTutorialManualOpen(true)}
           />
         )}
 
@@ -1072,6 +1080,7 @@ export const App: React.FC = () => {
             onLogout={handleLogout}
             onSaveEmployee={handleSaveEmployee}
             onRefreshShifts={handleRefreshShifts}
+            onOpenTutorial={() => setIsTutorialManualOpen(true)}
           />
         )}
 
@@ -1105,6 +1114,7 @@ export const App: React.FC = () => {
             onClearJumpToDate={() => setJumpToDateStr(null)}
             ignoredGapIds={ignoredGapIds}
             onIgnoreGap={handleIgnoreGap}
+            onOpenTutorial={() => setIsTutorialManualOpen(true)}
           />
         )}
 
@@ -1123,6 +1133,7 @@ export const App: React.FC = () => {
             onChangeLocation={setActiveLocation}
             onLogout={handleLogout}
             onSaveEmployee={handleSaveEmployee}
+            onOpenTutorial={() => setIsTutorialManualOpen(true)}
           />
         )}
 
@@ -1138,6 +1149,7 @@ export const App: React.FC = () => {
             onSaveEmployee={handleSaveEmployee}
             onArchiveEmployee={handleArchiveEmployee}
             onDeleteEmployee={handleDeleteEmployee}
+            onOpenTutorial={() => setIsTutorialManualOpen(true)}
             onUpdateSkillsAndHours={(empId, newSkills, newHours) => {
               setEmployees((prev) =>
                 prev.map((emp) => {

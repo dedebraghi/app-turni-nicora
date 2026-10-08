@@ -71,6 +71,7 @@ interface MobileDayViewProps {
   onJumpToDate?: (dateStr: string) => void;
   ignoredGapIds?: string[];
   onIgnoreGap?: (gapId: string) => void;
+  onOpenTutorial?: () => void;
 }
 
 // Icone e temi per reparto in stile Stitch / Nicora
@@ -164,6 +165,7 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
   onJumpToDate,
   ignoredGapIds: propIgnoredGapIds,
   onIgnoreGap: propOnIgnoreGap,
+  onOpenTutorial,
 }) => {
   const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -342,6 +344,7 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
         vareseStaffCount={vareseStaffCount}
         onLogout={onLogout}
         onSaveEmployee={onSaveEmployee}
+        onOpenTutorial={onOpenTutorial}
       />
 
       {/* 2. CORPO PRINCIPALE (con padding superiore per header fisso) */}
