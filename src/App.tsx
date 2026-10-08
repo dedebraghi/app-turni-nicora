@@ -15,6 +15,7 @@ import { EditShiftModal } from './components/common/EditShiftModal';
 import { OnboardingTutorial } from './components/common/OnboardingTutorial';
 import { LoginScreen } from './components/auth/LoginScreen';
 import { ForcePinChangeModal } from './components/auth/ForcePinChangeModal';
+import { isProvisionalPin } from './domain/pin';
 import { NotificationToast, ToastMessage } from './components/common/NotificationToast';
 
 import { ActiveTab, Department, Employee, LocationId, Shift, ShiftRequest, ShiftRequestStatus, ShiftType, SkillScores, UserSession } from './domain/types';
@@ -1079,7 +1080,7 @@ export const App: React.FC = () => {
     <div className="min-h-screen bg-nicora-bg text-nicora-text flex flex-col antialiased">
       {!currentEmployee.isManager &&
         !currentEmployee.isOwner &&
-        (!currentEmployee.password || currentEmployee.password === '1234') && (
+        isProvisionalPin(currentEmployee.password) && (
           <ForcePinChangeModal
             employeeName={currentEmployee.name}
             onLogout={handleLogout}

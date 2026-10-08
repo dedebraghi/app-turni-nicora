@@ -19,6 +19,7 @@ import {
   saveStoredShifts,
 } from './storageService';
 import { INITIAL_EMPLOYEES } from '../domain/mockData';
+import { matchesPin } from '../domain/pin';
 
 /**
  * Informazioni sullo stato di connessione a Supabase
@@ -423,8 +424,8 @@ export const verifyEmployeePin = async (
   employee: Employee,
   enteredPin: string
 ): Promise<boolean> => {
-  // Nessun PIN jolly: vale solo il PIN registrato (o il provvisorio '1234' se non impostato)
-  if (enteredPin === (employee.password || '1234')) {
+  // Nessun PIN jolly: i codici provvisori valgono solo per account non ancora personalizzati
+  if (matchesPin(employee.password, enteredPin)) {
     return true;
   }
 

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Employee, LocationId, UserSession } from '../../domain/types';
 import { NicoraLogo } from '../NicoraLogo';
 import { LOCATIONS, MANAGER_MASTER_PASSWORD } from '../../domain/mockData';
+import { matchesPin } from '../../domain/pin';
 import { 
   AlertCircle, 
   ArrowRight, 
@@ -95,9 +96,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
         setError('Inserisci il tuo PIN personale');
         return;
       }
-      // Nessun PIN jolly: vale solo il PIN del collaboratore (o il provvisorio 1234 se mai impostato/resettato)
-      const expectedPin = emp.password || '1234';
-      if (password !== expectedPin) {
+      // Nessun PIN jolly: i codici provvisori valgono solo per account non ancora personalizzati
+      if (!matchesPin(emp.password, password)) {
         setError('PIN non corretto. Verifica il codice o tocca "Hai dimenticato il PIN?"');
         return;
       }
