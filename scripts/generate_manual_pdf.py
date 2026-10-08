@@ -840,14 +840,17 @@ html_content = """<!DOCTYPE html>
 
     <h2 class="section-title" id="cap-3-13">3.13 Report Mensile Ore, Consuntivo Lavoro ed Export CSV Excel</h2>
     <p>
-      Nella sotto-vista <strong>"Report Ore & Export Mese"</strong>, la Direzione dispone del quadro contabile completo:
+      Nella sotto-vista <strong>"Report Ore & Export Mese"</strong> della scheda Personale, la Direzione dispone del prospetto contabile e riepilogativo delle ore effettivamente prestate in sede, strutturato per la massima trasparenza verso il consulente paghe e il controllo di gestione:
     </p>
     <ul>
-      <li><strong>Navigazione Mese per Mese:</strong> Frecce di scorrimento temporale con pulsante rapido <em>"Oggi"</em>.</li>
-      <li><strong>KPI Mensili Aggregati:</strong> Ore lavorate totali della sede, ore dedicate a Cassa, Fioreria/Decor, Serre, e totale giornate di ferie/malattia.</li>
-      <li><strong>Tabella Dettaglio Collaboratore:</strong> Per ogni risorsa sono riportati: presenze effettive, riposi, assenze, ore dettagliate per ciascuno dei reparti, totale ore lavorate, ore figurative di assenza, totale ore rendicontate e saldo (+/- rispetto al contratto).</li>
-      <li><strong>Scarica CSV Excel:</strong> Esporta istantaneamente un foglio di calcolo con codifica UTF-8 BOM, direttamente compatibile con Microsoft Excel e software paghe.</li>
-      <li><strong>Stampa / PDF A4 Orizzontale:</strong> Formatta l'intero consuntivo in un documento stampabile ad uso archivio o consulente del lavoro.</li>
+      <li><strong>Navigazione Mese per Mese:</strong> Frecce di scorrimento temporale con pulsante rapido <em>"Oggi"</em> per passare istantaneamente al mese corrente.</li>
+      <li><strong>KPI Mensili di Sede:</strong> Contatori in testata con ore complessive lavorate nel punto vendita, ore dedicate al presidio Cassa, Fioreria & Decor, Serre (Calda e Fredda) e giornate di assenza (ferie e malattia).</li>
+      <li><strong>Avviso Automatico di Copertura Parziale:</strong> Se la bozza turni del mese è stata generata quando una parte del mese era già trascorsa (o se alcuni giorni iniziali non erano stati registrati sull'app), compare in cima alla pagina un riquadro ambra di attenzione. L'avviso specifica con esattezza quanti giorni risultano coperti e indica l'intervallo temporale scoperto (es. <em>"Attenzione: i giorni dall'1 al 7 Ottobre non risultavano segnati sull'applicazione al momento dell'elaborazione della bozza"</em>), evitando qualsiasi fraintendimento sulla continuità del dato.</li>
+      <li><strong>Isolamento Rigoroso per Punto Vendita:</strong> Il prospetto di Gazzada contabilizza esclusivamente le ore svolte fisicamente a Gazzada, mentre quello di Varese rendiconta solo le ore di Varese. Non si verifica alcuna mescolanza o assorbimento indebito di monte ore tra i due negozi.</li>
+      <li><strong>Collaboratori Mobili (Badge Mobile):</strong> Chi presta servizio su entrambe le sedi viene identificato con un apposito contrassegno arancione. Nella riga del collaboratore compaiono le ore contrattuali settimanali di base, le ore effettuate nella sede attiva e una nota esplicita con il riepilogo delle ore svolte nell'altro negozio (es. <em>"64h a Gazzada Schianno • 96h a Varese Centro"</em>), con indicazione di consultare il rispettivo report per il dettaglio.</li>
+      <li><strong>Ripartizione Reale e Assenza di Saldi Forfettari:</strong> Il report mostra le presenze effettive, i riposi, le ore per ciascun reparto aziendale (inclusi Emporio, Area Tecnica e Natale) e le assenze. Sono state eliminate colonne matematicamente ambigue di saldo fittizio o monte ore teorico che avrebbero mostrato numeri rossi fuorvianti a mese in corso.</li>
+      <li><strong>Scarica CSV Excel:</strong> Genera un foglio di calcolo con codifica UTF-8 BOM e separatore punto e virgola standard italiano, pronto per Microsoft Excel, Fogli Google e software di elaborazione cedolini. Se il mese ha copertura parziale, include in prima riga la nota di avviso.</li>
+      <li><strong>Stampa / PDF A4 Orizzontale:</strong> Formatta l'intero prospetto in formato A4 landscape con intestazione istituzionale Nicora Garden, box KPI, ripartizione per reparto, note di mobilità e spazi riservati alle firme della Direzione e del consulente paghe.</li>
     </ul>
   </div>
 
