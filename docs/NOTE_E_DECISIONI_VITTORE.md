@@ -129,8 +129,11 @@ Analizzando i tre fogli del file Excel fornito da Vittore emergono le seguenti a
    - **Impostazione attuale nell'algoritmo**: Abbiamo impostato per Gazzada la necessità di Decor a **0**, garantendo la copertura dei 5 reparti reali di Gazzada (*Cassa, Fioreria, Emporio/Area Tecnica, Serra Calda, Serra Fredda*) e destinando i collaboratori disponibili al supporto vivaio e seconda cassa.
    - 👉 **Domanda per Vittore**: Il reparto Decor a Gazzada deve essere effettivamente presidiato da 1 persona dedicata ogni giorno (e in tal caso, quale collaboratore deve esserne il referente), oppure si tratta di un refuso di copia/incolla nel foglio *Necessità* e la necessità reale per Gazzada è 0 come indicato nel foglio *Reparti*?
 
-### 3. Riposi Settimanali Disaccoppiati
-- Recependo il feedback di Vittore ("*preferisco i giorni disaccoppiati, con 2 gg contigui al mese*"), l'algoritmo settimanale include una penalità sui riposi contigui: distribuisce i 2 giorni di riposo settimanale garantendo che **non siano consecutivi** (es. Martedì e Venerdì anziché Lunedì e Martedì consecutivi), massimizzando la continuità operativa del negozio.
+### 3. Riposi Settimanali Disaccoppiati con 2 Giorni Contigui al Mese
+- Recependo il feedback di Vittore ("*preferisco i giorni disaccoppiati, con 2 gg contigui al mese*"), l'algoritmo coordina la pianificazione mensile garantendo l'equilibrio ideale tra continuità aziendale e recupero psicofisico dei collaboratori:
+  - **Regola ordinaria (3 settimane su 4)**: i 2 giorni di riposo settimanale sono **disaccoppiati / separati** (es. Martedì e Venerdì), evitando di sguarnire i reparti per 48 ore continuative;
+  - **Rotazione mensile garantita (1 settimana su 4)**: a rotazione deterministica tra i collaboratori, ciascun dipendente ha una settimana del mese in cui gode di **2 giorni di riposo contigui** (es. Domenica-Lunedì o due giorni feriali consecutivi);
+  - **Copertura preservata**: i turni di riposo contiguo sono sfalsati tra i collaboratori sulle settimane del mese (solo 2 persone a Gazzada e 3-4 a Varese a settimana), garantendo il 100% di presidio in tutti i reparti.
 
 ---
 
@@ -145,6 +148,7 @@ Analizzando i tre fogli del file Excel fornito da Vittore emergono le seguenti a
 - [x] **Validazione competenze & priorità**: Caricata la matrice ufficiale da "Specifiche dipendenti turni.xlsx" (07/10/2026) con regola Abilità Più Alta = Reparto Primario e pesi di importanza reparto
 - [ ] **Denominazione Gazzada**: Scelta tra "Area Tecnica" (storico) ed "Emporio" (uniformato)
 - [ ] **Chiarimento Decor Gazzada**: Conferma se Decor a Gazzada ha necessità 0 o 1
-- [x] **Riposi disaccoppiati**: Implementata distribuzione riposi non consecutivi su 5 giorni lavorativi
+- [x] **Riposi disaccoppiati + 2 gg contigui al mese**: Implementata rotazione mensile (3 settimane con riposi separati + 1 settimana con 2 riposi consecutivi per ciascun dipendente)
 - [x] **Nuovi inserimenti Varese**: Integrati Luigi e Ivan a 40h dedicati al reparto Natale
 - [x] **Ridenominazioni**: Allineato Teo $\rightarrow$ Matteo F. (Gazzada) e Matteo $\rightarrow$ Matteo Z. (Varese)
+

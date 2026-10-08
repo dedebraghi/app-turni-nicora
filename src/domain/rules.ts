@@ -341,4 +341,5 @@ export const WORK_RULES = {
   PEAK_DAYS: [0, 6], // Domenica e Sabato
   MERCHANDISE_DAYS: [4, 5], // Giovedì e Venerdì (arrivo bilici/piante)
   QUIET_DAYS: [1, 2, 3], // Lunedì, Martedì, Mercoledì (~11% del fatturato cad.)
+  MONTHLY_CONTIGUOUS_REST_WEEKS_TARGET: 1, // Regola Nicora: 1 settimana al mese con 2 giorni di riposo contigui per ciascun dipendente
 };

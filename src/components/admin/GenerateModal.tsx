@@ -395,6 +395,10 @@ export const GenerateModal: React.FC<GenerateModalProps> = ({
                 <p>
                   • Presidio Cassa medio: <strong>{resultStats.cassaCoverageScore}%</strong>.
                 </p>
+                <p className="flex items-center gap-1 text-emerald-800 font-medium">
+                  <CheckCircle2 size={13} className="text-emerald-700 flex-shrink-0" />
+                  <span>Regola riposi applicata: 2 gg contigui garantiti al mese a rotazione per ciascun dipendente (giorni disaccoppiati nelle altre settimane).</span>
+                </p>
                 <div>
                   • Stato Copertura Reparti:{' '}
                   {resultStats.allDepartmentsCovered ? (

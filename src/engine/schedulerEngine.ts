@@ -29,6 +29,7 @@ export interface SchedulerOptions {
   mode?: ScheduleMode;   // 'standard' o 'continuato'
   isChristmasSeason?: boolean; // Se true (a Varese), attiva il reparto stagionale Natale (2 addetti)
   todayDate?: string;    // Data di riferimento (YYYY-MM-DD) per congelare i giorni passati
+  preferContiguousRestEmployeeIds?: Set<string> | string[]; // ID collaboratori con preferenza per 2 giorni contigui in questa settimana (regola Nicora)
 }
 
 export interface SuboptimalCoverageInfo {
@@ -56,6 +57,7 @@ export interface ScheduleGenerationResult {
     mode: ScheduleMode;
     preservedPastShiftsCount?: number;
     newlyGeneratedShiftsCount?: number;
+    monthlyContiguousRestSatisfied?: Record<string, boolean>; // employeeId -> true se ha almeno 2 giorni contigui di riposo/ferie nel mese
   };
 }
 
@@ -179,6 +181,53 @@ export const getWeekDays = (sundayDateStr: string): WeekDayMeta[] => {
   }
 
   return days;
+};
+
+/**
+ * Verifica se un collaboratore ha già usufruito di 2 o più giorni di riposo/assenza contigui
+ * (riposo, ferie, malattia) nel mese specificato (YYYY-MM).
+ * Riconosce sia coppie di giorni nello stesso mese che a cavallo di inizio mese.
+ */
+export const hasContiguousRestInMonth = (
+  employeeId: string,
+  monthPrefix: string,
+  shifts: Shift[] = [],
+  requests: ShiftRequest[] = []
+): boolean => {
+  const offDates = new Set<string>();
+
+  shifts.forEach((s) => {
+    if (s.employeeId === employeeId && (s.type === 'riposo' || s.type === 'ferie' || s.type === 'malattia')) {
+      offDates.add(s.date);
+    }
+  });
+
+  requests.forEach((r) => {
+    if (r.requesterId === employeeId && r.status === 'approved' && r.type === 'leave') {
+      offDates.add(r.shiftDate);
+    }
+  });
+
+  for (const dStr of offDates) {
+    if (dStr.startsWith(monthPrefix)) {
+      const [y, m, d] = dStr.split('-').map(Number);
+      const curDate = new Date(y, m - 1, d, 12, 0, 0);
+
+      const nextDate = new Date(curDate);
+      nextDate.setDate(nextDate.getDate() + 1);
+      const nextStr = formatLocalDate(nextDate);
+
+      const prevDate = new Date(curDate);
+      prevDate.setDate(prevDate.getDate() - 1);
+      const prevStr = formatLocalDate(prevDate);
+
+      if (offDates.has(nextStr) || offDates.has(prevStr)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 };
 
 /**
@@ -1113,6 +1162,7 @@ export const generateWeeklySchedule = ({
   mode = 'standard',
   isChristmasSeason = false,
   todayDate,
+  preferContiguousRestEmployeeIds,
 }: SchedulerOptions): ScheduleGenerationResult => {
   const storeStaff = employees.filter((e) => e.locationId === locationId && e.isActive !== false && !e.isOwner);
   const weekDays = getWeekDays(weekStartDate);
@@ -1175,10 +1225,50 @@ export const generateWeeklySchedule = ({
   const offDaysSchedule: Record<string, Set<number>> = {};
   const offCountsPerDay: number[] = [0, 0, 0, 0, 0, 0, 0];
 
+  const preferContiguousExplicit = preferContiguousRestEmployeeIds !== undefined;
+  const preferContiguousSet = new Set<string>(
+    preferContiguousRestEmployeeIds
+      ? (Array.isArray(preferContiguousRestEmployeeIds) ? preferContiguousRestEmployeeIds : Array.from(preferContiguousRestEmployeeIds))
+      : []
+  );
+
+  // Se la funzione è chiamata per una singola settimana senza lista esplicita,
+  // calcola a rotazione deterministica chi deve avere i 2 giorni contigui:
+  if (!preferContiguousExplicit) {
+    const monthPrefix = weekStartDate.substring(0, 7);
+    const [, , wD] = weekStartDate.split('-').map(Number);
+    const weekOfMonthIdx = Math.min(3, Math.floor((wD - 1) / 7));
+
+    storeStaff.forEach((emp, empIdx) => {
+      const alreadyHasContiguous = hasContiguousRestInMonth(
+        emp.id,
+        monthPrefix,
+        existingShifts,
+        requests
+      );
+      if (!alreadyHasContiguous && empIdx % 4 === weekOfMonthIdx % 4) {
+        preferContiguousSet.add(emp.id);
+      }
+    });
+  }
+
   storeStaff.forEach((emp) => {
+    const preferContiguous = preferContiguousSet.has(emp.id);
     const offDays = new Set<number>();
     const leaveDayIndices = new Set<number>();
     const pastWorkDayIndices = new Set<number>();
+
+    // Controlla se il sabato precedente (giorno prima di Domenica d=0) era un giorno di riposo/ferie/malattia
+    const [startY, startM, startD] = weekStartDate.split('-').map(Number);
+    const prevSatDate = new Date(startY, startM - 1, startD, 12, 0, 0);
+    prevSatDate.setDate(prevSatDate.getDate() - 1);
+    const prevSatStr = formatLocalDate(prevSatDate);
+    const prevSatKey = `${emp.id}_${prevSatStr}`;
+    const prevSatShift = existingShiftsMap.get(prevSatKey);
+    const prevSatLeave = approvedLeavesMap.get(prevSatKey);
+    const prevSatWasOff =
+      Boolean(prevSatLeave) ||
+      Boolean(prevSatShift && (prevSatShift.type === 'riposo' || prevSatShift.type === 'ferie' || prevSatShift.type === 'malattia'));
 
     weekDays.forEach((wDay) => {
       const key = `${emp.id}_${wDay.dateStr}`;
@@ -1213,19 +1303,41 @@ export const generateWeeklySchedule = ({
         if (!offDays.has(d) && !pastWorkDayIndices.has(d) && !isPastDay) {
           const weekendPenalty = (d === 0 || d === 6) ? 0.4 : 0;
 
-          // Regola Vittore Nicora: preferenza per giorni di riposo disaccoppiati (non contigui nella settimana)
-          let contiguityPenalty = 0;
-          for (const existingOff of offDays) {
-            const isContiguous =
-              Math.abs(d - existingOff) === 1 ||
-              (d === 0 && existingOff === 6) ||
-              (d === 6 && existingOff === 0);
-            if (isContiguous) {
-              contiguityPenalty += 3.0; // Penalizza riposi contigui per favorire riposi disaccoppiati
+          let contiguityScore = 0;
+
+          if (preferContiguous) {
+            // Regola Nicora: in questa settimana privilegiamo 2 giorni di riposo contigui
+            if (offDays.size === 1) {
+              const existingOff = Array.from(offDays)[0];
+              const isContiguous = Math.abs(d - existingOff) === 1;
+              if (isContiguous) {
+                contiguityScore = -6.0; // Forte preferenza per completare la coppia contigua
+              } else {
+                contiguityScore = 4.0; // Penalizza la separazione se in settimana contigua
+              }
+            } else if (offDays.size === 0) {
+              // Se il sabato precedente era libero, assegnando Domenica (d=0) si ottiene Sab+Dom contigui!
+              if (d === 0 && prevSatWasOff) {
+                contiguityScore = -4.0;
+              }
+            }
+          } else {
+            // Regola ordinaria Nicora: riposi disaccoppiati (non contigui nella settimana)
+            if (offDays.size === 1) {
+              const existingOff = Array.from(offDays)[0];
+              const isContiguous = Math.abs(d - existingOff) === 1;
+              if (isContiguous) {
+                contiguityScore = 6.0; // Penalizza riposi contigui per favorire riposi disaccoppiati
+              }
+            } else if (offDays.size === 0) {
+              // Se il sabato precedente era libero, evita la Domenica (d=0) per mantenere i riposi disaccoppiati
+              if (d === 0 && prevSatWasOff) {
+                contiguityScore = 5.0;
+              }
             }
           }
 
-          const score = offCountsPerDay[d] + weekendPenalty + contiguityPenalty;
+          const score = offCountsPerDay[d] + weekendPenalty + contiguityScore;
           if (score < minScore) {
             minScore = score;
             bestDay = d;
@@ -1685,7 +1797,13 @@ export const generateMonthlySchedule = ({
   let totalCassaScoreSum = 0;
   let totalWeeks = 0;
 
+  // Calcola tutte le domeniche comprese nella generazione del mese
+  const monthSundays: Date[] = [];
   let currSunday = new Date(firstSunday);
+  while (currSunday <= lastDayOfMonth) {
+    monthSundays.push(new Date(currSunday));
+    currSunday.setDate(currSunday.getDate() + 7);
+  }
 
   // Se overwriteExisting è true, filtriamo via i turni esistenti per la sede corrente
   // nel periodo del mese MA PRESERVIAMO SEMPRE i giorni passati (s.date < todayStr).
@@ -1703,9 +1821,74 @@ export const generateMonthlySchedule = ({
     : (existingShifts || []);
 
   const accumulatedShifts = [...baseExisting];
+  const storeStaff = employees.filter((e) => e.locationId === locationId && e.isActive !== false && !e.isOwner);
 
-  while (currSunday <= lastDayOfMonth) {
-    const weekStartStr = formatLocalDate(currSunday);
+  // Identifica le settimane pianificabili che appartengono prevalentemente al mese
+  // (almeno 4 giorni della settimana nel mese target e con termine >= todayStr)
+  let schedulableWeekIndices = monthSundays
+    .map((sDate, idx) => {
+      const sat = new Date(sDate);
+      sat.setDate(sat.getDate() + 6);
+      let daysInMonthCount = 0;
+      for (let offset = 0; offset < 7; offset++) {
+        const d = new Date(sDate);
+        d.setDate(d.getDate() + offset);
+        if (formatLocalDate(d).startsWith(monthPrefix)) {
+          daysInMonthCount++;
+        }
+      }
+      return { idx, satStr: formatLocalDate(sat), daysInMonthCount };
+    })
+    .filter((w) => w.satStr >= todayStr && w.daysInMonthCount >= 4)
+    .map((w) => w.idx);
+
+  // Fallback: se nessuna settimana ha >= 4 giorni (caso limite), prendi le settimane con almeno 1 giorno nel mese
+  if (schedulableWeekIndices.length === 0) {
+    schedulableWeekIndices = monthSundays
+      .map((sDate, idx) => {
+        const sat = new Date(sDate);
+        sat.setDate(sat.getDate() + 6);
+        let daysInMonthCount = 0;
+        for (let offset = 0; offset < 7; offset++) {
+          const d = new Date(sDate);
+          d.setDate(d.getDate() + offset);
+          if (formatLocalDate(d).startsWith(monthPrefix)) {
+            daysInMonthCount++;
+          }
+        }
+        return { idx, satStr: formatLocalDate(sat), daysInMonthCount };
+      })
+      .filter((w) => w.satStr >= todayStr && w.daysInMonthCount >= 1)
+      .map((w) => w.idx);
+  }
+
+  // Assegna a rotazione deterministica la settimana di riposo contiguo a ciascun dipendente
+  // (salvo chi ha già usufruito di riposi/ferie contigui nel mese nei turni storici o richieste approvate)
+  const employeeTargetWeekMap = new Map<string, number>();
+
+  if (schedulableWeekIndices.length > 0) {
+    const needingContiguous = storeStaff.filter(
+      (emp) => !hasContiguousRestInMonth(emp.id, monthPrefix, baseExisting, requests)
+    );
+
+    needingContiguous.forEach((emp, i) => {
+      const targetWeekIdx = schedulableWeekIndices[i % schedulableWeekIndices.length];
+      employeeTargetWeekMap.set(emp.id, targetWeekIdx);
+    });
+  }
+
+  for (let wIdx = 0; wIdx < monthSundays.length; wIdx++) {
+    const sundayDate = monthSundays[wIdx];
+    const weekStartStr = formatLocalDate(sundayDate);
+
+    // Dipendenti che in questa specifica settimana devono godere dei 2 riposi contigui
+    const contiguousEmpIdsThisWeek = new Set<string>();
+    storeStaff.forEach((emp) => {
+      if (employeeTargetWeekMap.get(emp.id) === wIdx) {
+        contiguousEmpIdsThisWeek.add(emp.id);
+      }
+    });
+
     const weekRes = generateWeeklySchedule({
       locationId,
       employees,
@@ -1715,6 +1898,7 @@ export const generateMonthlySchedule = ({
       mode,
       isChristmasSeason,
       todayDate: todayStr,
+      preferContiguousRestEmployeeIds: contiguousEmpIdsThisWeek,
     });
 
     allShifts.push(...weekRes.shifts);
@@ -1723,9 +1907,6 @@ export const generateMonthlySchedule = ({
     totalWeeks++;
 
     warnings.push(...weekRes.stats.warnings);
-
-    // Salta alla settimana successiva (+7 giorni)
-    currSunday.setDate(currSunday.getDate() + 7);
   }
 
   // Deduplica i turni creati per employeeId + data
@@ -1740,7 +1921,6 @@ export const generateMonthlySchedule = ({
     (s) => s.locationId === locationId && s.date.startsWith(monthPrefix) && s.date >= todayStr
   ).length;
 
-  const storeStaff = employees.filter((e) => e.locationId === locationId && e.isActive !== false && !e.isOwner);
   const employeesWorkingDays: Record<string, number> = {};
   const employeesWorkingHours: Record<string, EmployeeWeeklyHours> = {};
 
@@ -1766,6 +1946,16 @@ export const generateMonthlySchedule = ({
 
   const allDepartmentsCovered = uncoveredDaysList.length === 0;
 
+  const monthlyContiguousRestSatisfied: Record<string, boolean> = {};
+  storeStaff.forEach((emp) => {
+    monthlyContiguousRestSatisfied[emp.id] = hasContiguousRestInMonth(
+      emp.id,
+      monthPrefix,
+      uniqueShifts,
+      requests
+    );
+  });
+
   return {
     shifts: uniqueShifts,
     stats: {
@@ -1783,6 +1973,7 @@ export const generateMonthlySchedule = ({
       uncoveredDays: uncoveredDaysList,
       warnings: Array.from(new Set(warnings)),
       mode,
+      monthlyContiguousRestSatisfied,
     },
   };
 };
