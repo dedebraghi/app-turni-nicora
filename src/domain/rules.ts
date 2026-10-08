@@ -33,6 +33,18 @@ export const getLocationDepartments = (
 };
 
 /**
+ * Normalizza il nome del reparto a seconda della sede:
+ * a Gazzada 'Area Tecnica' corrisponde storicamente all'Emporio.
+ */
+export const normalizeDepartment = (dept?: string, locationId?: LocationId): Department | undefined => {
+  if (!dept) return undefined;
+  if (locationId === 'gazzada' && dept === 'Area Tecnica') {
+    return 'Emporio';
+  }
+  return dept as Department;
+};
+
+/**
  * Livelli di importanza per reparto specificati da Vittore Nicora (Specifiche dipendenti turni.xlsx)
  */
 export const DEPARTMENT_IMPORTANCE: Record<LocationId, Record<Department, number | 'STAGIONALE'>> = {

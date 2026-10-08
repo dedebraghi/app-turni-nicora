@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Department, Employee, LocationId, LocationInfo, Shift, ShiftRequest } from '../../domain/types';
-import { getLocationDepartments } from '../../domain/rules';
+import { getLocationDepartments, normalizeDepartment } from '../../domain/rules';
 import { calculateFairnessMetrics } from '../../engine/fairnessTracker';
 import {
   calculateDayCoverage,
@@ -186,7 +186,8 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
     if (s.type === 'riposo' || s.type === 'ferie' || s.type === 'malattia') {
       return false;
     }
-    const effectiveDept = s.department || empRole;
+    const rawDept = s.department || empRole;
+    const effectiveDept = normalizeDepartment(rawDept, location.id);
     if (targetDept === 'Cassa') {
       return effectiveDept === 'Cassa' || Boolean(s.areaNote && s.areaNote.toLowerCase().includes('cassa'));
     }
@@ -848,7 +849,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                               {emp.name}
                             </span>
                             <span className="text-[10px] text-neutral-400 block truncate">
-                              {emp.role}
+                              {normalizeDepartment(emp.role, location.id)}
                             </span>
                           </div>
                         </div>
@@ -925,6 +926,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                       const isTargetDeptMatch = selectedDeptFilter !== 'all' && isShiftInDept(shift, selectedDeptFilter, emp.role);
                       const isDimmed = selectedDeptFilter !== 'all' && !isTargetDeptMatch;
 
+                      const effectiveShiftDept = normalizeDepartment(shift.department, location.id) || normalizeDepartment(emp.role, location.id);
                       return (
                         <td
                           key={day.dateStr}
@@ -962,27 +964,27 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                               } ${
                                 isCassa
                                   ? 'bg-rose-50 border-rose-200 text-rose-900 font-extrabold'
-                                  : shift.department === 'Fioreria'
+                                  : effectiveShiftDept === 'Fioreria'
                                   ? 'bg-fuchsia-50 border-fuchsia-200 text-fuchsia-900 font-bold'
-                                  : shift.department === 'Decor'
+                                  : effectiveShiftDept === 'Decor'
                                   ? 'bg-amber-50 border-amber-200 text-amber-900 font-bold'
-                                  : shift.department === 'Serra Calda'
+                                  : effectiveShiftDept === 'Serra Calda'
                                   ? 'bg-orange-50 border-orange-200 text-orange-900 font-bold'
-                                  : shift.department === 'Serra Fredda'
+                                  : effectiveShiftDept === 'Serra Fredda'
                                   ? 'bg-emerald-50 border-emerald-200 text-emerald-900 font-bold'
-                                  : shift.department === 'Area Tecnica'
+                                  : effectiveShiftDept === 'Area Tecnica'
                                   ? 'bg-slate-50 border-slate-200 text-slate-900 font-bold'
-                                  : shift.department === 'Emporio'
+                                  : effectiveShiftDept === 'Emporio'
                                   ? 'bg-indigo-50 border-indigo-200 text-indigo-900 font-bold'
-                                  : shift.department === 'Natale'
+                                  : effectiveShiftDept === 'Natale'
                                   ? 'bg-red-50 border-red-200 text-red-900 font-bold'
                                   : 'bg-sky-50 border-sky-200 text-sky-900 font-bold'
                               }`}
                             >
                               <div className="text-[10px] truncate leading-tight flex items-center justify-between gap-0.5">
-                                <span className="truncate">{shift.department || emp.role}</span>
+                                <span className="truncate">{effectiveShiftDept}</span>
                                 {isManagerMode && (() => {
-                                  const score = shift.assignedSkillScore ?? emp.skills?.[shift.department || emp.role] ?? 1;
+                                  const score = shift.assignedSkillScore ?? emp.skills?.[effectiveShiftDept || emp.role] ?? 1;
                                   return (
                                     <span
                                       className={`text-[8px] font-black px-1 rounded-full shadow-2xs leading-none flex-shrink-0 ${

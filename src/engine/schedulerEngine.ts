@@ -4,6 +4,7 @@ import {
   DEPARTMENT_IMPORTANCE,
   DEPARTMENTS,
   getLocationDepartments,
+  normalizeDepartment,
   STANDARD_HOURS,
 } from '../domain/rules';
 import {
@@ -297,33 +298,35 @@ export const calculateDayCoverage = (
   let totalSkillCount = 0;
 
   dayShifts.forEach((s) => {
-    if (s.department) {
-      if (s.department === 'Cassa') cassaCount++;
-      else if (s.department === 'Fioreria') fioreriaCount++;
-      else if (s.department === 'Serra Fredda') serraFreddaCount++;
-      else if (s.department === 'Serra Calda') serraCaldaCount++;
-      else if (s.department === 'Area Tecnica') areaTecnicaCount++;
-      else if (s.department === 'Decor') decorCount++;
-      else if (s.department === 'Emporio') emporioCount++;
-      else if (s.department === 'Natale') nataleCount++;
+    const rawDept = s.department;
+    const normalizedDept = normalizeDepartment(rawDept, locationId || s.locationId);
+    if (normalizedDept) {
+      if (normalizedDept === 'Cassa') cassaCount++;
+      else if (normalizedDept === 'Fioreria') fioreriaCount++;
+      else if (normalizedDept === 'Serra Fredda') serraFreddaCount++;
+      else if (normalizedDept === 'Serra Calda') serraCaldaCount++;
+      else if (normalizedDept === 'Area Tecnica') areaTecnicaCount++;
+      else if (normalizedDept === 'Decor') decorCount++;
+      else if (normalizedDept === 'Emporio') emporioCount++;
+      else if (normalizedDept === 'Natale') nataleCount++;
 
       const emp = employees.find((e) => e.id === s.employeeId);
       const empName = emp ? emp.name : s.employeeId;
       const hours = s.startTime && s.endTime ? `${s.startTime}-${s.endTime}` : s.type;
 
-      if (!departmentStaff[s.department]) {
-        departmentStaff[s.department] = [];
+      if (!departmentStaff[normalizedDept]) {
+        departmentStaff[normalizedDept] = [];
       }
-      departmentStaff[s.department]!.push({
+      departmentStaff[normalizedDept]!.push({
         employeeId: s.employeeId,
         name: empName,
-        department: s.department,
+        department: normalizedDept,
         hours,
       });
 
       if (s.assignedSkillScore !== undefined) {
-        deptScoresSum[s.department] = (deptScoresSum[s.department] || 0) + s.assignedSkillScore;
-        deptScoresCount[s.department] = (deptScoresCount[s.department] || 0) + 1;
+        deptScoresSum[normalizedDept] = (deptScoresSum[normalizedDept] || 0) + s.assignedSkillScore;
+        deptScoresCount[normalizedDept] = (deptScoresCount[normalizedDept] || 0) + 1;
         totalSkillSum += s.assignedSkillScore;
         totalSkillCount++;
       }
@@ -413,7 +416,8 @@ export const detectDepartmentHourlyGap = (
     if (s.type === 'riposo' || s.type === 'ferie' || s.type === 'malattia') return false;
 
     const emp = employees?.find((e) => e.id === s.employeeId);
-    const effectiveDept = s.department || emp?.role;
+    const rawDept = s.department || emp?.role;
+    const effectiveDept = normalizeDepartment(rawDept, locationId || s.locationId);
     const isDept =
       effectiveDept === department ||
       Boolean(s.areaNote && s.areaNote.toLowerCase().includes(department.toLowerCase()));
@@ -1745,7 +1749,7 @@ export const generateMonthlySchedule = ({
   for (let d = 1; d <= daysInMonth; d++) {
     const curDate = new Date(year, month - 1, d);
     const dateStr = formatLocalDate(curDate);
-    const dayCov = calculateDayCoverage(dateStr, uniqueShifts, storeStaff);
+    const dayCov = calculateDayCoverage(dateStr, uniqueShifts, storeStaff, locationId, isChristmasSeason);
     if (dayCov.uncoveredDepartments.length > 0) {
       uncoveredDaysList.push({
         dateStr,

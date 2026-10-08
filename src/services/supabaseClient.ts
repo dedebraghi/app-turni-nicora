@@ -1,5 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Employee, LocationId, Shift, ShiftRequest } from '../domain/types';
+import { normalizeDepartment } from '../domain/rules';
 
 const defaultSupabaseUrl = 'https://orxvvlgaguekvdnhqqft.supabase.co';
 const defaultAnonKey =
@@ -25,11 +26,13 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured
 // ==========================================
 
 export function mapDbToEmployee(row: any): Employee {
+  const locId = row.location_id as LocationId;
+  const normalizedRole = normalizeDepartment(row.role, locId) || row.role;
   return {
     id: row.id,
     name: row.name,
-    locationId: row.location_id as LocationId,
-    role: row.role,
+    locationId: locId,
+    role: normalizedRole,
     skills: row.skills || { Cassa: 5, Fioreria: 5, Decor: 5, 'Serra Calda': 5, 'Serra Fredda': 5 },
     avatar: row.avatar || row.name.slice(0, 2).toUpperCase(),
     email: row.email,
@@ -62,13 +65,15 @@ export function mapEmployeeToDb(emp: Employee) {
 }
 
 export function mapDbToShift(row: any): Shift {
+  const locId = row.location_id as LocationId;
+  const normalizedDept = normalizeDepartment(row.department, locId) || row.department;
   return {
     id: row.id,
     employeeId: row.employee_id,
-    locationId: row.location_id as LocationId,
+    locationId: locId,
     date: row.date,
     type: row.type,
-    department: row.department || undefined,
+    department: normalizedDept || undefined,
     startTime: row.start_time || undefined,
     endTime: row.end_time || undefined,
     areaNote: row.area_note || undefined,

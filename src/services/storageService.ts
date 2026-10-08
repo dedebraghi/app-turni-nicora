@@ -1,5 +1,5 @@
 import { INITIAL_EMPLOYEES, INITIAL_REQUESTS } from '../domain/mockData';
-import { computePrimaryRole } from '../domain/rules';
+import { computePrimaryRole, normalizeDepartment } from '../domain/rules';
 import { Employee, LocationId, Shift, ShiftRequest, UserSession } from '../domain/types';
 import { formatLocalDate, generateWeeklySchedule, getSundayOfWeek } from '../engine/schedulerEngine';
 
@@ -89,7 +89,12 @@ export const loadStoredShifts = (): Shift[] => {
       const saved = localStorage.getItem(STORAGE_KEYS.SHIFTS);
       if (saved) {
         const shifts: Shift[] = JSON.parse(saved);
-        return shifts.filter((s) => s.employeeId !== 'emp-gz-4');
+        return shifts
+          .filter((s) => s.employeeId !== 'emp-gz-4')
+          .map((s) => ({
+            ...s,
+            department: normalizeDepartment(s.department, s.locationId) || s.department,
+          }));
       }
     }
   } catch (e) {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Department, Employee, LocationId, LocationInfo, Shift, WeekDayMeta } from '../../domain/types';
-import { DEPARTMENT_COLORS, getLocationDepartments, SHIFT_COLORS } from '../../domain/rules';
+import { DEPARTMENT_COLORS, getLocationDepartments, normalizeDepartment, SHIFT_COLORS } from '../../domain/rules';
 import {
   calculateDayCoverage,
   calculateEmployeeWeeklyHours,
@@ -766,7 +766,8 @@ export const MobileDayView: React.FC<MobileDayViewProps> = ({
               const isMalattia = shift?.type === 'malattia';
               const isWorking = !isOff && !isFerie && !isMalattia && Boolean(shift);
 
-              const effectiveDept = shift?.department || emp.role;
+              const rawDept = shift?.department || emp.role;
+              const effectiveDept = normalizeDepartment(rawDept, location.id) || 'Cassa';
               const theme = getDeptTheme(effectiveDept);
               const shiftStyle = shift ? SHIFT_COLORS[shift.type] : SHIFT_COLORS.riposo;
 
