@@ -423,10 +423,8 @@ export const verifyEmployeePin = async (
   employee: Employee,
   enteredPin: string
 ): Promise<boolean> => {
-  // Supporta '1234', '123' o la password/pin registrata per compatibilità iniziale
-  const validPins = [employee.password, '1234', '123'].filter(Boolean);
-
-  if (validPins.includes(enteredPin)) {
+  // Nessun PIN jolly: vale solo il PIN registrato (o il provvisorio '1234' se non impostato)
+  if (enteredPin === (employee.password || '1234')) {
     return true;
   }
 
@@ -616,6 +614,8 @@ export interface RealtimeSubscriptionHandlers {
   }) => void;
   onConfigChange?: (publishedMonths: Set<string>) => void;
   onIgnoredGapsChange?: (ignoredGapIds: string[]) => void;
+  /** Aggiornamento anagrafica collaboratore (es. cambio PIN da altro dispositivo) */
+  onEmployeeChange?: (employee: Employee) => void;
 }
 
 /**
@@ -690,6 +690,13 @@ export const subscribeToRealtimeChanges = (
               newRecord.skills.ignored_gaps.filter((g: any) => typeof g === 'string')
             );
           }
+        } else if (
+          newRecord &&
+          typeof newRecord.id === 'string' &&
+          !newRecord.id.startsWith('sys-') &&
+          payload.eventType !== 'DELETE'
+        ) {
+          handlers.onEmployeeChange?.(mapDbToEmployee(newRecord));
         }
       }
     )

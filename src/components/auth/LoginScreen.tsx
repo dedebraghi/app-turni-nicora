@@ -95,8 +95,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
         setError('Inserisci il tuo PIN personale');
         return;
       }
-      const validPins = [emp.password, '1234', '123'].filter(Boolean);
-      if (!validPins.includes(password)) {
+      // Nessun PIN jolly: vale solo il PIN del collaboratore (o il provvisorio 1234 se mai impostato/resettato)
+      const expectedPin = emp.password || '1234';
+      if (password !== expectedPin) {
         setError('PIN non corretto. Verifica il codice o tocca "Hai dimenticato il PIN?"');
         return;
       }

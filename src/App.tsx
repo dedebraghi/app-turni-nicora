@@ -14,6 +14,7 @@ import { PrintExportModal } from './components/admin/PrintExportModal';
 import { EditShiftModal } from './components/common/EditShiftModal';
 import { OnboardingTutorial } from './components/common/OnboardingTutorial';
 import { LoginScreen } from './components/auth/LoginScreen';
+import { ForcePinChangeModal } from './components/auth/ForcePinChangeModal';
 import { NotificationToast, ToastMessage } from './components/common/NotificationToast';
 
 import { ActiveTab, Department, Employee, LocationId, Shift, ShiftRequest, ShiftRequestStatus, ShiftType, SkillScores, UserSession } from './domain/types';
@@ -239,11 +240,52 @@ export const App: React.FC = () => {
         saveIgnoredGapIds(cloudIds);
         setIgnoredGapIds(cloudIds);
       },
+      onEmployeeChange: (cloudEmp) => {
+        setEmployees((prev) =>
+          prev.some((e) => e.id === cloudEmp.id)
+            ? prev.map((e) => (e.id === cloudEmp.id ? cloudEmp : e))
+            : prev
+        );
+      },
     });
 
     return () => {
       if (shiftFlushTimer) clearTimeout(shiftFlushTimer);
       unsubscribe();
+    };
+  }, [session]);
+
+  // Sicurezza PIN: se il PIN del collaboratore loggato è stato cambiato altrove (altro dispositivo
+  // o reset della Direzione), la sessione locale non è più valida e va rifatto il login.
+  useEffect(() => {
+    if (!session || session.role !== 'employee') return;
+    const cloudEmp = employees.find((e) => e.id === session.user.id);
+    if (!cloudEmp) return;
+    if ((cloudEmp.password || '1234') !== (session.user.password || '1234')) {
+      setSession(null);
+      setIsManagerMode(false);
+      setActiveTab('today');
+      alert('Il tuo PIN è stato modificato. Accedi di nuovo con il nuovo PIN.');
+    }
+  }, [employees, session]);
+
+  // Al ritorno sull'app (cambio tab / riapertura PWA) risincronizza i collaboratori dal cloud
+  useEffect(() => {
+    if (!session || session.role !== 'employee') return;
+    const refresh = async () => {
+      if (document.visibilityState !== 'visible') return;
+      try {
+        const cloudEmps = await fetchCloudEmployees();
+        if (cloudEmps && cloudEmps.length > 0) setEmployees(cloudEmps);
+      } catch (err) {
+        console.warn('[Cloud] Risincronizzazione collaboratori fallita:', err);
+      }
+    };
+    document.addEventListener('visibilitychange', refresh);
+    window.addEventListener('focus', refresh);
+    return () => {
+      document.removeEventListener('visibilitychange', refresh);
+      window.removeEventListener('focus', refresh);
     };
   }, [session]);
 
@@ -638,7 +680,16 @@ export const App: React.FC = () => {
       return next;
     });
     setSession((prev) => (prev && prev.user.id === empToSave.id ? { ...prev, user: empToSave } : prev));
-    await saveCloudEmployee(empToSave);
+    const saveResult = await saveCloudEmployee(empToSave);
+    if (!saveResult.success) {
+      setToast({
+        id: `toast-${Date.now()}`,
+        title: 'Salvataggio non riuscito',
+        message: `Le modifiche a ${empToSave.name} (PIN incluso) non sono state sincronizzate con il cloud. Controlla la connessione e riprova.`,
+        type: 'warning',
+      });
+      return;
+    }
     setToast({
       id: `toast-${Date.now()}`,
       title: 'Anagrafica Collaboratore Salvata',
@@ -1026,7 +1077,15 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-nicora-bg text-nicora-text flex flex-col antialiased">
-      
+      {!currentEmployee.isManager &&
+        !currentEmployee.isOwner &&
+        (!currentEmployee.password || currentEmployee.password === '1234') && (
+          <ForcePinChangeModal
+            employeeName={currentEmployee.name}
+            onLogout={handleLogout}
+            onSave={(newPin) => handleSaveEmployee({ ...currentEmployee, password: newPin })}
+          />
+        )}
       {/* Header Superiore */}
       <AppHeader
         session={session}

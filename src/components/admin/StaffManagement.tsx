@@ -269,7 +269,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
                         <span className="text-neutral-400">•</span>
                         <span className="text-neutral-600 font-medium text-[11px] flex items-center gap-1">
                           <KeyRound size={11} className="text-amber-600" />
-                          <span>PIN: •••• ({emp.password || '1234'})</span>
+                          <span>PIN: {!emp.password || emp.password === '1234' ? 'provvisorio (da cambiare)' : 'personale (riservato)'}</span>
                         </span>
                       </div>
                     </div>

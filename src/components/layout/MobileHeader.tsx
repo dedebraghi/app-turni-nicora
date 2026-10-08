@@ -82,7 +82,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
     const actualSecret = employee.password || defaultSecret;
     const validCurrentSecrets = isManagerAccount
       ? [actualSecret, 'admin']
-      : [actualSecret, '1234', '123'];
+      : [actualSecret];
 
     if (!validCurrentSecrets.includes(currentPinInput)) {
       setPinError(
