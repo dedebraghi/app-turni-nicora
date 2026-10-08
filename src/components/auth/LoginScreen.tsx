@@ -21,8 +21,10 @@ import {
   Store, 
   User, 
   Users,
+  RefreshCw,
   X 
 } from 'lucide-react';
+import { forceAppUpdate } from '../../services/appUpdateService';
 
 const MASTER_RECOVERY_KEY = 'NicoraMaster2026!';
 
@@ -458,13 +460,23 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
         </div>
 
         {/* Contextual Footer */}
-        <div className="text-center space-y-1 pt-1 text-[11px] text-nicora-muted">
+        <div className="text-center space-y-1.5 pt-1 text-[11px] text-nicora-muted">
           <p className="uppercase tracking-wider font-semibold text-[10px]">
             Sedi Garden Center: Gazzada Schianno • Varese
           </p>
-          <p className="text-[10px] text-neutral-400">
-            Nicora Verde &amp; Paesaggi S.r.l.
-          </p>
+          <div className="flex items-center justify-center gap-2 text-[10px] text-neutral-400">
+            <span>Nicora Verde &amp; Paesaggi S.r.l.</span>
+            <span>•</span>
+            <button
+              type="button"
+              onClick={() => forceAppUpdate()}
+              className="text-neutral-500 hover:text-nicora-teal underline inline-flex items-center gap-1 cursor-pointer"
+              title="Ricarica l'ultima versione dell'applicazione senza eliminare i dati salvati"
+            >
+              <RefreshCw size={10} />
+              <span>Verifica aggiornamenti</span>
+            </button>
+          </div>
         </div>
 
       </div>

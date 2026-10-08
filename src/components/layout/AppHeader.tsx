@@ -4,6 +4,7 @@ import { InstallPWAButton } from '../InstallPWAButton';
 import { LOCATIONS } from '../../domain/mockData';
 import { Employee, LocationId, UserSession } from '../../domain/types';
 import { AlertCircle, Check, ChevronDown, FileText, HelpCircle, KeyRound, LogOut, MapPin, RefreshCw, X } from 'lucide-react';
+import { forceAppUpdate } from '../../services/appUpdateService';
 
 interface AppHeaderProps {
   session: UserSession;
@@ -264,6 +265,19 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                           <span>{isManagerAccount ? 'Modifica Password' : 'Modifica PIN'}</span>
                         </button>
                       )}
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setIsProfileMenuOpen(false);
+                          await forceAppUpdate();
+                        }}
+                        className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-teal-50 hover:bg-teal-100 text-nicora-teal text-xs font-semibold transition-colors cursor-pointer"
+                        title="Scarica l'ultima versione del codice mantenendo intatti login e dati"
+                      >
+                        <RefreshCw size={14} className="text-nicora-teal" />
+                        <span>Verifica aggiornamenti app</span>
+                      </button>
 
                       <button
                         type="button"
