@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "timestamp": "2026-10-05T12:08:19.804Z",
+    "timestamp": "2026-10-08T16:15:08.930Z",
     "rowCount": 33,
     "supabaseUrl": "https://orxvvlgaguekvdnhqqft.supabase.co"
   },
@@ -150,7 +150,7 @@
         "Serra Fredda": 10
       },
       "avatar": "VN",
-      "email": "vittore@nicoragarden.it",
+      "email": "vittore@nicora.eu",
       "phone": "335 1122334",
       "pin": "admin",
       "is_manager": true,
@@ -711,21 +711,21 @@
     },
     {
       "id": "sys-app-config",
-      "name": "System Config",
+      "name": "Configurazione Sistema",
       "location_id": "gazzada",
-      "role": "System",
+      "role": "Area Tecnica",
       "skills": {
         "published_months": []
       },
-      "avatar": "SY",
-      "email": "system@internal.app",
+      "avatar": "CF",
+      "email": "system-config@nicoragarden.local",
       "phone": null,
       "pin": "1234",
       "is_manager": false,
       "contract_hours": 0,
       "is_active": false,
       "created_at": "2026-10-05T09:07:02.519515+00:00",
-      "updated_at": "2026-10-05T09:07:02.519515+00:00"
+      "updated_at": "2026-10-05T15:10:57.386+00:00"
     }
   ]
 }

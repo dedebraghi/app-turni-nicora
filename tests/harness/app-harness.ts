@@ -128,7 +128,13 @@ export class AppHarness {
     }
 
     const managerUser =
-      this.employees.find((e) => e.email?.toLowerCase() === email.toLowerCase() && (e.isManager || e.isOwner)) ||
+      this.employees.find(
+        (e) =>
+          (e.email?.toLowerCase() === email.toLowerCase() ||
+           (email.toLowerCase() === 'vittore@nicoragarden.it' && e.email?.toLowerCase() === 'vittore@nicora.eu') ||
+           (email.toLowerCase() === 'vittore@nicora.eu' && e.email?.toLowerCase() === 'vittore@nicoragarden.it')) &&
+          (e.isManager || e.isOwner)
+      ) ||
       this.employees.find((e) => e.isManager && e.locationId === this.activeLocation) ||
       this.employees.find((e) => e.isManager) || {
         id: 'manager-admin',

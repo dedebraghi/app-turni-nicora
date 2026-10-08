@@ -56,7 +56,7 @@ export const loadStoredEmployees = (): Employee[] => {
         if (updated.id === 'emp-gz-5' && updated.contractHours === 30) {
           updated = { ...updated, contractHours: 40 };
         }
-        if (updated.id === 'emp-gz-4' || updated.email === 'vittore@nicoragarden.it') {
+        if (updated.id === 'emp-gz-4' || updated.email === 'vittore@nicora.eu' || updated.email === 'vittore@nicoragarden.it') {
           updated = { ...updated, isOwner: true, contractHours: 0 };
         }
         // Riconcilia il reparto primario dinamico dall'abilità più alta

@@ -77,7 +77,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: 'Emporio',
     skills: { Emporio: 10, 'Serra Calda': 10, 'Serra Fredda': 10, Cassa: 8, Fioreria: 8 },
     avatar: 'VN',
-    email: 'vittore@nicoragarden.it',
+    email: 'vittore@nicora.eu',
     phone: '335 1122334',
     password: 'admin',
     isManager: true,

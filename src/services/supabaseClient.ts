@@ -39,8 +39,8 @@ export function mapDbToEmployee(row: any): Employee {
     phone: row.phone || undefined,
     password: row.pin || '1234',
     isManager: Boolean(row.is_manager),
-    isOwner: Boolean(row.is_owner) || row.id === 'emp-gz-4' || row.email === 'vittore@nicoragarden.it',
-    contractHours: (row.id === 'emp-gz-4' || row.email === 'vittore@nicoragarden.it') ? 0 : (row.contract_hours || 40),
+    isOwner: Boolean(row.is_owner) || row.id === 'emp-gz-4' || row.email === 'vittore@nicora.eu' || row.email === 'vittore@nicoragarden.it',
+    contractHours: (row.id === 'emp-gz-4' || row.email === 'vittore@nicora.eu' || row.email === 'vittore@nicoragarden.it') ? 0 : (row.contract_hours || 40),
     isActive: row.is_active !== false,
   };
 }

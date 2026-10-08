@@ -45,8 +45,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const [managerEmail, setManagerEmail] = useState<string>('vittore@nicoragarden.it');
-  const [password, setPassword] = useState<string>('1234');
+  const [managerEmail, setManagerEmail] = useState<string>('vittore@nicora.eu');
+  const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string>('');
   const [isForgotPinModalOpen, setIsForgotPinModalOpen] = useState(false);
@@ -73,11 +73,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Update password demo default when changing roles
+  // Reset password when changing roles
   const handleRoleChange = (role: 'employee' | 'manager') => {
     setLoginRole(role);
     setError('');
-    setPassword(role === 'manager' ? 'admin' : '1234');
+    setPassword('');
     setIsDropdownOpen(false);
   };
 
@@ -91,9 +91,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
         setError('Seleziona il tuo profilo collaboratore');
         return;
       }
+      if (!password) {
+        setError('Inserisci il tuo PIN personale');
+        return;
+      }
       const validPins = [emp.password, '1234', '123'].filter(Boolean);
-      if (password && !validPins.includes(password)) {
-        setError('PIN non corretto (predefinito demo: 1234)');
+      if (!validPins.includes(password)) {
+        setError('PIN non corretto. Verifica il codice o tocca "Hai dimenticato il PIN?"');
         return;
       }
 
@@ -105,11 +109,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
         emp.locationId
       );
     } else {
+      if (!password) {
+        setError('Inserisci la password di direzione');
+        return;
+      }
       const managerUser =
         employees.find(
           (e) =>
             e.isManager &&
-            e.email?.toLowerCase() === managerEmail.trim().toLowerCase()
+            (e.email?.toLowerCase() === managerEmail.trim().toLowerCase() ||
+             (managerEmail.trim().toLowerCase() === 'vittore@nicora.eu' && e.email?.toLowerCase() === 'vittore@nicoragarden.it'))
         ) ||
         employees.find((e) => e.locationId === activeLocation && e.isManager) ||
         employees.find((e) => e.isManager) || {
@@ -133,7 +142,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
       ].filter(Boolean);
 
       if (!validManagerPasswords.includes(password)) {
-        setError('Password direzione non corretta (demo: admin)');
+        setError('Password direzione non corretta');
         return;
       }
 
@@ -342,7 +351,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
                       value={managerEmail}
                       onChange={(e) => setManagerEmail(e.target.value)}
                       className="w-full bg-neutral-50 border border-nicora-sage-border rounded-xl pl-9 pr-3 py-2.5 text-neutral-800 font-medium focus:ring-2 focus:ring-nicora-teal focus:outline-none min-h-[44px]"
-                      placeholder="es. vittore@nicoragarden.it"
+                      placeholder="es. vittore@nicora.eu"
                       required
                     />
                     <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-neutral-400 pointer-events-none">
@@ -358,9 +367,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
                   <label className="font-semibold text-nicora-text">
                     {loginRole === 'manager' ? 'Password Direzione:' : 'PIN Personale:'}
                   </label>
-                  <span className="text-[10px] text-nicora-orange font-bold uppercase tracking-wider">
-                    {loginRole === 'manager' ? 'demo: admin' : 'demo: 1234'}
-                  </span>
                 </div>
                 <div className="relative flex items-center">
                   <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-neutral-400 pointer-events-none">
@@ -441,23 +447,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
           </div>
         </div>
 
-        {/* Demo Quick Access Callout Box */}
-        <div className="bg-amber-50/70 border border-amber-200/60 rounded-2xl p-3.5 space-y-2 text-xs">
-          <div className="flex items-center gap-1.5 text-nicora-orange font-bold">
-            <Sparkles size={15} />
-            <span>Accesso Rapido Demo:</span>
-          </div>
-          <div className="space-y-1 text-neutral-600 text-[11px] pl-1">
-            <p className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-nicora-orange flex-shrink-0"></span>
-              <span><strong>Collaboratore:</strong> seleziona sede e nominativo (PIN: <code className="bg-white px-1.5 py-0.5 rounded border border-amber-200 font-bold text-amber-800">1234</code>)</span>
-            </p>
-            <p className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-nicora-teal flex-shrink-0"></span>
-              <span><strong>Direzione / Manager:</strong> tocca tab Responsabile (password: <code className="bg-white px-1.5 py-0.5 rounded border border-amber-200 font-bold text-amber-800">admin</code>)</span>
-            </p>
-          </div>
-        </div>
 
         {/* Contextual Footer */}
         <div className="text-center space-y-1.5 pt-1 text-[11px] text-nicora-muted">

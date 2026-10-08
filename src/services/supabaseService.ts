@@ -46,12 +46,12 @@ export const fetchCloudEmployees = async (): Promise<Employee[]> => {
 
     if (error) throw error;
     if (data && data.length > 0) {
-      // Controllo se i dati su Supabase sono ancora quelli fittizi delle vecchie demo
-      const hasMockDemoNames = data.some((e: any) =>
+      // Controllo se i dati su Supabase sono ancora quelli fittizi di prova iniziali
+      const hasMockSampleNames = data.some((e: any) =>
         e.name === 'Cecilia T.' || e.name === 'Marco V.' || e.name === 'Alessandro N.' || e.name === 'Andrea P.'
       );
 
-      if (hasMockDemoNames) {
+      if (hasMockSampleNames) {
         console.info('[Supabase] Rilevati nomi fittizi nel DB: pulizia ed eliminazione definitiva...');
         
         // 1. Elimina da Supabase i vecchi dipendenti fittizi che non appartengono allo staff reale
@@ -423,7 +423,7 @@ export const verifyEmployeePin = async (
   employee: Employee,
   enteredPin: string
 ): Promise<boolean> => {
-  // Supporta '1234', '123' o la password/pin registrata per compatibilità demo
+  // Supporta '1234', '123' o la password/pin registrata per compatibilità iniziale
   const validPins = [employee.password, '1234', '123'].filter(Boolean);
 
   if (validPins.includes(enteredPin)) {
