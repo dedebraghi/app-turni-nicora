@@ -395,7 +395,7 @@ export const GenerateModal: React.FC<GenerateModalProps> = ({
                 <p>
                   • Presidio Cassa medio: <strong>{resultStats.cassaCoverageScore}%</strong>.
                 </p>
-                <p>
+                <div>
                   • Stato Copertura Reparti:{' '}
                   {resultStats.allDepartmentsCovered ? (
                     <strong className="text-emerald-800">✅ 100% Tutti i reparti presidiati per l'intero mese.</strong>
@@ -406,27 +406,31 @@ export const GenerateModal: React.FC<GenerateModalProps> = ({
                         <div>
                           <span>Rilevati {resultStats.uncoveredDays.length} giorni con presidi incompleti</span>
                           <span className="block text-[10px] text-rose-800 font-normal mt-0.5">
-                            Date: {resultStats.uncoveredDays.map((d: string) => formatItalianDate(d)).join(', ')}
+                            Date: {resultStats.uncoveredDays.map((d: any) => formatItalianDate(typeof d === 'string' ? d : d.dateStr)).join(', ')}
                           </span>
                         </div>
                       </div>
-                      {onJumpToDate && resultStats.uncoveredDays.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onClose();
-                            onJumpToDate(resultStats.uncoveredDays[0]);
-                          }}
-                          className="w-full bg-nicora-orange hover:bg-nicora-orange-hover text-white text-xs font-bold py-2 px-3 rounded-xl shadow-xs flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer"
-                        >
-                          <UserSearch size={14} />
-                          <span>Risolvi Prima Criticità ({formatItalianDate(resultStats.uncoveredDays[0])})</span>
-                          <ArrowRight size={14} />
-                        </button>
-                      )}
+                      {onJumpToDate && resultStats.uncoveredDays.length > 0 && (() => {
+                        const firstItem = resultStats.uncoveredDays[0];
+                        const firstDate = typeof firstItem === 'string' ? firstItem : firstItem.dateStr;
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onClose();
+                              onJumpToDate(firstDate);
+                            }}
+                            className="w-full bg-nicora-orange hover:bg-nicora-orange-hover text-white text-xs font-bold py-2 px-3 rounded-xl shadow-xs flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer"
+                          >
+                            <UserSearch size={14} />
+                            <span>Risolvi Prima Criticità ({formatItalianDate(firstDate)})</span>
+                            <ArrowRight size={14} />
+                          </button>
+                        );
+                      })()}
                     </div>
                   )}
-                </p>
+                </div>
               </div>
             </div>
           )}

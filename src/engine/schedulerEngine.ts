@@ -104,8 +104,11 @@ export const formatLocalDate = (d: Date = new Date()): string => {
  * Converte una data (stringa YYYY-MM-DD o oggetto Date) nel formato visivo italiano GG/MM/AAAA.
  * Se la stringa non è valida o vuota, restituisce la stringa originale senza errori.
  */
-export const formatItalianDate = (dateInput?: string | Date | null): string => {
+export const formatItalianDate = (dateInput?: string | Date | any | null): string => {
   if (!dateInput) return '';
+  if (typeof dateInput === 'object' && !(dateInput instanceof Date) && typeof (dateInput as any).dateStr === 'string') {
+    dateInput = (dateInput as any).dateStr;
+  }
   if (typeof dateInput === 'string') {
     // Gestione formato YYYY-MM-DD
     const match = dateInput.match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -123,10 +126,13 @@ export const formatItalianDate = (dateInput?: string | Date | null): string => {
     }
     return dateInput;
   }
-  const day = dateInput.getDate().toString().padStart(2, '0');
-  const month = (dateInput.getMonth() + 1).toString().padStart(2, '0');
-  const year = dateInput.getFullYear();
-  return `${day}/${month}/${year}`;
+  if (dateInput instanceof Date && !isNaN(dateInput.getTime())) {
+    const day = dateInput.getDate().toString().padStart(2, '0');
+    const month = (dateInput.getMonth() + 1).toString().padStart(2, '0');
+    const year = dateInput.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+  return String(dateInput || '');
 };
 
 /**
