@@ -945,6 +945,23 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
               </div>
             </div>
 
+            {/* Banner Avviso Copertura Parziale Mese */}
+            {monthlySummary.coverage?.coverageWarning && (
+              <div className="bg-amber-50/90 border border-amber-200 rounded-3xl p-4 sm:p-5 flex items-start gap-3.5 text-amber-900 shadow-clean animate-in fade-in duration-200">
+                <div className="p-2 bg-amber-100 text-amber-700 rounded-xl shrink-0 mt-0.5">
+                  <AlertTriangle size={20} />
+                </div>
+                <div className="text-xs space-y-1">
+                  <h4 className="font-extrabold text-amber-950 text-sm">
+                    Attenzione sulla copertura dei turni di {monthlySummary.monthLabel}
+                  </h4>
+                  <p className="text-amber-800 leading-relaxed font-medium">
+                    {monthlySummary.coverage.coverageWarning}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Dettaglio Collaboratori per il Mese */}
             {monthlySummary.totalWorkedHours === 0 && monthlySummary.totalLeaveDays === 0 ? (
               <div className="bg-white rounded-3xl p-8 text-center text-neutral-400 border border-nicora-sage-border shadow-clean space-y-2">
@@ -972,10 +989,10 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                           <th className="py-3.5 px-3 text-center">Decor</th>
                           <th className="py-3.5 px-3 text-center">S. Calda</th>
                           <th className="py-3.5 px-3 text-center">S. Fredda</th>
-                          <th className="py-3.5 px-3 text-right">Ore Lav.</th>
+                          <th className="py-3.5 px-3 text-center">Emporio</th>
+                          <th className="py-3.5 px-3 text-right">Tot. Ore Sede</th>
                           <th className="py-3.5 px-3 text-right">Ferie/Mal.</th>
-                          <th className="py-3.5 px-3 text-right">Rendicontate</th>
-                          <th className="py-3.5 px-4 text-center">Saldo</th>
+                          <th className="py-3.5 px-4 text-left">Dettaglio Mobilità</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-neutral-100 font-medium">
@@ -999,11 +1016,18 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                                     <span className="font-bold text-neutral-900 block truncate max-w-[140px]">
                                       {s.employee.name}
                                     </span>
-                                    {s.employee.isActive === false && (
-                                      <span className="text-[9px] text-neutral-400 block">
-                                        Archiviato
-                                      </span>
-                                    )}
+                                    <div className="flex items-center gap-1 mt-0.5">
+                                      {s.isMobile && (
+                                        <span className="text-[9px] font-extrabold bg-orange-100 text-orange-800 px-1.5 py-0.5 rounded border border-orange-200">
+                                          Mobile
+                                        </span>
+                                      )}
+                                      {s.employee.isActive === false && (
+                                        <span className="text-[9px] text-neutral-400">
+                                          Archiviato
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                               </td>
@@ -1012,7 +1036,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                                 <span className="font-semibold text-neutral-700 block">
                                   {s.employee.role}
                                 </span>
-                                <span className="text-[10px] text-neutral-400">
+                                <span className="text-[10px] text-neutral-500 font-bold">
                                   {s.employee.contractHours || 40}h/sett
                                 </span>
                               </td>
@@ -1083,8 +1107,18 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                                 )}
                               </td>
 
+                              <td className="py-3 px-3 text-center">
+                                {((s.departmentHours.Emporio ?? 0) + (s.departmentHours['Area Tecnica'] ?? 0)) > 0 ? (
+                                  <span className="bg-amber-50 text-amber-800 font-bold px-2 py-0.5 rounded-md border border-amber-200">
+                                    {(s.departmentHours.Emporio ?? 0) + (s.departmentHours['Area Tecnica'] ?? 0)}h
+                                  </span>
+                                ) : (
+                                  <span className="text-neutral-300">-</span>
+                                )}
+                              </td>
+
                               <td className="py-3 px-3 text-right">
-                                <span className="font-extrabold text-nicora-teal">
+                                <span className="font-black text-nicora-teal text-sm">
                                   {s.workedHours}h
                                 </span>
                               </td>
@@ -1097,24 +1131,19 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                                 )}
                               </td>
 
-                              <td className="py-3 px-3 text-right">
-                                <span className="font-black text-neutral-900 bg-neutral-100 px-2 py-0.5 rounded-md">
-                                  {s.totalAccountedHours}h
-                                </span>
-                              </td>
-
-                              <td className="py-3 px-4 text-center">
-                                <span
-                                  className={`text-[10px] font-black px-2 py-0.5 rounded-full inline-block ${
-                                    s.deltaHours > 0
-                                      ? 'bg-emerald-100 text-emerald-800'
-                                      : s.deltaHours === 0
-                                      ? 'bg-neutral-100 text-neutral-700'
-                                      : 'bg-rose-100 text-rose-800'
-                                  }`}
-                                >
-                                  {s.deltaHours > 0 ? `+${s.deltaHours}h` : `${s.deltaHours}h`}
-                                </span>
+                              <td className="py-3 px-4 text-left text-xs">
+                                {s.isMobile ? (
+                                  <div className="leading-tight">
+                                    <span className="font-bold text-neutral-800 text-[11px] block">
+                                      {s.workedHours}h a {locationName}
+                                    </span>
+                                    <span className="text-[10px] text-neutral-500">
+                                      {s.otherLocationHours}h a {s.otherLocationName} (vedi report sede)
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span className="text-neutral-400 text-[11px]">Sede fissa</span>
+                                )}
                               </td>
                             </tr>
                           ))}
@@ -1139,16 +1168,16 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                           <td className="py-3 px-3 text-center text-sky-800">
                             {monthlySummary.departmentTotals['Serra Fredda'] ?? 0}h
                           </td>
+                          <td className="py-3 px-3 text-center text-amber-800">
+                            {((monthlySummary.departmentTotals.Emporio ?? 0) + (monthlySummary.departmentTotals['Area Tecnica'] ?? 0))}h
+                          </td>
                           <td className="py-3 px-3 text-right text-nicora-teal text-sm">
                             {monthlySummary.totalWorkedHours}h
                           </td>
                           <td className="py-3 px-3 text-right text-purple-800">
                             {monthlySummary.totalLeaveHours}h
                           </td>
-                          <td className="py-3 px-3 text-right text-black text-sm">
-                            {monthlySummary.totalAccountedHours}h
-                          </td>
-                          <td className="py-3 px-4 text-center">-</td>
+                          <td className="py-3 px-4 text-left text-neutral-500 text-[11px] font-medium">-</td>
                         </tr>
                       </tfoot>
                     </table>
@@ -1174,27 +1203,35 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                               {s.employee.avatar}
                             </span>
                             <div>
-                              <h4 className="font-extrabold text-sm text-nicora-title leading-tight">
-                                {s.employee.name}
-                              </h4>
-                              <span className="text-[11px] text-neutral-400">
-                                {s.employee.role} • <strong>{s.employee.contractHours || 40}h</strong>
+                              <div className="flex items-center gap-1.5">
+                                <h4 className="font-extrabold text-sm text-nicora-title leading-tight">
+                                  {s.employee.name}
+                                </h4>
+                                {s.isMobile && (
+                                  <span className="text-[9px] font-extrabold bg-orange-100 text-orange-800 px-1.5 py-0.5 rounded border border-orange-200">
+                                    Mobile
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[11px] text-neutral-500 font-medium">
+                                {s.employee.role} • Contratto <strong>{s.employee.contractHours || 40}h/sett</strong>
                               </span>
                             </div>
                           </div>
 
-                          <span
-                            className={`text-xs font-black px-2.5 py-1 rounded-full ${
-                              s.deltaHours > 0
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : s.deltaHours === 0
-                                ? 'bg-neutral-100 text-neutral-700'
-                                : 'bg-rose-100 text-rose-800'
-                            }`}
-                          >
-                            {s.deltaHours > 0 ? `+${s.deltaHours}h` : `${s.deltaHours}h`}
-                          </span>
+                          <div className="text-right">
+                            <span className="text-sm font-black text-nicora-teal block">
+                              {s.workedHours}h
+                            </span>
+                            <span className="text-[10px] text-neutral-400">a {locationName}</span>
+                          </div>
                         </div>
+
+                        {s.isMobile && (
+                          <div className="text-[11px] text-orange-900 bg-orange-50/80 rounded-xl p-2.5 border border-orange-200/80 leading-snug">
+                            <strong>Personale Mobile:</strong> ha effettuato <strong>{s.workedHours}h</strong> a {locationName} e <strong>{s.otherLocationHours}h</strong> a {s.otherLocationName}. Per il dettaglio delle ore svolte a {s.otherLocationName}, consulta il report di tale sede.
+                          </div>
+                        )}
 
                         {/* Riepilogo Giorni */}
                         <div className="grid grid-cols-4 gap-1.5 text-center text-[10px]">
@@ -1227,12 +1264,12 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                         {/* Ripartizione Ore per Reparto */}
                         <div>
                           <span className="text-[10px] font-extrabold uppercase text-neutral-400 block mb-1">
-                            Ore per Reparto:
+                            Ore per Reparto ({locationName}):
                           </span>
                           <div className="flex flex-wrap gap-1.5">
                             {ALL_DEPARTMENTS.map((dept) => {
                               const h = s.departmentHours[dept];
-                              if (h === 0) return null;
+                              if (!h || h === 0) return null;
                               return (
                                 <span
                                   key={dept}
@@ -1244,7 +1281,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                             })}
                             {s.workedHours === 0 && (
                               <span className="text-neutral-400 text-xs italic">
-                                Nessun turno registrato
+                                Nessun turno registrato in questa sede
                               </span>
                             )}
                           </div>
@@ -1253,17 +1290,17 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                         {/* Footer Totali Collaboratore */}
                         <div className="pt-2 border-t border-neutral-100 flex items-center justify-between text-xs font-bold text-neutral-700">
                           <div>
-                            Ore Lavorate:{' '}
+                            Ore Sede:{' '}
                             <strong className="text-nicora-teal">{s.workedHours}h</strong>
-                            {s.leaveHours > 0 && (
-                              <span className="text-purple-700 ml-1">
-                                (+{s.leaveHours}h ferie)
-                              </span>
-                            )}
                           </div>
                           <div>
-                            Rendicontate:{' '}
-                            <strong className="text-neutral-900">{s.totalAccountedHours}h</strong>
+                            {s.leaveHours > 0 ? (
+                              <span className="text-purple-700">
+                                Ferie/Malattie: <strong>{s.leaveHours}h</strong>
+                              </span>
+                            ) : (
+                              <span className="text-neutral-400">Nessuna assenza</span>
+                            )}
                           </div>
                         </div>
                       </div>

@@ -1,5 +1,5 @@
-import { Department, Employee, LocationId, LocationInfo, MonthlyEmployeeSummary, MonthlyStoreSummary, Shift, WeekDayMeta } from '../domain/types';
-import { DEPARTMENTS } from '../domain/rules';
+import { Department, Employee, LocationId, LocationInfo, MonthCoverageInfo, MonthlyEmployeeSummary, MonthlyStoreSummary, Shift, WeekDayMeta } from '../domain/types';
+import { DEPARTMENTS, normalizeDepartment } from '../domain/rules';
 import { formatItalianDate, getLeaveHours, getShiftHours } from '../engine/schedulerEngine';
 
 interface ExportParams {
@@ -329,11 +329,77 @@ export const calculateMonthlyStoreReport = (
   const monthPrefix = `${year}-${monthStr}`;
   const monthLabel = `${ITALIAN_MONTHS[month - 1]} ${year}`;
 
-  // Calcolo giorni di calendario e giorni lavorativi teorici del mese (su base 5gg lavorativi a settimana)
   const daysInMonth = new Date(year, month, 0).getDate();
-  const standardWorkingDays = Math.round((daysInMonth / 7) * 5);
 
-  const storeEmployees = employees.filter((e) => e.locationId === locationId && !e.isOwner);
+  // 1. Turni della sede specificata per il mese
+  const storeMonthShifts = shifts.filter(
+    (s) => s.locationId === locationId && s.date.startsWith(monthPrefix)
+  );
+
+  // 2. Calcolo copertura temporale dei giorni del mese
+  const daysWithShifts = new Set<number>();
+  storeMonthShifts.forEach((s) => {
+    const day = parseInt(s.date.split('-')[2], 10);
+    if (!isNaN(day)) daysWithShifts.add(day);
+  });
+
+  const hasShifts = daysWithShifts.size > 0;
+  const isFullyCovered = daysWithShifts.size === daysInMonth;
+
+  // Calcolo intervalli di giorni non registrati
+  const missingIntervals: { start: number; end: number }[] = [];
+  if (hasShifts && !isFullyCovered) {
+    let currentStart: number | null = null;
+    for (let d = 1; d <= daysInMonth; d++) {
+      if (!daysWithShifts.has(d)) {
+        if (currentStart === null) currentStart = d;
+      } else {
+        if (currentStart !== null) {
+          missingIntervals.push({ start: currentStart, end: d - 1 });
+          currentStart = null;
+        }
+      }
+    }
+    if (currentStart !== null) {
+      missingIntervals.push({ start: currentStart, end: daysInMonth });
+    }
+  }
+
+  const missingRangesText = missingIntervals
+    .map((range) => {
+      if (range.start === range.end) {
+        return `il ${range.start} ${ITALIAN_MONTHS[month - 1]}`;
+      }
+      return `dall'${range.start === 1 ? '1' : range.start} al ${range.end} ${ITALIAN_MONTHS[month - 1]}`;
+    })
+    .join(' e ');
+
+  const coverageWarning =
+    !isFullyCovered && hasShifts
+      ? `I turni registrati per questa sede coprono ${daysWithShifts.size} giorni su ${daysInMonth}. Attenzione: i giorni ${missingRangesText} non risultavano segnati sull'applicazione al momento dell'elaborazione della bozza.`
+      : undefined;
+
+  const coverage: MonthCoverageInfo = {
+    isFullyCovered,
+    daysInMonth,
+    recordedDaysCount: daysWithShifts.size,
+    hasShifts,
+    coverageWarning,
+    missingRangesText,
+  };
+
+  // 3. Dipendenti che appartengono alla sede o che hanno lavorato (turni/assenze) in questa sede
+  // Escludiamo i titolari (isOwner)
+  // Per i dipendenti della sede primaria: includiamo gli attivi, oppure archiviati solo se hanno turni questo mese a questa sede
+  // Per i dipendenti di altre sedi (es. mobili): includiamo se hanno fatto almeno un turno o assenza in questa sede questo mese!
+  const storeEmployees = employees.filter((emp) => {
+    if (emp.isOwner) return false;
+    const hasShiftsAtStore = storeMonthShifts.some((s) => s.employeeId === emp.id);
+    if (emp.locationId === locationId) {
+      return emp.isActive !== false || hasShiftsAtStore;
+    }
+    return hasShiftsAtStore;
+  });
 
   const departmentTotals: Record<Department, number> = {
     Cassa: 0,
@@ -353,10 +419,28 @@ export const calculateMonthlyStoreReport = (
   let totalLeaveDays = 0;
   let totalSickDays = 0;
 
+  const otherLocationName = locationId === 'gazzada' ? 'Varese Centro' : 'Gazzada Schianno';
+
   const employeeSummaries: MonthlyEmployeeSummary[] = storeEmployees.map((emp) => {
-    const empShifts = shifts.filter(
-      (s) => s.employeeId === emp.id && s.date.startsWith(monthPrefix)
-    );
+    // FILTRO RIGOROSO: solo turni svolti in QUESTA sede
+    const empShifts = storeMonthShifts.filter((s) => s.employeeId === emp.id);
+
+    // Se il collaboratore è mobile, calcoliamo quante ore ha svolto sull'altra sede nel mese
+    let otherLocationHours = 0;
+    if (emp.isMobile) {
+      const otherShifts = shifts.filter(
+        (s) =>
+          s.employeeId === emp.id &&
+          s.date.startsWith(monthPrefix) &&
+          s.locationId !== locationId
+      );
+      otherShifts.forEach((s) => {
+        if (s.type !== 'riposo' && s.type !== 'ferie' && s.type !== 'malattia') {
+          otherLocationHours += getShiftHours(s);
+        }
+      });
+      otherLocationHours = Math.round(otherLocationHours * 10) / 10;
+    }
 
     const deptHours: Record<Department, number> = {
       Cassa: 0,
@@ -393,7 +477,8 @@ export const calculateMonthlyStoreReport = (
         const hours = getShiftHours(shift);
         empWorked += hours;
 
-        const assignedDept = (shift.department || emp.role) as Department;
+        const rawDept = (shift.department || emp.role) as Department;
+        const assignedDept = normalizeDepartment(rawDept, locationId) || rawDept;
         if (assignedDept && deptHours[assignedDept] !== undefined) {
           deptHours[assignedDept] = Math.round((deptHours[assignedDept] + hours) * 10) / 10;
         }
@@ -408,11 +493,6 @@ export const calculateMonthlyStoreReport = (
     const roundedWorked = Math.round(empWorked * 10) / 10;
     const roundedLeave = Math.round(empLeave * 10) / 10;
     const totalAccounted = Math.round((roundedWorked + roundedLeave) * 10) / 10;
-
-    // Ore teoriche di contratto previste per il mese
-    const weeklyContract = emp.contractHours || 40;
-    const expectedMonthly = Math.round((weeklyContract / 5) * standardWorkingDays * 10) / 10;
-    const deltaHours = Math.round((totalAccounted - expectedMonthly) * 10) / 10;
 
     totalWorkedHours += roundedWorked;
     totalLeaveHours += roundedLeave;
@@ -433,8 +513,12 @@ export const calculateMonthlyStoreReport = (
         leave,
         sick,
       },
-      expectedMonthlyHours: expectedMonthly,
-      deltaHours,
+      isMobile: Boolean(emp.isMobile),
+      homeLocationId: emp.locationId,
+      otherLocationHours,
+      otherLocationName,
+      expectedMonthlyHours: 0,
+      deltaHours: 0,
     };
   });
 
@@ -452,6 +536,7 @@ export const calculateMonthlyStoreReport = (
     totalLeaveDays,
     totalSickDays,
     employeeSummaries,
+    coverage,
   };
 };
 
@@ -464,8 +549,8 @@ export const exportMonthlyReportCSV = (
 ) => {
   const headers = [
     'Collaboratore',
-    'Sede',
-    'Stato',
+    'Sede Report',
+    'Tipologia Personale',
     'Ruolo Primario',
     'Ore Contratto Sett.',
     'Giorni Presenza',
@@ -477,16 +562,15 @@ export const exportMonthlyReportCSV = (
     'Ore Decor',
     'Ore Serra Calda',
     'Ore Serra Fredda',
-    'Totale Ore Lavorate',
+    'Ore Emporio',
+    'Ore Natale',
+    'Totale Ore Lavorate Sede',
     'Ore Ferie/Malattia',
-    'Totale Ore Rendicontate',
-    'Ore Teoriche Mese',
-    'Saldo Ore (+/-)',
+    'Note Mobilita',
   ];
 
   const escapeCell = (val: string | number | undefined) => {
     if (typeof val === 'number') {
-      // Localizzazione decimale con virgola per Excel italiano
       return `"${val.toString().replace('.', ',')}"`;
     }
     const clean = (val || '').toString().replace(/"/g, '""');
@@ -494,29 +578,39 @@ export const exportMonthlyReportCSV = (
   };
 
   const rows: string[] = [];
+
+  // Se presente avviso di copertura parziale, lo inseriamo come prima riga informativa
+  if (summary.coverage?.coverageWarning) {
+    rows.push(escapeCell(`NOTA COPERTURA: ${summary.coverage.coverageWarning}`));
+  }
+
   rows.push(headers.map(escapeCell).join(';'));
 
   summary.employeeSummaries.forEach((s) => {
+    const mobNote = s.isMobile
+      ? `Personale Mobile (contratto ${s.employee.contractHours || 40}h/sett): ${s.workedHours}h a ${locationName} - le ${s.otherLocationHours || 0}h svolte a ${s.otherLocationName || 'altra sede'} sono consultabili nel rispettivo report.`
+      : '';
+
     const row = [
       s.employee.name,
       locationName,
-      s.employee.isActive === false ? 'Archiviato' : 'Attivo',
+      s.isMobile ? 'Personale Mobile' : 'Fisso Sede',
       s.employee.role,
       s.employee.contractHours || 40,
       s.daysCount.presence,
       s.daysCount.rest,
       s.daysCount.leave,
       s.daysCount.sick,
-      s.departmentHours.Cassa,
-      s.departmentHours.Fioreria,
-      s.departmentHours.Decor,
-      s.departmentHours['Serra Calda'],
-      s.departmentHours['Serra Fredda'],
+      s.departmentHours.Cassa || 0,
+      s.departmentHours.Fioreria || 0,
+      s.departmentHours.Decor || 0,
+      s.departmentHours['Serra Calda'] || 0,
+      s.departmentHours['Serra Fredda'] || 0,
+      (s.departmentHours.Emporio || 0) + (s.departmentHours['Area Tecnica'] || 0),
+      s.departmentHours.Natale || 0,
       s.workedHours,
       s.leaveHours,
-      s.totalAccountedHours,
-      s.expectedMonthlyHours,
-      s.deltaHours > 0 ? `+${s.deltaHours}` : s.deltaHours,
+      mobNote,
     ];
     rows.push(row.map(escapeCell).join(';'));
   });
@@ -532,15 +626,15 @@ export const exportMonthlyReportCSV = (
     summary.totalRestDays,
     summary.totalLeaveDays,
     summary.totalSickDays,
-    summary.departmentTotals.Cassa,
-    summary.departmentTotals.Fioreria,
-    summary.departmentTotals.Decor,
-    summary.departmentTotals['Serra Calda'],
-    summary.departmentTotals['Serra Fredda'],
+    summary.departmentTotals.Cassa || 0,
+    summary.departmentTotals.Fioreria || 0,
+    summary.departmentTotals.Decor || 0,
+    summary.departmentTotals['Serra Calda'] || 0,
+    summary.departmentTotals['Serra Fredda'] || 0,
+    (summary.departmentTotals.Emporio || 0) + (summary.departmentTotals['Area Tecnica'] || 0),
+    summary.departmentTotals.Natale || 0,
     summary.totalWorkedHours,
     summary.totalLeaveHours,
-    summary.totalAccountedHours,
-    '-',
     '-',
   ];
   rows.push(totalRow.map(escapeCell).join(';'));
@@ -575,6 +669,14 @@ export const printMonthlyReport = (
     alert('Attiva i popup nel browser per visualizzare e stampare il report.');
     return;
   }
+
+  const warningHtml = summary.coverage?.coverageWarning
+    ? `
+      <div style="background-color: #fffbeb; border: 1.5px solid #f59e0b; border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; color: #92400e; font-size: 10.5px; font-weight: 600;">
+        ⚠️ <strong>ATTENZIONE COPERTURA MESE:</strong> ${summary.coverage.coverageWarning}
+      </div>
+    `
+    : '';
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -648,7 +750,7 @@ export const printMonthlyReport = (
           width: 100%;
           border-collapse: collapse;
           table-layout: fixed;
-          font-size: 10.5px;
+          font-size: 10px;
         }
         th, td {
           border: 1px solid #cbd5e1;
@@ -672,10 +774,6 @@ export const printMonthlyReport = (
           font-weight: bold;
           padding-left: 6px;
         }
-        .highlight {
-          background-color: #f8fafc;
-          font-weight: bold;
-        }
         .total-worked {
           font-weight: 900;
           color: #035F64;
@@ -685,6 +783,17 @@ export const printMonthlyReport = (
           background-color: #e2e8f0;
           font-weight: 900;
           border-top: 2px solid #035F64;
+        }
+        .mobile-tag {
+          font-size: 8.5px;
+          color: #E75113;
+          font-weight: bold;
+          display: block;
+        }
+        .mobile-subtext {
+          font-size: 8.5px;
+          color: #64748b;
+          display: block;
         }
         .footer {
           margin-top: 20px;
@@ -714,30 +823,32 @@ export const printMonthlyReport = (
       <div class="header">
         <div>
           <h1 class="title">NICORA GARDEN — ${locationName.toUpperCase()}</h1>
-          <div class="subtitle">CONSUNTIVO ORE LAVORATE E PRESENZE: ${summary.monthLabel.toUpperCase()}</div>
+          <div class="subtitle">ORE LAVORATE E PRESENZE DI SEDE: ${summary.monthLabel.toUpperCase()}</div>
         </div>
         <div class="meta">
-          <div>Uso: Consulente del Lavoro / Contabilità</div>
+          <div>Uso: Consulente del Lavoro / Amministrazione</div>
           <div>Data Stampa: ${new Date().toLocaleDateString('it-IT')}</div>
         </div>
       </div>
 
+      ${warningHtml}
+
       <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-label">Ore Lavorate Totali</div>
+          <div class="stat-label">Ore Lavorate Sede</div>
           <div class="stat-value">${summary.totalWorkedHours}h</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Ore Cassa</div>
-          <div class="stat-value">${summary.departmentTotals.Cassa}h</div>
+          <div class="stat-value">${summary.departmentTotals.Cassa || 0}h</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Ore Fioreria</div>
-          <div class="stat-value">${summary.departmentTotals.Fioreria}h</div>
+          <div class="stat-value">${summary.departmentTotals.Fioreria || 0}h</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Ore Decor</div>
-          <div class="stat-value">${summary.departmentTotals.Decor}h</div>
+          <div class="stat-value">${summary.departmentTotals.Decor || 0}h</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Ore Serre (C+F)</div>
@@ -753,29 +864,32 @@ export const printMonthlyReport = (
         <thead>
           <tr>
             <th class="emp-col">Collaboratore</th>
-            <th style="width: 70px;">Ruolo</th>
-            <th style="width: 50px;">Contr.</th>
-            <th style="width: 45px;">Pres.</th>
-            <th style="width: 45px;">Rip.</th>
-            <th style="width: 45px;">Ferie</th>
-            <th style="width: 45px;">Mal.</th>
-            <th style="width: 50px;">Cassa</th>
-            <th style="width: 50px;">Fioreria</th>
-            <th style="width: 50px;">Decor</th>
-            <th style="width: 50px;">S.Calda</th>
-            <th style="width: 50px;">S.Fredda</th>
-            <th style="width: 60px;">Tot. Lav.</th>
-            <th style="width: 60px;">Ferie/Mal.</th>
-            <th style="width: 65px;">Rendicont.</th>
-            <th style="width: 55px;">Saldo</th>
+            <th style="width: 75px;">Ruolo</th>
+            <th style="width: 60px;">Contratto</th>
+            <th style="width: 40px;">Pres.</th>
+            <th style="width: 40px;">Rip.</th>
+            <th style="width: 40px;">Ferie</th>
+            <th style="width: 40px;">Mal.</th>
+            <th style="width: 45px;">Cassa</th>
+            <th style="width: 45px;">Fioreria</th>
+            <th style="width: 45px;">Decor</th>
+            <th style="width: 45px;">S.Calda</th>
+            <th style="width: 45px;">S.Fredda</th>
+            <th style="width: 45px;">Emporio</th>
+            <th style="width: 65px;">Tot. Sede</th>
+            <th style="width: 55px;">Ferie/Mal.</th>
+            <th style="width: 130px;">Dettaglio Mobilità</th>
           </tr>
         </thead>
         <tbody>
           ${summary.employeeSummaries.map((s) => `
             <tr>
-              <td class="emp-name">${s.employee.name}</td>
+              <td class="emp-name">
+                ${s.employee.name}
+                ${s.isMobile ? `<span class="mobile-tag">[PERSONALE MOBILE]</span>` : ''}
+              </td>
               <td>${s.employee.role}</td>
-              <td>${s.employee.contractHours || 40}h</td>
+              <td>${s.employee.contractHours || 40}h/sett</td>
               <td>${s.daysCount.presence}</td>
               <td>${s.daysCount.rest}</td>
               <td>${s.daysCount.leave}</td>
@@ -785,11 +899,14 @@ export const printMonthlyReport = (
               <td>${(s.departmentHours.Decor ?? 0) > 0 ? `${s.departmentHours.Decor}h` : '-'}</td>
               <td>${(s.departmentHours['Serra Calda'] ?? 0) > 0 ? `${s.departmentHours['Serra Calda']}h` : '-'}</td>
               <td>${(s.departmentHours['Serra Fredda'] ?? 0) > 0 ? `${s.departmentHours['Serra Fredda']}h` : '-'}</td>
+              <td>${((s.departmentHours.Emporio ?? 0) + (s.departmentHours['Area Tecnica'] ?? 0)) > 0 ? `${(s.departmentHours.Emporio ?? 0) + (s.departmentHours['Area Tecnica'] ?? 0)}h` : '-'}</td>
               <td class="total-worked">${s.workedHours}h</td>
               <td>${s.leaveHours > 0 ? `${s.leaveHours}h` : '-'}</td>
-              <td class="highlight">${s.totalAccountedHours}h</td>
-              <td style="color: ${s.deltaHours >= 0 ? '#15803d' : '#b91c1c'}; font-weight: bold;">
-                ${s.deltaHours > 0 ? `+${s.deltaHours}h` : `${s.deltaHours}h`}
+              <td style="font-size: 8.5px; text-align: left; padding: 2px 4px;">
+                ${s.isMobile
+                  ? `<strong>${s.workedHours}h qui</strong> • ${s.otherLocationHours}h a ${s.otherLocationName}`
+                  : '-'
+                }
               </td>
             </tr>
           `).join('')}
@@ -801,14 +918,14 @@ export const printMonthlyReport = (
             <td>${summary.totalRestDays}</td>
             <td>${summary.totalLeaveDays}</td>
             <td>${summary.totalSickDays}</td>
-            <td>${summary.departmentTotals.Cassa}h</td>
-            <td>${summary.departmentTotals.Fioreria}h</td>
-            <td>${summary.departmentTotals.Decor}h</td>
-            <td>${summary.departmentTotals['Serra Calda']}h</td>
-            <td>${summary.departmentTotals['Serra Fredda']}h</td>
-            <td>${summary.totalWorkedHours}h</td>
+            <td>${summary.departmentTotals.Cassa || 0}h</td>
+            <td>${summary.departmentTotals.Fioreria || 0}h</td>
+            <td>${summary.departmentTotals.Decor || 0}h</td>
+            <td>${summary.departmentTotals['Serra Calda'] || 0}h</td>
+            <td>${summary.departmentTotals['Serra Fredda'] || 0}h</td>
+            <td>${(summary.departmentTotals.Emporio || 0) + (summary.departmentTotals['Area Tecnica'] || 0)}h</td>
+            <td class="total-worked">${summary.totalWorkedHours}h</td>
             <td>${summary.totalLeaveHours}h</td>
-            <td>${summary.totalAccountedHours}h</td>
             <td>-</td>
           </tr>
         </tbody>
@@ -820,7 +937,7 @@ export const printMonthlyReport = (
       </div>
 
       <div class="footer">
-        <div>Documento generato dall'App Turni Nicora Garden per la quadratura presenze del personale.</div>
+        <div>Documento generato dall'App Turni Nicora Garden per la rendicontazione oraria di sede.</div>
         <div>Nicora Garden Management Suite</div>
       </div>
 

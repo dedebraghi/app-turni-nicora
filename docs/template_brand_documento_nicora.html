@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Davide Braghiroli — Consuntivo Consegna & Garanzia 6 Mesi Nicora Garden</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-primary: #0B0F19;
+      --color-accent: #1D4ED8;
+      --color-accent-subtle: #EFF6FF;
+      --color-accent-border: #BFDBFE;
+      --color-emerald: #059669;
+      --color-emerald-bg: #ECFDF5;
+      --color-emerald-border: #A7F3D0;
+      --color-surface-bg: #F8FAFC;
+      --color-border: #E2E8F0;
+      --color-text-main: #0F172A;
+      --color-text-muted: #64748B;
+      --color-text-subtle: #94A3B8;
+      
+      --font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    @page {
+      size: A4 portrait;
+      margin: 9mm 12mm 9mm 12mm;
+    }
+
+    body {
+      font-family: var(--font-body);
+      color: var(--color-text-main);
+      background-color: #E2E8F0;
+      font-size: 8pt;
+      line-height: 1.35;
+      -webkit-font-smoothing: antialiased;
+      padding: 16px 0;
+    }
+
+    .page-sheet {
+      width: 210mm;
+      max-height: 297mm;
+      margin: 0 auto;
+      background: #FFFFFF;
+      padding: 11mm 14mm;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    @media print {
+      body {
+        background: transparent;
+        padding: 0;
+      }
+      .page-sheet {
+        width: 100%;
+        max-height: 100%;
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+
+    /* Screen Action Bar */
+    .action-bar {
+      width: 210mm;
+      margin: 0 auto 12px auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--color-primary);
+      padding: 8px 16px;
+      border-radius: 6px;
+      color: #FFFFFF;
+    }
+    .action-bar h2 {
+      font-family: var(--font-display);
+      font-size: 10pt;
+      font-weight: 700;
+    }
+    .action-bar button {
+      background: var(--color-accent);
+      color: #FFFFFF;
+      border: none;
+      padding: 6px 12px;
+      font-family: var(--font-body);
+      font-size: 8pt;
+      font-weight: 600;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    /* Header Pulito */
+    .document-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid var(--color-primary);
+      padding-bottom: 8px;
+      margin-bottom: 10px;
+    }
+
+    .brand-identity-block {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo-svg {
+      width: 38px;
+      height: 38px;
+      flex-shrink: 0;
+    }
+
+    .brand-titles h1 {
+      font-family: var(--font-display);
+      font-size: 12pt;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--color-primary);
+      line-height: 1.1;
+    }
+
+    .brand-titles .brand-tagline {
+      font-family: var(--font-mono);
+      font-size: 7pt;
+      color: var(--color-accent);
+      margin-top: 2px;
+      font-weight: 600;
+    }
+
+    .header-client-tag {
+      text-align: right;
+      font-family: var(--font-mono);
+      font-size: 7.5pt;
+      color: var(--color-text-muted);
+    }
+    .header-client-tag strong {
+      display: block;
+      color: var(--color-primary);
+      font-size: 8.5pt;
+    }
+
+    /* Box Titolo e Metadati Operativi */
+    .doc-hero-section {
+      background: var(--color-surface-bg);
+      border: 1px solid var(--color-border);
+      border-left: 3.5px solid var(--color-accent);
+      border-radius: 5px;
+      padding: 8px 12px;
+      margin-bottom: 10px;
+    }
+
+    .doc-hero-title {
+      font-family: var(--font-display);
+      font-size: 11pt;
+      font-weight: 700;
+      color: var(--color-primary);
+      margin-bottom: 2px;
+    }
+
+    .doc-hero-subtitle {
+      font-size: 7.5pt;
+      color: var(--color-text-muted);
+      margin-bottom: 6px;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      padding-top: 6px;
+      border-top: 1px solid var(--color-border);
+    }
+
+    .meta-item .meta-label {
+      font-family: var(--font-mono);
+      font-size: 6.5pt;
+      text-transform: uppercase;
+      color: var(--color-text-subtle);
+      font-weight: 500;
+    }
+
+    .meta-item .meta-value {
+      font-size: 8pt;
+      font-weight: 600;
+      color: var(--color-primary);
+    }
+
+    h2.section-heading {
+      font-family: var(--font-display);
+      font-size: 8.5pt;
+      font-weight: 700;
+      color: var(--color-primary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 10px 0 6px 0;
+      padding-bottom: 2px;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    h2.section-heading .num {
+      color: var(--color-accent);
+      font-family: var(--font-mono);
+      font-size: 8.5pt;
+    }
+
+    p.intro-text {
+      margin-bottom: 8px;
+      color: #334155;
+      font-size: 7.5pt;
+      line-height: 1.35;
+    }
+
+    /* Tabella Dettaglio Attività */
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 4px 0 8px 0;
+      font-size: 7.2pt;
+    }
+
+    table.data-table th {
+      background: var(--color-surface-bg);
+      color: var(--color-primary);
+      font-family: var(--font-mono);
+      font-size: 6.5pt;
+      text-transform: uppercase;
+      text-align: left;
+      padding: 4px 6px;
+      border-top: 1px solid var(--color-border);
+      border-bottom: 1.5px solid var(--color-border);
+      font-weight: 600;
+    }
+
+    table.data-table td {
+      padding: 3.5px 6px;
+      border-bottom: 1px solid var(--color-border);
+      vertical-align: middle;
+      line-height: 1.25;
+    }
+
+    .mono {
+      font-family: var(--font-mono);
+      font-size: 7.2pt;
+    }
+
+    /* Box Supporto & Accompagnamento Neutro e Istituzionale */
+    .support-guarantee-card {
+      background: var(--color-surface-bg);
+      border: 1px solid var(--color-border);
+      border-left: 3.5px solid var(--color-primary);
+      border-radius: 5px;
+      padding: 7px 12px;
+      margin: 8px 0;
+    }
+
+    .support-text-box h3 {
+      font-family: var(--font-display);
+      font-size: 8pt;
+      font-weight: 700;
+      color: var(--color-primary);
+      margin-bottom: 2px;
+    }
+
+    .support-text-box p {
+      font-size: 7.2pt;
+      color: var(--color-text-muted);
+      line-height: 1.35;
+    }
+
+    /* Totale Box */
+    .total-box {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--color-surface-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 5px;
+      padding: 7px 12px;
+      margin-bottom: 10px;
+    }
+
+    .total-breakdown {
+      font-size: 7.5pt;
+      color: var(--color-text-muted);
+    }
+    .total-breakdown strong {
+      color: var(--color-primary);
+    }
+
+    .total-amount-block {
+      text-align: right;
+    }
+    .total-amount-label {
+      font-size: 7pt;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      font-family: var(--font-mono);
+    }
+    .total-amount-val {
+      font-family: var(--font-mono);
+      font-size: 13pt;
+      font-weight: 700;
+      color: var(--color-primary);
+      line-height: 1;
+    }
+
+    /* Sezione Firme */
+    .signature-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      padding-top: 6px;
+      border-top: 1px solid var(--color-border);
+    }
+
+    .signature-block {
+      border: 1px dashed #CBD5E1;
+      border-radius: 5px;
+      padding: 6px 10px;
+      background: #FAFAFA;
+    }
+
+    .sig-role {
+      font-family: var(--font-mono);
+      font-size: 6.5pt;
+      text-transform: uppercase;
+      color: var(--color-text-subtle);
+    }
+
+    .sig-name {
+      font-size: 8pt;
+      font-weight: 700;
+      color: var(--color-primary);
+    }
+
+    .sig-space {
+      height: 24px;
+      margin: 4px 0;
+      border-bottom: 1px solid #94A3B8;
+    }
+
+    .sig-date {
+      font-family: var(--font-mono);
+      font-size: 6.5pt;
+      color: var(--color-text-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Screen Only: Top Controls -->
+  <div class="action-bar no-print">
+    <div>
+      <h2>Davide Braghiroli — Consuntivo Consegna App Turni & Garanzia 6 Mesi</h2>
+      <p style="font-size: 7.5pt; color: #94A3B8; margin-bottom: 0;">Nicora Garden S.r.l. (Gazzada & Varese)</p>
+    </div>
+    <button onclick="window.print()">Stampa / Salva in PDF</button>
+  </div>
+
+  <!-- A4 Document Sheet: Impaginato al millimetro su SINGOLA PAGINA -->
+  <div class="page-sheet">
+
+    <!-- Header Pulito -->
+    <header class="document-header">
+      <div class="brand-identity-block">
+        <svg class="brand-logo-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+          <rect width="120" height="120" rx="20" fill="#0B0F19"/>
+          <path d="M 32 35 L 50 35 C 64 35, 68 45, 68 60 C 68 75, 64 85, 50 85 L 32 85 Z" 
+                fill="none" stroke="#F8FAFC" stroke-width="7" stroke-linejoin="round"/>
+          <path d="M 52 35 L 70 35 C 80 35, 84 43, 84 50 C 84 57, 78 60, 70 60 L 52 60 L 72 60 C 82 60, 86 68, 86 75 C 86 82, 80 85, 70 85 L 52 85" 
+                fill="none" stroke="#1D4ED8" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"/>
+          <circle cx="96" cy="35" r="5" fill="#059669"/>
+        </svg>
+
+        <div class="brand-titles">
+          <h1>DAVIDE BRAGHIROLI</h1>
+          <div class="brand-tagline">Sviluppo Software & Automazioni</div>
+        </div>
+      </div>
+
+      <div class="header-client-tag">
+        <strong>Nicora Garden S.r.l.</strong>
+        Sedi di Gazzada e Varese
+      </div>
+    </header>
+
+    <!-- Box Titolo e Metadati Operativi -->
+    <section class="doc-hero-section">
+      <div class="doc-hero-title">Rilascio Ufficiale App Turni & Rendicontazione Consegna</div>
+      <div class="doc-hero-subtitle">Consuntivo delle attività di sviluppo per le sedi di Gazzada e Varese con accompagnamento operativo incluso.</div>
+      
+      <div class="meta-grid">
+        <div class="meta-item">
+          <div class="meta-label">Referente</div>
+          <div class="meta-value">Vittore Nicora</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Periodo Lavori</div>
+          <div class="meta-value">18/09 – 08/10/2026</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Ore Sviluppo</div>
+          <div class="meta-value">40,5 ore a 20 €/h</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Garanzia & Supporto</div>
+          <div class="meta-value" style="color: var(--color-emerald);">6 Mesi Inclusi</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sezione 1: Sintesi Sistema -->
+    <h2 class="section-heading"><span class="num">01.</span> Stato del Software in Produzione</h2>
+    <p class="intro-text">
+      L'applicazione è completa e operativa per entrambe le sedi (24 collaboratori complessivi). Gestisce la pianificazione automatizzata con vincoli contrattuali (40h, 30h, 24h, 20h) e presidio dei 5 reparti, le richieste ferie/permessi dal telefono, lo scambio turni tra colleghi con doppio consenso, le bozze cloud riservate alla Direzione con pubblicazione congiunta allo staff, e il manuale d'istruzioni completo integrato in-app.
+    </p>
+
+    <!-- Sezione 2: Tabella Analitica Ore (Compatta su singola pagina) -->
+    <h2 class="section-heading"><span class="num">02.</span> Dettaglio Analitico delle Attività e Ore Lavorate</h2>
+    
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width: 14%;">Data</th>
+          <th style="width: 7%; text-align: center;">Ore</th>
+          <th style="width: 27%;">Modulo / Ambito</th>
+          <th style="width: 52%;">Descrizione Attività Svolta</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="mono"><strong>18/09/2026</strong></td>
+          <td class="mono" style="text-align: center;">3.5h</td>
+          <td><strong>Architettura & Core Engine</strong></td>
+          <td>Setup PWA React 19 + TypeScript. Modello dati 2 sedi e algoritmo generazione turni con matrice competenze.</td>
+        </tr>
+        <tr>
+          <td class="mono"><strong>19/09/2026</strong></td>
+          <td class="mono" style="text-align: center;">3.5h</td>
+          <td><strong>Database Cloud & Sincronizzazione</strong></td>
+          <td>Configurazione database Supabase, canali WebSocket in tempo reale e accesso sicuro con PIN per collaboratori.</td>
+        </tr>
+        <tr>
+          <td class="mono"><strong>20/09/2026</strong></td>
+          <td class="mono" style="text-align: center;">7.5h</td>
+          <td><strong>Mobile-First UI & Gestione Orari</strong></td>
+          <td>Vista smartphone per staff, orari flessibili, anagrafica collaboratori, quadratura monte ore e report mensile.</td>
+        </tr>
+        <tr>
+          <td class="mono"><strong>21-23/09/2026</strong></td>
+          <td class="mono" style="text-align: center;">6.0h</td>
+          <td><strong>Analisi Storico & Personale Jolly</strong></td>
+          <td>Analisi fogli turni storici Nicora, matrice competenze reali per reparto e gestione trasferte collaboratori mobili.</td>
+        </tr>
+        <tr>
+          <td class="mono"><strong>25-28/09/2026</strong></td>
+          <td class="mono" style="text-align: center;">5.5h</td>
+          <td><strong>Restyling, Pianificatore & Sostituzioni</strong></td>
+          <td>Restyling grafico stile atelier botanico, generazione tabellone mensile in blocco e procedura guidata sostituzioni.</td>
+        </tr>
+        <tr>
+          <td class="mono"><strong>29-30/09/2026</strong></td>
+          <td class="mono" style="text-align: center;">5.0h</td>
+          <td><strong>Scambi Turno, Bozze & Tutorial</strong></td>
+          <td>Flusso scambi turno a doppio consenso, bozze mensili riservate con pubblicazione allo staff e tutorial d'uso.</td>
+        </tr>
+        <tr>
+          <td class="mono"><strong>02-05/10/2026</strong></td>
+          <td class="mono" style="text-align: center;">8.0h</td>
+          <td><strong>Manuale PDF In-App & Bozze Cloud</strong></td>
+          <td>Sincronizzazione bozze cloud su qualsiasi dispositivo, manuale operativo PDF A4 in-app e recupero PIN rapido.</td>
+        </tr>
+        <tr>
+          <td class="mono"><strong>07/10/2026</strong></td>
+          <td class="mono" style="text-align: center;">1.5h</td>
+          <td><strong>Verifica Coperture & Allineamento</strong></td>
+          <td>Verifica copertura oraria mensile e allineamento integrale anagrafica e ore secondo le indicazioni di Vittore Nicora.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Box Supporto Operativo & Accompagnamento 6 Mesi -->
+    <div class="support-guarantee-card">
+      <div class="support-text-box">
+        <h3>Supporto Operativo e Accompagnamento (6 Mesi)</h3>
+        <p>L'importo a saldo include l'assistenza per la fase di avvio, la risoluzione tempestiva di eventuali anomalie e i necessari affinamenti operativi sui turni fino al 30 Aprile 2027.</p>
+      </div>
+    </div>
+
+    <!-- Totale Chiusura -->
+    <div class="total-box">
+      <div class="total-breakdown">
+        Totale a saldo (comprende le 40,5 ore di sviluppo e il supporto per 6 mesi):
+      </div>
+      <div class="total-amount-block">
+        <div class="total-amount-val">810,00 €</div>
+      </div>
+    </div>
+
+    <!-- Firme per Accettazione -->
+    <div class="signature-grid">
+      <div class="signature-block">
+        <div class="sig-role">Lo Sviluppatore</div>
+        <div class="sig-name">Davide Braghiroli</div>
+        <div class="sig-space"></div>
+        <div class="sig-date">Data: 08 / 10 / 2026 &nbsp;|&nbsp; Firma: ____________________</div>
+      </div>
+
+      <div class="signature-block">
+        <div class="sig-role">Per Accettazione, Consegna & Liquidazione</div>
+        <div class="sig-name">Vittore Nicora (Nicora Garden S.r.l.)</div>
+        <div class="sig-space"></div>
+        <div class="sig-date">Data: ___ / ___ / 2026 &nbsp;|&nbsp; Firma: ____________________</div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -44,7 +44,6 @@ html_content = """<!DOCTYPE html>
       line-height: 1.5;
     }
 
-    /* Links e ancore */
     a {
       color: #0a474b;
       text-decoration: none;
@@ -138,7 +137,6 @@ html_content = """<!DOCTYPE html>
       text-align: center;
     }
 
-    /* Struttura capitoli */
     .chapter {
       page-break-before: always;
       padding-top: 5mm;
@@ -186,7 +184,6 @@ html_content = """<!DOCTYPE html>
       margin-bottom: 4px;
     }
 
-    /* Box e Card illustrative */
     .info-box {
       background: #f0f7f5;
       border-left: 4px solid #0a474b;
@@ -217,7 +214,6 @@ html_content = """<!DOCTYPE html>
       page-break-inside: avoid;
     }
 
-    /* Badge & Tag */
     .badge {
       display: inline-block;
       padding: 2px 7px;
@@ -231,13 +227,13 @@ html_content = """<!DOCTYPE html>
     .badge-morning { background: #ffedd5; color: #c2410c; border: 1px solid #fed7aa; }
     .badge-afternoon { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
     .badge-full { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+    .badge-special { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
     .badge-rest { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
     .badge-leave { background: #f3e8ff; color: #7e22ce; border: 1px solid #e9d5ff; }
     .badge-sick { background: #ffe4e6; color: #be123c; border: 1px solid #fecdd3; }
     .badge-draft { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
     .badge-published { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
 
-    /* Tabelle */
     table.manual-table {
       width: 100%;
       border-collapse: collapse;
@@ -265,7 +261,6 @@ html_content = """<!DOCTYPE html>
       background: #f8fafc;
     }
 
-    /* Indice TOC */
     .toc-container {
       background: #f8faf9;
       border: 1px solid #d1deda;
@@ -295,12 +290,6 @@ html_content = """<!DOCTYPE html>
       margin-left: 15px;
       font-weight: 500;
       color: #2d3748;
-    }
-
-    .toc-dots {
-      flex-grow: 1;
-      border-bottom: 1px dotted #a0aec0;
-      margin: 0 8px 3px 8px;
     }
 
     .card-grid {
@@ -341,8 +330,8 @@ html_content = """<!DOCTYPE html>
       <h1>MANUALE OPERATIVO COMPLETO<br>DELL'APPLICAZIONE TURNI</h1>
       <p>
         Guida ufficiale dettagliata all'utilizzo della piattaforma di pianificazione, 
-        gestione presenze, richieste ferie, cambi turno, algoritmo di schedulazione 
-        ed emergenze operative.
+        gestione presenze, richieste ferie e scambi turno, algoritmo di schedulazione predittiva, 
+        risoluzione guidata scoperture ed emergenze operative.
       </p>
     </div>
 
@@ -366,7 +355,7 @@ html_content = """<!DOCTYPE html>
         </tr>
         <tr>
           <td class="label">Data Rilascio:</td>
-          <td>Ottobre 2026 • Versione Ufficiale 1.0</td>
+          <td>Ottobre 2026 • Versione Ufficiale 1.0 (Revisione Completa)</td>
         </tr>
       </table>
     </div>
@@ -389,41 +378,44 @@ html_content = """<!DOCTYPE html>
     <div class="toc-container">
       <div class="toc-item level-1"><a href="#cap-1">1. Panoramica dell'Applicazione e Accesso al Sistema</a></div>
       <div class="toc-item level-2"><a href="#cap-1-1">1.1 Finalità dell'App e Filosofia di Gestione</a></div>
-      <div class="toc-item level-2"><a href="#cap-1-2">1.2 Accesso Collaboratore (PIN Rapido a 4 Cifre)</a></div>
-      <div class="toc-item level-2"><a href="#cap-1-3">1.3 Accesso Responsabile e Direzione (Password Sicura)</a></div>
+      <div class="toc-item level-2"><a href="#cap-1-2">1.2 Accesso Collaboratore (Selezione Nominativo e PIN)</a></div>
+      <div class="toc-item level-2"><a href="#cap-1-3">1.3 Accesso Responsabile e Direzione (Email e Password)</a></div>
       <div class="toc-item level-2"><a href="#cap-1-4">1.4 Selezione della Sede Operativa (Gazzada vs Varese)</a></div>
-      <div class="toc-item level-2"><a href="#cap-1-5">1.5 Barra Superiore (Header) e Menu Utente</a></div>
+      <div class="toc-item level-2"><a href="#cap-1-5">1.5 Barra Superiore (Header), Menu Utente e Barra di Navigazione</a></div>
+      <div class="toc-item level-2"><a href="#cap-1-6">1.6 Collaboratori Condivisi (Jolly Mobile tra Sedi)</a></div>
 
       <div class="toc-item level-1"><a href="#cap-2">2. Guida Completa per i Collaboratori (Staff)</a></div>
       <div class="toc-item level-2"><a href="#cap-2-1">2.1 Scheda "Oggi in Sede" (Presenze e Colleghi di Turno)</a></div>
       <div class="toc-item level-2"><a href="#cap-2-2">2.2 Scheda "I Miei Turni" (Pianificazione Personale della Settimana)</a></div>
-      <div class="toc-item level-2"><a href="#cap-2-3">2.3 Scheda "Richieste Ferie & Permessi" (Inoltro e Tracciamento)</a></div>
+      <div class="toc-item level-2"><a href="#cap-2-3">2.3 Scheda "Richieste Ferie & Permessi" (I 4 Moduli di Richiesta)</a></div>
       <div class="toc-item level-2"><a href="#cap-2-4">2.4 Procedura Guidata di Scambio Turno con un Collega</a></div>
 
       <div class="toc-item level-1"><a href="#cap-3">3. Guida Completa per la Direzione e i Responsabili (Admin)</a></div>
       <div class="toc-item level-2"><a href="#cap-3-1">3.1 Modalità Responsabile e Monitoraggio Presenze</a></div>
-      <div class="toc-item level-2"><a href="#cap-3-2">3.2 Scheda "Pianificatore Turni" (Tabellone Settimanale e Mensile)</a></div>
+      <div class="toc-item level-2"><a href="#cap-3-2">3.2 Scheda "Pianificatore Turni" (Tabellone Settimanale Domenica–Sabato)</a></div>
       <div class="toc-item level-2"><a href="#cap-3-3">3.3 Ciclo di Vita dei Turni: Bozza Cloud Riservata vs Pubblicazione allo Staff</a></div>
       <div class="toc-item level-2"><a href="#cap-3-4">3.4 Banner e Gestione Rapida Richieste Pendenti</a></div>
-      <div class="toc-item level-2"><a href="#cap-3-5">3.5 Generazione Automatica Intelligente dei Turni</a></div>
-      <div class="toc-item level-2"><a href="#cap-3-6">3.6 Modifica Manuale e Assegnazione Postazione Turno</a></div>
-      <div class="toc-item level-2"><a href="#cap-3-7">3.7 Wizard Gestione Emergenze e Sostituzioni Improvvise</a></div>
-      <div class="toc-item level-2"><a href="#cap-3-8">3.8 Svuotamento e Pulizia Controllata dei Turni</a></div>
-      <div class="toc-item level-2"><a href="#cap-3-9">3.9 Esportazione e Stampa Ufficiale per Bacheca</a></div>
-      <div class="toc-item level-2"><a href="#cap-3-10">3.10 Scheda "Personale e Competenze" (Anagrafica e Modifica)</a></div>
-      <div class="toc-item level-2"><a href="#cap-3-11">3.11 Matrice Competenze (Skills Matrix)</a></div>
-      <div class="toc-item level-2"><a href="#cap-3-12">3.12 Monitoraggio Equità e Quadratura Ore Contrattuali</a></div>
+      <div class="toc-item level-2"><a href="#cap-3-5">3.5 Generazione Automatica Intelligente (Orario Continuato e Stagione Natale)</a></div>
+      <div class="toc-item level-2"><a href="#cap-3-6">3.6 Modifica Manuale Turno, Orari Speciali e Slot Continuato</a></div>
+      <div class="toc-item level-2"><a href="#cap-3-7">3.7 Rilevamento Criticità Settimanali e Wizard Scoperture Reparto</a></div>
+      <div class="toc-item level-2"><a href="#cap-3-8">3.8 Wizard Emergenze e Sostituzioni Improvvise (Replacement Advisor)</a></div>
+      <div class="toc-item level-2"><a href="#cap-3-9">3.9 I 3 Livelli di Svuotamento e Pulizia Controllata dei Turni</a></div>
+      <div class="toc-item level-2"><a href="#cap-3-10">3.10 Esportazione Bacheca A4 e Condivisione WhatsApp Negozio</a></div>
+      <div class="toc-item level-2"><a href="#cap-3-11">3.11 Scheda "Personale & Competenze" (Organico, Contratto e Reset PIN)</a></div>
+      <div class="toc-item level-2"><a href="#cap-3-12">3.12 Matrice Competenze (Skills Matrix per gli 8 Reparti Aziendali)</a></div>
+      <div class="toc-item level-2"><a href="#cap-3-13">3.13 Report Mensile Ore, Consuntivo Lavoro ed Export CSV Excel</a></div>
 
       <div class="toc-item level-1"><a href="#cap-4">4. Glossario Completo di Icone, Badge, Banner e Colori</a></div>
       <div class="toc-item level-2"><a href="#cap-4-1">4.1 Codice Cromatico Ufficiale delle Tipologie di Turno</a></div>
       <div class="toc-item level-2"><a href="#cap-4-2">4.2 Significato dei Badge di Stato Richiesta e Presenza</a></div>
-      <div class="toc-item level-2"><a href="#cap-4-3">4.3 Banner Informativi e Avvisi di Sistema</a></div>
-      <div class="toc-item level-2"><a href="#cap-4-4">4.4 Notifiche Toast in Tempo Reale</a></div>
+      <div class="toc-item level-2"><a href="#cap-4-3">4.3 Banner Informativi, Allarmi Criticità e Avvisi di Sistema</a></div>
+      <div class="toc-item level-2"><a href="#cap-4-4">4.4 Notifiche Toast Visive in Tempo Reale</a></div>
 
       <div class="toc-item level-1"><a href="#cap-5">5. FAQ, Installazione PWA e Supporto</a></div>
       <div class="toc-item level-2"><a href="#cap-5-1">5.1 Installazione dell'App come Icona su Smartphone e PC</a></div>
       <div class="toc-item level-2"><a href="#cap-5-2">5.2 Funzionamento Offline e Risincronizzazione Dati</a></div>
-      <div class="toc-item level-2"><a href="#cap-5-3">5.3 Smarrimento o Modifica del PIN di Accesso</a></div>
+      <div class="toc-item level-2"><a href="#cap-5-3">5.3 Procedura di Recupero e Modifica del PIN o Password</a></div>
+      <div class="toc-item level-2"><a href="#cap-5-4">5.4 Verifica Aggiornamenti dell'Applicazione</a></div>
     </div>
   </div>
 
@@ -438,7 +430,7 @@ html_content = """<!DOCTYPE html>
       L'Applicazione Turni Nicora Garden è lo strumento digitale ufficiale progettato per armonizzare l'intera organizzazione 
       del lavoro nei due punti vendita di <strong>Gazzada Schianno</strong> e <strong>Varese</strong>. L'obiettivo primario 
       è garantire la massima trasparenza per ciascun collaboratore, eliminare la confusione delle comunicazioni cartacee o via chat, 
-      assicurare una turnazione etica ed equa, e fornire alla Direzione uno strumento infallibile per presidiare costantemente 
+      assicurare una turnazione etica ed equa, e fornire alla Direzione uno strumento affidabile per presidiare costantemente 
       tutti i reparti chiave (a Gazzada: Cassa, Fioreria, Serra Fredda, Serra Calda, Area Tecnica; a Varese: Cassa, Fioreria, Decor, Emporio, Serra Calda, Serra Fredda e stagione Natale).
     </p>
 
@@ -448,53 +440,65 @@ html_content = """<!DOCTYPE html>
       e garantendo l'accesso ai turni anche quando ci si trova in una zona del vivaio con copertura internet debole o assente.
     </div>
 
-    <h2 class="section-title" id="cap-1-2">1.2 Accesso Collaboratore (PIN Rapido a 4 Cifre)</h2>
+    <h2 class="section-title" id="cap-1-2">1.2 Accesso Collaboratore (Selezione Nominativo e PIN)</h2>
     <p>
-      Per rendere l'accesso immediato anche durante il servizio attivo, i collaboratori non devono digitare complesse credenziali:
+      Per rendere l'accesso immediato anche durante il servizio attivo, i collaboratori non devono digitare credenziali complesse:
     </p>
     <ul>
       <li>Dalla schermata di login, selezionare la propria sede di appartenenza (Gazzada o Varese).</li>
-      <li>Cliccare o toccare il proprio nome all'interno dell'elenco del personale.</li>
-      <li>Digitare il proprio <strong>PIN a 4 cifre</strong> sulla tastiera numerica su schermo.</li>
-      <li>Se il PIN è corretto, l'accesso avviene istantaneamente, caricando il profilo personale, i turni del mese e lo stato delle richieste.</li>
+      <li>Aprire il menu a tendina <strong>"Seleziona il tuo nominativo"</strong>, dotato di avatar, reparto di assegnazione e ricerca rapida, e toccare il proprio nome.</li>
+      <li>Digitare il proprio <strong>PIN personale</strong> nel campo riservato (con pulsante a icona per mostrare o nascondere i caratteri digitati).</li>
+      <li>Toccare <strong>"Accedi ai Miei Turni"</strong>: l'accesso avviene istantaneamente, caricando il profilo personale, i turni del mese e lo stato delle richieste.</li>
+      <li>Sotto il modulo è presente il collegamento <strong>"Hai dimenticato il PIN?"</strong> per avviare la procedura rapida di ripristino.</li>
     </ul>
 
-    <h2 class="section-title" id="cap-1-3">1.3 Accesso Responsabile e Direzione (Password Sicura)</h2>
+    <h2 class="section-title" id="cap-1-3">1.3 Accesso Responsabile e Direzione (Email e Password)</h2>
     <p>
-      I responsabili di sede e i componenti della Direzione accedono tramite la sezione dedicata <strong>"Accesso Direzione"</strong>:
+      I responsabili di sede e i componenti della Direzione accedono tramite la sezione dedicata <strong>"Responsabile"</strong>:
     </p>
     <ul>
-      <li>Selezionare la tab <em>"Responsabile / Direzione"</em> nella parte alta della schermata di login.</li>
-      <li>Inserire la password riservata di sede o master.</li>
-      <li>All'accesso, l'applicazione attiva la <strong>Modalità Direzione</strong>, sbloccando i permessi di modifica su tutti i turni, 
-      l'accesso alla matrice competenze, la generazione automatica algoritmica e il pannello di approvazione ferie e cambi turno.</li>
+      <li>Selezionare la tab <em>"Responsabile"</em> nella parte alta della schermata di login.</li>
+      <li>Inserire l'<strong>Email del Responsabile</strong> (es. <code>vittore@nicoragarden.it</code>).</li>
+      <li>Digitare la <strong>Password Direzione</strong> riservata di sede, la master password aziendale oppure la chiave di sblocco master di ripristino.</li>
+      <li>Toccare <strong>"Accedi al Tabellone Direzione"</strong>: l'app attiva la <strong>Modalità Direzione</strong>, sbloccando i permessi di modifica su tutti i turni, 
+      l'accesso alla matrice competenze, la generazione automatica algoritmica, il wizard delle emergenze e il pannello di approvazione ferie e cambi turno.</li>
+      <li>In caso di smarrimento credenziali, il link <strong>"Password dimenticata?"</strong> illustra le procedure di recupero tramite master key o pannello cloud.</li>
     </ul>
 
     <h2 class="section-title" id="cap-1-4">1.4 Selezione della Sede Operativa (Gazzada vs Varese)</h2>
     <p>
-      Nell'header superiore è sempre visibile il pulsante di selezione sede (es. <em>"Nicora Garden Gazzada"</em> con badge arancione). 
+      Nell'header superiore (sia desktop che mobile) è sempre presente il selettore della sede attiva (<em>"Gazzada"</em> o <em>"Varese"</em>). 
       I responsabili possono passare liberamente da una sede all'altra con un solo tocco, visualizzando all'istante l'organico, il tabellone 
       e le presenze dell'altro punto vendita senza dover effettuare un nuovo login.
     </p>
 
-    <h2 class="section-title" id="cap-1-5">1.5 Barra Superiore (Header) e Menu Utente</h2>
+    <h2 class="section-title" id="cap-1-5">1.5 Barra Superiore (Header), Menu Utente e Barra di Navigazione</h2>
     <p>
-      L'header (nella versione desktop e nella versione mobile dedicata) racchiude tutti gli indicatori di stato fondamentali:
+      L'interfaccia (nella versione desktop e nella versione mobile dedicata) racchiude tutti gli indicatori di stato fondamentali:
     </p>
     <ul>
       <li><strong>Logo Nicora Garden:</strong> Tasto rapido per tornare alla pagina principale "Oggi in Sede".</li>
-      <li><strong>Indicatore di Connessione Cloud:</strong> Mostra il pallino verde di sincronizzazione in tempo reale con il database Supabase. 
-      Se la connessione cade, l'app avvisa automaticamente che si sta operando in modalità offline con dati memorizzati localmente.</li>
-      <li><strong>Pulsante Aggiorna Turni (Refresh):</strong> Icona con due frecce circolari che risincronizza forzatamente l'app con il cloud.</li>
-      <li><strong>Campanella Notifiche:</strong> Evidenzia con un pallino numerato arancione le richieste di cambio turno in attesa di risposta da parte del collega o le richieste di ferie in attesa di approvazione da parte della Direzione.</li>
-      <li><strong>Menu Utente (Profilo):</strong> Cliccando sull'avatar con le proprie iniziali si apre il menu a tendina che include:
+      <li><strong>Pulsante Aggiorna Turni (Refresh):</strong> Icona con due frecce circolari che risincronizza forzatamente l'app con Supabase Cloud.</li>
+      <li><strong>Tasto Installa PWA:</strong> Presente nell'header desktop e mobile per installare l'app con un clic o aprire la guida interattiva per Android e iOS.</li>
+      <li><strong>Badge Notifiche sulle Schede:</strong> I contatori numerati rossi/arancioni delle richieste in attesa (proposte di scambio per i collaboratori, richieste di ferie/permessi per la Direzione) sono integrati direttamente sulla linguetta <strong>"Richieste"</strong> della barra di navigazione.</li>
+      <li><strong>Menu Utente (Profilo):</strong> Toccando l'avatar con le proprie iniziali si apre il menu a tendina con:
         <ul>
-          <li><strong>Guida Rapida all'App:</strong> Riapre il tutorial interattivo guidato passo-passo a schede illustrative.</li>
-          <li><strong>Scarica Istruzioni Complete (PDF):</strong> Scarica o apre istantaneamente il presente manuale completo in formato PDF.</li>
-          <li><strong>Modifica PIN / Password:</strong> Permette al collaboratore di cambiare in autonomia il proprio PIN a 4 cifre inserendo prima quello attuale.</li>
-          <li><strong>Esci dalla Sessione:</strong> Disconnette l'utente e ritorna alla schermata di selezione collaboratore.</li>
+          <li><strong>Guida Rapida all'App:</strong> Riapre il tutorial interattivo guidato a schede.</li>
+          <li><strong>Scarica Istruzioni Complete (PDF):</strong> Scarica o apre istantaneamente il presente manuale completo.</li>
+          <li><strong>Modifica PIN / Password:</strong> Permette di aggiornare in autonomia il proprio codice segreto.</li>
+          <li><strong>Verifica Aggiornamenti App:</strong> Tasto rapido che scarica immediatamente l'ultima versione del codice dell'applicazione conservando sessione di login e dati memorizzati.</li>
+          <li><strong>Esci dalla Sessione:</strong> Disconnette l'utente e ritorna alla schermata di login.</li>
         </ul>
       </li>
+    </ul>
+
+    <h2 class="section-title" id="cap-1-6">1.6 Collaboratori Condivisi (Jolly Mobile tra Sedi)</h2>
+    <p>
+      L'applicazione gestisce nativamente i collaboratori polivalenti che operano tra Gazzada e Varese contrassegnati dal ruolo <strong>Jolly Mobile</strong>:
+    </p>
+    <ul>
+      <li>I collaboratori Jolly sono visibili nel tabellone di entrambe le sedi o nella sede di trasferta corrente.</li>
+      <li>L'algoritmo di schedulazione e il wizard di sostituzione riconoscono automaticamente le trasferte per garantire il rispetto dei massimali orari contrattuali ed evitare sovrapposizioni tra i due vivai.</li>
     </ul>
   </div>
 
@@ -547,13 +551,13 @@ html_content = """<!DOCTYPE html>
       <li><strong>Avatar e Ruolo:</strong> Avatar con iniziali e pallino verde di presenza, affiancato dal badge arancione <span class="badge badge-morning">TU</span> se si tratta della propria scheda, o dal badge <span class="badge badge-draft">RESP</span> se il collaboratore ha il ruolo di responsabile di sede.</li>
       <li><strong>Reparto Assegnato:</strong> Badge con colore distintivo del reparto per cui è programmato il turno.</li>
       <li><strong>Fascia Oraria:</strong> Orario programmato di inizio e fine servizio (es. 08:30 — 12:30 o 08:30 — 19:30).</li>
-      <li><strong>Tipologia di Turno:</strong> Dicitura riassuntiva (<em>Giornata Intera</em>, <em>Mattina (Mezza g.)</em> o con icona e spunta verde <em>In Cassa</em>).</li>
-      <li><strong>Modifica Rapida (solo per la Direzione):</strong> In modalità Responsabile, cliccando sulla card si apre la finestra di modifica del turno per intervenire su orari o reparto in caso di esigenze dell'ultimo minuto.</li>
+      <li><strong>Tipologia di Turno:</strong> Dicitura riassuntiva (<em>Giornata Intera</em>, <em>Mattina</em>, <em>Pomeriggio</em> o badge dorato <span class="badge badge-special">SPECIALE</span> per orari personalizzati concordati).</li>
+      <li><strong>Modifica Rapida (solo per la Direzione):</strong> In modalità Responsabile, cliccando sulla card si apre la finestra di modifica del turno per intervenire su orari o reparto.</li>
     </ul>
 
     <h3 class="sub-title">Sezione Collaboratori a Riposo, Ferie o Assenti</h3>
     <p>
-      In fondo alla pagina, un'apposita sezione contrassegnata dall'icona della tazzina di caffè elenca tutti i colleghi dell'organico che oggi non sono di turno, evidenziando chiaramente per ciascuno:
+      In fondo alla pagina, un'apposita sezione contrassegnata dall'icona della tazzina di caffè elenca tutti i colleghi dell'organico che oggi non sono di turno, evidenziando:
     </p>
     <ul>
       <li><strong>☕ Giorno di Riposo:</strong> Giorno di riposo settimanale compensativo.</li>
@@ -568,32 +572,32 @@ html_content = """<!DOCTYPE html>
 
     <div class="card-grid">
       <div class="card">
-        <div class="card-title">Hero Card Profilo & 3 Indicatori Settimanali</div>
+        <div class="card-title">Hero Card Profilo & Quadratura Ore Settimanali</div>
         <p style="font-size: 8pt; color: #4a5568;">
           In cima alla pagina compare il tuo profilo personale (nome, reparto di appartenenza e sede). 
-          Nel riquadro sono integrati 3 contatori sintetici ricalcolati per la settimana selezionata:
-          <br>• <strong>Turni:</strong> numero totale di giornate di lavoro previste (es. 5 turni).
-          <br>• <strong>Riposi:</strong> numero di giornate di riposo settimanale programmate (es. 2 riposi).
-          <br>• <strong>Assenze:</strong> eventuali giornate di ferie, permesso o malattia ricadenti nella settimana.
+          Nel riquadro sono integrati contatori sintetici ricalcolati per la settimana selezionata:
+          <br>• <strong>Ore Contrattuali:</strong> monte ore settimanale previsto da contratto (es. 40h o 24h).
+          <br>• <strong>Ore Pianificate & Saldo:</strong> totale ore effettivamente assegnate nella settimana e bilancio (+/-).
+          <br>• <strong>Turni & Riposi:</strong> numero esatto di giornate di servizio e giorni di riposo programmati.
         </p>
       </div>
       <div class="card">
         <div class="card-title">Promemoria di Sicurezza PIN</div>
         <p style="font-size: 8pt; color: #4a5568;">
           Se stai ancora utilizzando il codice provvisorio di fabbrica (<em>1234</em>), in cima alla schermata compare 
-          un promemoria color ambra che ti invita a personalizzare il tuo PIN a 4 cifre dal menu del profilo per proteggere la tua riservatezza.
+          un promemoria color ambra che ti invita a personalizzare il tuo PIN dal menu del profilo per proteggere la tua riservatezza.
         </p>
       </div>
     </div>
 
-    <h3 class="sub-title">Barra di Navigazione Settimanale (Domenica – Sabato)</h3>
+    <h3 class="sub-title">Barra di Navigazione Settimanale (Ciclo Domenica – Sabato)</h3>
     <p>
-      L'organizzazione oraria in Nicora Garden segue il ciclo settimanale da Domenica a Sabato. 
+      La turnazione aziendale in Nicora Garden segue rigorosamente il ciclo settimanale da <strong>Domenica a Sabato</strong>. 
       Tramite i pulsanti freccia (<em>Precedente</em> e <em>Successiva</em>) è possibile scorrere le settimane:
     </p>
     <ul>
-      <li>Un indicatore testuale evidenzia immediatamente se stai consultando la <span class="badge badge-published">SETTIMANA IN CORSO</span>, la <span class="badge badge-afternoon">PROSSIMA SETTIMANA</span> oppure un periodo precedente o futuro.</li>
-      <li>Viene riportato l'intervallo esatto di date (es. <em>Domenica 4 — Sabato 10 Ottobre</em>).</li>
+      <li>Un indicatore evidenzia immediatamente se stai consultando la <span class="badge badge-published">SETTIMANA ATTUALE</span>, la <span class="badge badge-afternoon">PROSSIMA SETTIMANA</span> o un periodo differente.</li>
+      <li>Viene riportato l'intervallo esatto di date (es. <em>Dom 4 — Sab 10 Ottobre</em>).</li>
     </ul>
 
     <h3 class="sub-title">Elenco delle 7 Giornate della Settimana</h3>
@@ -601,9 +605,9 @@ html_content = """<!DOCTYPE html>
       Per ciascuno dei 7 giorni della settimana selezionata viene visualizzata una scheda dettagliata:
     </p>
     <ul>
-      <li><strong>Giorno e Data:</strong> Il giorno della settimana con numero e mese. La scheda corrispondente alla giornata di <strong>OGGI</strong> è evidenziata con una cornice arancione di risalto.</li>
-      <li><strong>Giornata Lavorativa:</strong> Se sei di turno, la scheda riporta la fascia oraria precisa (es. <em>08:30 — 12:30</em> o <em>08:30 — 19:30</em>), la tipologia (<em>Giornata Intera</em> o <em>Mezza Giornata</em>) e il badge colorato del reparto in cui presterai servizio.</li>
-      <li><strong>Giornata Non Lavorativa:</strong> Se non lavori, la scheda indica in modo rassicurante il motivo con un badge dedicato: <em>☕ Riposo Settimanale</em>, <em>🌴 Ferie</em> oppure <em>🏥 Malattia</em>.</li>
+      <li><strong>Giorno e Data:</strong> Nome del giorno, numero e mese. La scheda corrispondente alla giornata di <strong>OGGI</strong> è evidenziata con un badge verde <span class="badge badge-published">OGGI</span> e sfondo dedicato.</li>
+      <li><strong>Giornata Lavorativa:</strong> Se sei di turno, la scheda riporta la fascia oraria precisa (es. <em>08:30 — 12:30</em>, <em>08:30 — 19:30</em> o scaglione continuato), la tipologia e il badge colorato del reparto in cui presterai servizio.</li>
+      <li><strong>Giornata Non Lavorativa:</strong> Se non lavori, la scheda indica in modo chiaro il motivo con un badge dedicato: <em>☕ Riposo Settimanale</em>, <em>🌴 Ferie</em> oppure <em>🏥 Malattia</em>.</li>
     </ul>
 
     <div class="info-box">
@@ -612,33 +616,32 @@ html_content = """<!DOCTYPE html>
       di pubblicazione ufficiale sul cloud. Fino a quel momento, i turni rimangono in bozza riservata alla sola Direzione.
     </div>
 
-    <h2 class="section-title" id="cap-2-3">2.3 Scheda "Richieste Ferie & Permessi" (Inoltro e Tracciamento)</h2>
+    <h2 class="section-title" id="cap-2-3">2.3 Scheda "Richieste Ferie & Permessi" (I 4 Moduli di Richiesta)</h2>
     <p>
-      Addio a foglietti volanti o messaggi WhatsApp persi. Qualsiasi richiesta di assenza deve essere registrata tramite questa scheda:
+      Qualsiasi esigenza di variazione o assenza deve essere registrata tramite questa scheda. L'app mette a disposizione <strong>4 moduli specifici</strong>:
     </p>
     <ol>
-      <li><strong>Nuova Richiesta Assenza:</strong> Cliccare sul pulsante verde <em>"+ Nuova Richiesta"</em>.</li>
-      <li><strong>Tipologia di Richiesta:</strong> Scegliere tra <em>Ferie</em>, <em>Permesso Orario</em> o <em>Permesso Giornaliero</em>.</li>
-      <li><strong>Selezione Date:</strong> Impostare la data di inizio e la data di fine (se si tratta di più giorni consecutivi) oppure la singola giornata.</li>
-      <li><strong>Motivazione:</strong> Inserire una breve motivazione a beneficio della Direzione per facilitare la valutazione delle coperture di reparto.</li>
-      <li><strong>Invio e Notifica:</strong> All'invio, la richiesta viene trasmessa su Supabase Cloud e compare in tempo reale nel tabellone della Direzione con lo stato <span class="badge badge-draft">IN ATTESA</span>.</li>
+      <li><strong>🌴 Ferie & Permessi:</strong> Per richiedere ferie programmate o permessi orari/giornalieri. Selezionare la data o il periodo e inserire la motivazione a supporto.</li>
+      <li><strong>🔄 Scambio Turno:</strong> Procedura guidata a due passaggi con controllo automatico di compatibilità per scambiare un turno con un collega di sede.</li>
+      <li><strong>⏰ Variazione Orario:</strong> Per richiedere flessibilità su un turno già fissato (es. entrata posticipata alle 10:00 o uscita anticipata concordata), indicando l'ora di inizio e fine desiderate.</li>
+      <li><strong>🏥 Malattia:</strong> Per segnalare tempestivamente un'assenza per malattia o infortunio e allertare subito la Direzione aziendale per la copertura dei reparti critici. Consente l'inserimento facoltativo del <em>Numero Protocollo Telematico INPS (PUC)</em>. Il certificato telematico va comunque inoltrato entro le 48 ore ordinarie all'amministrazione.</li>
     </ol>
     <p>
-      Nella tabella delle proprie richieste è possibile visualizzare l'esito: se la Direzione accetta la richiesta lo stato diventa 
-      <span class="badge badge-full">APPROVATA</span> e il turno nel calendario si trasforma automaticamente in <em>Ferie</em>; 
-      se viene rifiutata, lo stato diventa <span class="badge badge-sick">RIFIUTATA</span> ed è visibile la nota esplicativa della Direzione.
+      Nella tabella delle proprie richieste è possibile visualizzare l'esito: se la Direzione approva la richiesta lo stato diventa 
+      <span class="badge badge-full">APPROVATA</span> e il turno nel calendario si aggiorna automaticamente; 
+      se viene rifiutata, lo stato diventa <span class="badge badge-sick">RIFIUTATA</span> ed è visibile la nota motivazionale della Direzione.
     </p>
 
     <h2 class="section-title" id="cap-2-4">2.4 Procedura Guidata di Scambio Turno con un Collega</h2>
     <p>
-      L'applicazione include un sistema intelligente a doppio consenso per scambiare un turno di lavoro con un collega di reparto:
+      L'applicazione adotta un sofisticato sistema a doppio consenso con verifica automatica delle incompatibilità:
     </p>
     <div class="info-box">
-      <strong>Flusso in 3 Passaggi dello Scambio Turno:</strong>
+      <strong>Come Funziona lo Scambio Turno in 3 Fasi:</strong>
       <ol style="margin-top: 6px;">
-        <li><strong>Fase 1 (Proposta):</strong> Tu selezioni il tuo giorno/turno da cedere (es. Sabato 10 Ottobre mattina), selezioni il collega con cui vuoi effettuare lo scambio e indichi il turno del collega che faresti in cambio.</li>
-        <li><strong>Fase 2 (Consenso del Collega):</strong> Il collega riceve una notifica in-app e un avviso nella propria scheda richieste con stato <span class="badge badge-afternoon">IN ATTESA DEL COLLEGA</span>. Il collega può esaminare la proposta e cliccare <em>"Accetta Scambio"</em> oppure <em>"Declina"</em>.</li>
-        <li><strong>Fase 3 (Autorizzazione Direzione):</strong> Se il collega accetta, la richiesta passa automaticamente all'attenzione della Direzione (<span class="badge badge-draft">IN ATTESA DIREZIONE</span>). La Direzione verifica che non vengano violati i riposi obbligatori e, approvando con un click, scambia in automatico i due turni sul tabellone ufficiale!</li>
+        <li><strong>Fase 1 (Proposta Intelligente):</strong> Tu selezioni la data del tuo turno da cedere e la data del turno del collega. L'app verifica automaticamente che tu sia effettivamente in servizio nel giorno che vuoi cedere, calcola il tuo reparto e ti mostra <em>solo i colleghi effettivamente in turno nella data richiesta</em> che non abbiano conflitti di orario.</li>
+        <li><strong>Fase 2 (Consenso del Collega):</strong> Il collega riceve in tempo reale una notifica in-app e un banner in risalto nella propria scheda richieste con lo stato <span class="badge badge-afternoon">IN ATTESA DEL COLLEGA</span>, dove può confrontare i due turni ed esaminare orari e reparti prima di cliccare <em>"Accetta Scambio"</em> oppure <em>"Rifiuta"</em>.</li>
+        <li><strong>Fase 3 (Autorizzazione Direzione):</strong> Se il collega accetta, la richiesta passa all'attenzione della Direzione (<span class="badge badge-draft">IN ATTESA DIREZIONE</span>). Con l'approvazione finale del manager, l'app scambia in automatico i due turni sul tabellone ufficiale sia sul Cloud che nei calendari di entrambi i dipendenti!</li>
       </ol>
     </div>
   </div>
@@ -651,120 +654,137 @@ html_content = """<!DOCTYPE html>
 
     <h2 class="section-title" id="cap-3-1">3.1 Modalità Responsabile e Monitoraggio Presenze</h2>
     <p>
-      Quando l'utente loggato ha il ruolo di Responsabile o Direzione, l'interfaccia si arricchisce delle funzionalità amministrative. 
-      Nell'header compare il toggle <strong>"Modalità Responsabile"</strong> che consente di alternare la vista tra la prospettiva collaboratore e la prospettiva manager. 
-      Nella scheda <em>Oggi in Sede</em>, la Direzione può cliccare su qualsiasi card collaboratore per modificare all'istante l'orario o la postazione del giorno.
+      Quando l'utente loggato ha il ruolo di Responsabile o Direzione, l'interfaccia si arricchisce delle funzionalità amministrative complete. 
+      Nell'header e nelle schede di gestione, la Direzione può visualizzare l'intero organico, modificare all'istante orari e reparti di ciascun collaboratore 
+      e accedere a strumenti predittivi di controllo presenze.
     </p>
 
-    <h2 class="section-title" id="cap-3-2">3.2 Scheda "Pianificatore Turni" (Tabellone Settimanale e Mensile)</h2>
+    <h2 class="section-title" id="cap-3-2">3.2 Scheda "Pianificatore Turni" (Tabellone Settimanale Domenica–Sabato)</h2>
     <p>
-      Il <strong>Tabellone Pianificatore</strong> è il cuore pulsante della gestione del punto vendita. Mostra una matrice completa in cui:
+      Il <strong>Tabellone Pianificatore</strong> è il cuore pulsante della gestione del punto vendita:
     </p>
     <ul>
-      <li><strong>Asse Verticale:</strong> Tutti i collaboratori della sede attiva, con avatar, ruolo primario e conteggio cumulativo delle ore pianificate nella settimana corrente (con evidenziazione in rosso se sforano il contratto o in arancione se sono sotto-assegnati).</li>
-      <li><strong>Asse Orizzontale:</strong> I giorni della settimana (da Lunedì a Domenica). La Domenica ha una cornice di risalto color arancio per evidenziare il presidio festivo.</li>
-      <li><strong>Celle Turno:</strong> Ogni cella riporta il tipo di turno, gli orari precisi, il reparto assegnato ed eventuali note speciali. Cliccando su qualsiasi cella si apre la modale di modifica immediata.</li>
+      <li><strong>Asse Verticale:</strong> Tutti i collaboratori della sede attiva, con avatar, ruolo primario e quadratura cumulativa delle ore settimanali (badge verde a contratto raggiunto, ambra se in difetto, rosso se in esubero).</li>
+      <li><strong>Asse Orizzontale:</strong> I giorni della settimana da <strong>Domenica a Sabato</strong>. La Domenica è posizionata all'inizio con cornice di risalto color arancio per evidenziare il presidio festivo.</li>
+      <li><strong>Celle Turno:</strong> Ogni cella riporta il tipo di turno, gli orari precisi, il reparto assegnato, badge di turno speciale ed eventuali note. Cliccando su qualsiasi cella si apre la modale di modifica immediata.</li>
     </ul>
 
     <h2 class="section-title" id="cap-3-3">3.3 Ciclo di Vita dei Turni: Bozza Cloud Riservata vs Pubblicazione allo Staff</h2>
     <p>
-      Per consentire alla Direzione la massima serenità e flessibilità operativa durante la stesura dei turni, 
-      l'applicazione adotta un sofisticato sistema a doppio stadio con sincronizzazione cloud centralizzata:
+      Per consentire alla Direzione la massima serenità operativa durante la stesura dei turni, 
+      l'applicazione adotta un sistema a doppio stadio con sincronizzazione cloud centralizzata:
     </p>
     <div class="warning-box">
       <strong>Stato "Bozza nel Cloud" (Visibile solo ai Responsabili):</strong> Quando la Direzione genera o modifica i turni di un mese futuro, 
-      i dati vengono salvati immediatamente nel database Supabase Cloud. Grazie al sistema di permessi basato sullo stato di pubblicazione, 
-      la bozza è <strong>visibile a qualsiasi responsabile su qualsiasi dispositivo</strong> (PC dell'ufficio, smartphone o tablet da casa), 
-      permettendo di perfezionare la turnazione ovunque ci si trovi, rimanendo nel contempo <em>completamente invisibile</em> a tutti i collaboratori di reparto. 
-      Un banner giallo in cima al tabellone segnala: <em>"Bozza del mese in elaborazione (non ancora visibile allo staff)"</em>.
+      i dati vengono salvati immediatamente nel database Supabase Cloud. La bozza è <strong>visibile a qualsiasi responsabile su qualsiasi dispositivo</strong> (PC dell'ufficio, smartphone o tablet da casa), 
+      ma rimane <em>completamente invisibile</em> ai collaboratori di reparto finché non viene rilasciata. Un banner giallo segnala: <em>"Bozza del mese in elaborazione (non ancora visibile allo staff)"</em>.
     </div>
     <div class="success-box">
-      <strong>Pulsante "Pubblica Turni allo Staff":</strong> Una volta che la Direzione ha verificato coperture e riposi, 
-      basta premere il pulsante verde <strong>"Pubblica Turni allo Staff"</strong>. In quel preciso istante, il mese viene registrato 
-      come ufficiale sul Cloud Supabase e i turni diventano immediatamente visibili e notificati a tutto lo staff su tutti i loro dispositivi.
+      <strong>Pulsante "Pubblica Turni Ora":</strong> Una volta che la Direzione ha verificato coperture e riposi, 
+      basta premere il pulsante verde <strong>"Pubblica Turni Ora"</strong>. In quel preciso istante, il mese viene registrato 
+      come ufficiale sul Cloud e i turni diventano visibili a tutto lo staff su tutti i loro dispositivi.
     </div>
 
     <h2 class="section-title" id="cap-3-4">3.4 Banner e Gestione Rapida Richieste Pendenti</h2>
     <p>
       In cima al tabellone pianificatore compare automaticamente il <strong>Banner Richieste Pendenti</strong> non appena uno o più collaboratori 
-      hanno inoltrato richieste di ferie, permessi o scambi turno approvati dal collega:
+      hanno inoltrato richieste di ferie, permessi, variazioni orario o scambi turno approvati dal collega:
     </p>
     <ul>
       <li>Il banner riporta il nome del dipendente, il periodo richiesto, il tipo di assenza e la motivazione.</li>
-      <li>La Direzione può cliccare direttamente su <strong>"Approva"</strong> (il turno del collaboratore viene convertito immediatamente in Ferie/Permesso) 
+      <li>La Direzione può cliccare direttamente su <strong>"Approva"</strong> (il turno del collaboratore viene convertito immediatamente in Ferie/Permesso o scambiato sul tabellone) 
       oppure <strong>"Rifiuta"</strong> con facoltà di digitare una breve nota esplicativa (es. <em>"Fabbisogno cassa non coperto in data 15/10"</em>).</li>
     </ul>
 
-    <h2 class="section-title" id="cap-3-5">3.5 Generazione Automatica Intelligente dei Turni</h2>
+    <h2 class="section-title" id="cap-3-5">3.5 Generazione Automatica Intelligente (Orario Continuato e Stagione Natale)</h2>
     <p>
-      Premendo il pulsante <strong>"Genera Turni con Algoritmo"</strong> si apre la modale di schedulazione predittiva. 
-      L'algoritmo matematico proprietario esegue migliaia di combinazioni tenendo conto simultaneamente di:
+      Premendo il pulsante <strong>"Genera Bozza Turni"</strong> si apre la modale di pianificazione predittiva mensile:
     </p>
     <ul>
-      <li><strong>Fabbisogni Minimi di Reparto:</strong> Copertura garantita di almeno N persone in Cassa, N in Fioreria e N nelle Serre in ogni fascia oraria.</li>
-      <li><strong>Rispetto delle Ferie Approvate:</strong> Nessun turno viene assegnato a collaboratori con richieste già approvate per quel periodo.</li>
-      <li><strong>Rispetto Rigoroso dei Contratti:</strong> Raggiungimento esatto delle 40 ore settimanali per i full-time e del monte ore previsto per i part-time.</li>
-      <li><strong>Vincolo di Riposo Settimanale:</strong> Assegnazione di almeno un giorno di riposo per ciascun collaboratore a settimana e rispetto delle 11 ore minime di stacco tra turno serale e turno mattutino consecutivo.</li>
-      <li><strong>Equità delle Domeniche:</strong> Rotazione automatica per fare in modo che le domeniche lavorate siano distribuite equamente nell'arco dei mesi.</li>
-      <li><strong>Matrice Competenze:</strong> Assegnazione delle persone nei reparti dove hanno punteggi di eccellenza (es. Cassa o Fioreria).</li>
+      <li><strong>Selettore Mese:</strong> Pulsanti rapidi <em>Mese Corrente</em> e <em>Prossimo Mese</em>, affiancati da tendina per pianificare qualsiasi mese futuro.</li>
+      <li><strong>Modalità Orario di Servizio:</strong> Possibilità di scegliere tra <strong>Orario Standard (Spezzato)</strong> (08:30–12:30 e 14:30–19:30) oppure <strong>Orario Continuato (Ottobre–Dicembre)</strong> con scaglioni 09:00, 10:00 e 10:30 e chiusura alle 19:00.</li>
+      <li><strong>Toggle Stagionale Natale (Varese):</strong> Attivabile nei mesi autunnali per allocare prioritariamente i collaboratori specializzati (Matteo & Stefano) al reparto <em>Natale</em>.</li>
+      <li><strong>Protezione Storico Turni Passati:</strong> Nel mese in corso, tutti i turni con data precedente a oggi sono <strong>congelati e protetti al 100%</strong>: la generazione ricalcola solo i turni futuri.</li>
+      <li><strong>Sovrascrittura Selettiva:</strong> Scelta tra sovrascrittura della bozza futura o preservazione dei turni già compilati manualmente.</li>
+      <li><strong>Vincoli Algoritmici Rigorosi:</strong> 5 giorni lavorativi su 7 per ciascun collaboratore (2 riposi settimanali garantiti, con 2 giorni contigui a rotazione mensile), rispetto dei contratti part-time e full-time, riposo minimo di 11 ore tra i turni, recepimento automatico di ferie e malattie già approvate.</li>
+      <li><strong>Tasto "Risolvi Prima Criticità":</strong> Se l'algoritmo rileva giornate con presidi incompleti, un pulsante rapido porta la Direzione direttamente alla data scoperta per completare l'assegnazione.</li>
     </ul>
 
-    <h2 class="section-title" id="cap-3-6">3.6 Modifica Manuale e Assegnazione Postazione Turno</h2>
+    <h2 class="section-title" id="cap-3-6">3.6 Modifica Manuale Turno, Orari Speciali e Slot Continuato</h2>
     <p>
-      Cliccando su una singola cella del tabellone si apre il pannello <em>"Modifica Turno"</em>, che consente di:
+      Cliccando su una singola cella del tabellone si apre il pannello <em>"Gestione Turno Responsabile"</em>, che consente di:
     </p>
     <ul>
       <li>Cambiare la tipologia: Mattina, Pomeriggio, Giornata Intera, Riposo, Ferie o Malattia.</li>
-      <li>Personalizzare l'orario di inizio e fine turno al minuto (es. 09:15 - 13:15).</li>
-      <li>Assegnare il reparto specifico di presidio (utile per collaboratori polivalenti).</li>
-      <li>Inserire note operative visibili al collaboratore (es. <em>"Scarico carrelli Olanda ore 10:00"</em>).</li>
+      <li><strong>Template Orario Continuato (9–19):</strong> Pulsanti rapidi a 3 scaglioni (<em>09:00 — 17:30</em>, <em>10:00 — 18:30</em>, <em>10:30 — 19:00</em>) per applicare all'istante i turni dell'alta stagione.</li>
+      <li><strong>Personalizzazione Orario al Minuto:</strong> Impostazione orari liberi con causale automatica di turno <span class="badge badge-special">SPECIALE</span> (es. part-time contrattualizzato a 24h, flessibilità concordata o straordinario).</li>
+      <li>Assegnare il reparto specifico di presidio tra tutti gli 8 reparti aziendali.</li>
+      <li>Inserire mansioni o note operative visibili al collaboratore (es. <em>"Scarico carrelli vivaio ore 10:00"</em>).</li>
     </ul>
 
-    <h2 class="section-title" id="cap-3-7">3.7 Wizard Gestione Emergenze e Sostituzioni Improvvise</h2>
+    <h2 class="section-title" id="cap-3-7">3.7 Rilevamento Criticità Settimanali e Wizard Scoperture Reparto</h2>
     <p>
-      Quando un collaboratore comunica un'assenza improvvisa (es. malattia mattutina o infortunio), la Direzione clicca su <strong>"Gestione Emergenze"</strong>:
+      Nel tabellone desktop e nella vista giornaliera mobile è attivo un motore di controllo orario in tempo reale:
+    </p>
+    <ul>
+      <li><strong>Banner Allerta Criticità:</strong> Se in una fascia oraria o in un giorno un reparto cardine (Cassa, Fioreria, Serre) è sguarnito, compare un avviso rosso (criticità totale) o arancione (presidio orario parziale).</li>
+      <li><strong>Tasto "Ignora questo presidio":</strong> Consente al responsabile di dichiarare conscia una scopertura specifica (es. chiusura anticipata programmata). La scelta viene memorizzata sia localmente che su Supabase Cloud.</li>
+      <li><strong>Tasto "Trova Sostituto" (Staff Substitution Wizard):</strong> Apre la procedura guidata per risolvere la falla analizzando l'organico:
+        <ul>
+          <li><strong>Candidati a Riposo:</strong> Propone colleghi disponibili a riposo che hanno alta competenza nel reparto scoperto.</li>
+          <li><strong>Candidati in Estensione:</strong> Propone colleghi già in turno che possono estendere l'orario a copertura del reparto scoperto <em>senza sguarnire la loro mansione originaria</em>.</li>
+        </ul>
+      </li>
+    </ul>
+
+    <h2 class="section-title" id="cap-3-8">3.8 Wizard Emergenze e Sostituzioni Improvvise (Replacement Advisor)</h2>
+    <p>
+      Quando un collaboratore comunica un'assenza improvvisa (es. malattia mattutina o infortunio), la Direzione clicca su <strong>"Gestione Emergenza"</strong>:
     </p>
     <div class="info-box">
-      <strong>Come funziona il Replacement Advisor:</strong>
-      <p style="font-size: 8.5pt; margin-top: 4px;">
-        1. Selezionare il collaboratore assente e il turno scoperto.
-        <br>2. Il sistema esclude all'istante chi è già di turno, chi è in ferie o chi violerebbe le 11 ore di riposo.
-        <br>3. Analizza la <strong>Skills Matrix</strong> per verificare chi ha la competenza richiesta dal reparto rimasto scoperto.
-        <br>4. Valuta la disponibilità nella giornata (favorisce chi è a riposo per un subentro ed evita di spostare chi è già a presidio della Cassa).
-        <br>5. Presenta alla Direzione una classifica con i <strong>3 migliori sostituti ideali</strong>, spiegando per ciascuno il motivo del punteggio.
-        <br>6. Con un click sul candidato prescelto, il turno viene riassegnato e il collaboratore avvisato!
-      </p>
+      <strong>Algoritmo del Replacement Advisor:</strong>
+      <ol style="margin-top: 4px;">
+        <li>Selezionare il collaboratore assente, la data e il reparto scoperto da presidiare con urgenza.</li>
+        <li>Il sistema esclude automaticamente chi è già in servizio in quel reparto, chi è in ferie o chi violerebbe le 11 ore di riposo.</li>
+        <li>Consulta la <strong>Skills Matrix</strong> e valuta il punteggio di competenza specifica nel reparto sguarnito.</li>
+        <li>Presenta alla Direzione una classifica con i <strong>3 migliori sostituti ideali</strong>, motivando il punteggio assegnato.</li>
+        <li>Con un click sul candidato prescelto, il turno dell'assente si converte in malattia e il sostituto viene inserito nel reparto con notifica automatica.</li>
+      </ol>
     </div>
 
-    <h2 class="section-title" id="cap-3-8">3.8 Svuotamento e Pulizia Controllata dei Turni</h2>
+    <h2 class="section-title" id="cap-3-9">3.9 I 3 Livelli di Svuotamento e Pulizia Controllata dei Turni</h2>
     <p>
-      Nel caso in cui si desideri azzerare la pianificazione per rigenerarla o riorganizzarla, il pulsante <strong>"Svuota Turni"</strong> presente nel tabellone Direzione apre una finestra dedicata con due livelli operativi ben distinti:
+      Il pulsante <strong>"Svuota Turni"</strong> presente nel tabellone Direzione apre una modale di sicurezza con <strong>3 livelli operativi ben distinti</strong>:
     </p>
     <ul>
-      <li><strong>Opzione Consigliata ("Elimina solo i turni da oggi in poi"):</strong> Rimuove esclusivamente i turni futuri a partire dalla data odierna in avanti. Tutti i turni dei giorni passati rimangono protetti al 100%, preservando intatto lo storico delle presenze per i conteggi ore e le buste paga.</li>
-      <li><strong>Danger Zone ("Svuota TUTTO il database, incluso lo storico"):</strong> Azzeramento totale e irreversibile di qualsiasi turno registrato per la sede selezionata (passato e futuro). Questa opzione richiede una seconda conferma esplicita tramite avviso di sicurezza a schermo. In ogni caso, le anagrafiche dei collaboratori, i PIN, i parametri contrattuali e le competenze non vengono mai toccati.</li>
+      <li><strong>1. Elimina solo i turni da oggi in poi (Consigliato):</strong> Rimuove esclusivamente i turni futuri a partire dalla data odierna. Tutti i turni dei giorni passati rimangono protetti al 100%, preservando intatto lo storico per buste paga e consulenti del lavoro.</li>
+      <li><strong>2. Svuota un mese intero:</strong> Selettore mese che elimina tutti i turni del mese scelto (passati e futuri del solo mese) e ne revoca lo stato di pubblicazione su Supabase Cloud, riportandolo a bozza non pubblicata.</li>
+      <li><strong>3. Danger Zone (Reset totale del database):</strong> Cancellazione irreversibile di qualsiasi turno registrato per la sede selezionata (incluso tutto lo storico passato). Richiede conferma esplicita. In ogni caso, anagrafiche, PIN, contratti e competenze restano protetti.</li>
     </ul>
 
-    <h2 class="section-title" id="cap-3-9">3.9 Esportazione e Stampa Ufficiale per Bacheca</h2>
+    <h2 class="section-title" id="cap-3-10">3.10 Esportazione Bacheca A4 e Condivisione WhatsApp Negozio</h2>
     <p>
-      La Direzione può stampare o esportare in PDF il tabellone turni ufficiale formattato per essere affisso nelle bacheche aziendali di Gazzada o Varese. 
-      Il layout è ottimizzato per fogli A4 o A3 in orientamento orizzontale, con font ad altissima leggibilità, colori distintivi per reparto e tabella riassuntiva delle ore.
-    </p>
-
-    <h2 class="section-title" id="cap-3-10">3.10 Scheda "Personale e Competenze" (Anagrafica e Modifica)</h2>
-    <p>
-      Questa scheda consente la gestione completa del team di ciascun punto vendita:
+      La modale <em>"Stampa & WhatsApp"</em> consente la duplice distribuzione della programmazione settimanale:
     </p>
     <ul>
-      <li><strong>Aggiungi Nuovo Collaboratore:</strong> Nome, cognome, ruolo principale, ore settimanali contrattuali, email, telefono e PIN iniziale.</li>
-      <li><strong>Modifica Parametri Contrattuali:</strong> Aggiornamento ore settimanali (es. passaggio da 20h a 40h) e sede di assegnazione prevalente.</li>
-      <li><strong>Tasto Reset PIN Rapido:</strong> Se un collaboratore dimentica il proprio codice, la Direzione può generare o reimpostare un nuovo PIN in 3 secondi.</li>
-      <li><strong>Archiviazione Collaboratore:</strong> Se un dipendente cessa la collaborazione, non viene cancellato fisicamente dal database (per preservare lo storico dei turni e dei registri passati), ma semplicemente disattivato, scomparendo dal tabellone operativo.</li>
+      <li><strong>Stampa per la Bacheca (PDF A4 Orizzontale):</strong> Genera la griglia ufficiale formattata ad alta leggibilità, ottimizzata per l'affissione al box cassa o nella bacheca aziendale.</li>
+      <li><strong>Copia per Gruppo WhatsApp Negozio:</strong> Genera con un clic il testo formattato completo di emoji, orari e ripartizione reparti, pronto per essere incollato nelle chat di reparto o nel gruppo aziendale dei dipendenti.</li>
     </ul>
 
-    <h2 class="section-title" id="cap-3-11">3.11 Matrice Competenze (Skills Matrix)</h2>
+    <h2 class="section-title" id="cap-3-11">3.11 Scheda "Personale & Competenze" (Organico, Contratto e Reset PIN)</h2>
     <p>
-      La <strong>Skills Matrix</strong> è una tabella bidimensionale in cui a ciascun collaboratore è assegnato un voto da <strong>1 a 10</strong> per ciascuno dei 5 reparti aziendali:
+      Questa scheda unificata consente la gestione completa del team di ciascun punto vendita:
+    </p>
+    <ul>
+      <li><strong>Aggiungi Nuovo Collaboratore / Modifica Anagrafica:</strong> Nominativo, sede, reparto primario, ore settimanali contrattuali, email, telefono, ruolo Direzione e flag Jolly Mobile.</li>
+      <li><strong>Regolatore Rapido Ore Contratto:</strong> Pulsanti preset immediati (<em>40h</em>, <em>30h</em>, <em>24h</em>, <em>20h</em>) e stepper <code>+</code>/<code>-</code> con salvataggio sincronizzato.</li>
+      <li><strong>Tasto Reset PIN Rapido:</strong> Se un collaboratore dimentica il proprio codice, la Direzione tocca <em>"Reset PIN"</em> per reimpostarlo istantaneamente a <code>1234</code>.</li>
+      <li><strong>Archiviazione Collaboratore:</strong> Disattiva il dipendente cessato escludendolo dai nuovi turni ma preservando lo storico presenze passato.</li>
+    </ul>
+
+    <h2 class="section-title" id="cap-3-12">3.12 Matrice Competenze (Skills Matrix per gli 8 Reparti Aziendali)</h2>
+    <p>
+      La <strong>Skills Matrix</strong> assegna a ciascun collaboratore un punteggio da <strong>1 a 10</strong> per ciascuno degli <strong>8 reparti aziendali</strong>:
     </p>
     <table class="manual-table">
       <thead>
@@ -777,23 +797,13 @@ html_content = """<!DOCTYPE html>
       <tbody>
         <tr>
           <td><strong>Cassa</strong></td>
-          <td>Utilizzo gestionale di cassa, emissione scontrini/fatture, pagamenti elettronici, gestione resi, velocità e precisione conteggi.</td>
+          <td>Gestionale di cassa, scontrini/fatture, pagamenti elettronici, resi, velocità e precisione conteggi (priorità assoluta).</td>
           <td>Voto 7/10</td>
         </tr>
         <tr>
           <td><strong>Fioreria</strong></td>
-          <td>Arte floreale, preparazione mazzi, conservazione reciso, confezionamento piante da regalo, assistenza cerimonie.</td>
+          <td>Arte floreale, preparazione mazzi, conservazione reciso, confezionamento piante da regalo, cerimonie.</td>
           <td>Voto 8/10</td>
-        </tr>
-        <tr>
-          <td><strong>Serra Calda</strong></td>
-          <td>Conoscenza botanica piante da interno, patologie fogliari, irrigazione di precisione, concimazione e dislocazione espositiva.</td>
-          <td>Voto 6/10</td>
-        </tr>
-        <tr>
-          <td><strong>Serra Fredda / Vivai</strong></td>
-          <td>Piante da esterno, alberature, fioriture stagionali, terricci specifici, vasi da esterno e resistenza alle intemperie.</td>
-          <td>Voto 6/10</td>
         </tr>
         <tr>
           <td><strong>Decor</strong></td>
@@ -801,8 +811,18 @@ html_content = """<!DOCTYPE html>
           <td>Voto 6/10</td>
         </tr>
         <tr>
+          <td><strong>Serra Calda</strong></td>
+          <td>Botanica piante da interno, patologie fogliari, irrigazione di precisione, concimazione e dislocazione espositiva.</td>
+          <td>Voto 6/10</td>
+        </tr>
+        <tr>
+          <td><strong>Serra Fredda</strong></td>
+          <td>Piante da esterno, vivai, alberature, fioriture stagionali, terricci e vasi resistenti alle intemperie.</td>
+          <td>Voto 6/10</td>
+        </tr>
+        <tr>
           <td><strong>Area Tecnica</strong></td>
-          <td>Manutenzione strutture vivaio, impianti di irrigazione, scarico e movimentazione carrelli, logistica magazzino (Gazzada).</td>
+          <td>Manutenzione strutture vivaio, impianti irrigazione, scarico e movimentazione carrelli (Gazzada).</td>
           <td>Voto 6/10</td>
         </tr>
         <tr>
@@ -817,22 +837,18 @@ html_content = """<!DOCTYPE html>
         </tr>
       </tbody>
     </table>
-    <p>
-      La Direzione può modificare i punteggi con un semplice click. L'algoritmo di generazione automatica e il wizard delle emergenze leggono questi dati in tempo reale per non lasciare mai sguarnito un reparto critico.
-    </p>
 
-    <h2 class="section-title" id="cap-3-12">3.12 Monitoraggio Equità e Quadratura Ore Contrattuali</h2>
+    <h2 class="section-title" id="cap-3-13">3.13 Report Mensile Ore, Consuntivo Lavoro ed Export CSV Excel</h2>
     <p>
-      Per garantire un'allocazione trasparente dei carichi di lavoro ed evitare disparità, il sistema monitora costantemente l'impegno di ciascun collaboratore:
+      Nella sotto-vista <strong>"Report Ore & Export Mese"</strong>, la Direzione dispone del quadro contabile completo:
     </p>
     <ul>
-      <li><strong>Quadratura Ore Settimanali (PlannerGrid):</strong> Nella colonna di ciascun dipendente, un indicatore colorato confronta in tempo reale le ore complessivamente computate (lavoro effettivo + ferie/permessi) con le ore previste da contratto (badge verde se soddisfatto, ambra in difetto e rosso in esubero).</li>
-      <li><strong>Controllo Presenze Settimanali:</strong> Il badge conteggia i giorni effettivi di servizio rispetto ai 5 giorni lavorativi contrattuali previsti (es. 5/5 gg).</li>
-      <li><strong>Consuntivo Mensile e Saldo Ore (Scheda Personale):</strong> La tabella di riepilogo mensile aggrega le ore lavorate per ciascun reparto, le presenze, i riposi, le ferie e le malattie, calcolando automaticamente il monte ore contrattuale e il saldo positivo o negativo.</li>
+      <li><strong>Navigazione Mese per Mese:</strong> Frecce di scorrimento temporale con pulsante rapido <em>"Oggi"</em>.</li>
+      <li><strong>KPI Mensili Aggregati:</strong> Ore lavorate totali della sede, ore dedicate a Cassa, Fioreria/Decor, Serre, e totale giornate di ferie/malattia.</li>
+      <li><strong>Tabella Dettaglio Collaboratore:</strong> Per ogni risorsa sono riportati: presenze effettive, riposi, assenze, ore dettagliate per ciascuno dei reparti, totale ore lavorate, ore figurative di assenza, totale ore rendicontate e saldo (+/- rispetto al contratto).</li>
+      <li><strong>Scarica CSV Excel:</strong> Esporta istantaneamente un foglio di calcolo con codifica UTF-8 BOM, direttamente compatibile con Microsoft Excel e software paghe.</li>
+      <li><strong>Stampa / PDF A4 Orizzontale:</strong> Formatta l'intero consuntivo in un documento stampabile ad uso archivio o consulente del lavoro.</li>
     </ul>
-    <p>
-      Queste metriche permettono alla Direzione di calibrare con precisione la pianificazione prima di pubblicare il mese, prevenendo sbilanciamenti e garantendo che ogni risorsa rispetti il proprio monte ore contrattuale.
-    </p>
   </div>
 
   <!-- ============================================================ -->
@@ -856,25 +872,31 @@ html_content = """<!DOCTYPE html>
           <td><span class="badge badge-morning">Mattina</span></td>
           <td>Turno Mattutino</td>
           <td>08:30 – 12:30</td>
-          <td>Apertura del punto vendita, ricevimento merci, prima assistenza clienti e cassa mattutina.</td>
+          <td>Apertura punto vendita, ricevimento merci, prima assistenza e cassa mattutina.</td>
         </tr>
         <tr>
           <td><span class="badge badge-afternoon">Pomeriggio</span></td>
           <td>Turno Pomeridiano</td>
           <td>14:30 – 19:30</td>
-          <td>Presidio orario pomeridiano di massimo afflusso, cura del cliente, chiusura cassa e negozio.</td>
+          <td>Presidio orario pomeridiano di massimo afflusso, cura del cliente e chiusura negozio.</td>
         </tr>
         <tr>
           <td><span class="badge badge-full">Giornata</span></td>
           <td>Giornata Intera</td>
           <td>08:30 – 19:30 (con pausa)</td>
-          <td>Presidio continuativo giornaliero, solitamente adottato nei weekend o giornate promozionali.</td>
+          <td>Presidio continuativo giornaliero (weekend, promozioni o orario continuato 9-19).</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-special">Speciale</span></td>
+          <td>Orario Speciale Concordato</td>
+          <td>Orario Personalizzato</td>
+          <td>Turno con orari su misura (contratto part-time 24h/30h, estensione straordinario o flessibilità).</td>
         </tr>
         <tr>
           <td><span class="badge badge-rest">Riposo</span></td>
           <td>Riposo Settimanale</td>
           <td>—</td>
-          <td>Giorno di riposo compensativo obbligatorio da legge e contratto nazionale.</td>
+          <td>Giorno di riposo compensativo obbligatorio da legge e contratto nazionale (2 gg/settimana).</td>
         </tr>
         <tr>
           <td><span class="badge badge-leave">Ferie</span></td>
@@ -905,8 +927,8 @@ html_content = """<!DOCTYPE html>
         <tr>
           <td><span class="badge badge-draft">In Attesa</span></td>
           <td>Richiesta Ferie / Permesso</td>
-          <td>La richiesta è stata inviata e si trova nella coda della Direzione.</td>
-          <td>Attendere l'esame da parte del responsabile.</td>
+          <td>La richiesta è stata inoltrata ed è nella coda della Direzione.</td>
+          <td>Attendere la valutazione del responsabile.</td>
         </tr>
         <tr>
           <td><span class="badge badge-afternoon">In Attesa Collega</span></td>
@@ -918,38 +940,39 @@ html_content = """<!DOCTYPE html>
           <td><span class="badge badge-full">Approvata</span></td>
           <td>Richiesta Conclusa</td>
           <td>La richiesta è stata validata positivamente dalla Direzione.</td>
-          <td>Nessuna: il tabellone turni è già stato aggiornato.</td>
+          <td>Nessuna: il tabellone turni è già stato aggiornato sul cloud.</td>
         </tr>
         <tr>
           <td><span class="badge badge-sick">Rifiutata</span></td>
           <td>Richiesta Conclusa</td>
-          <td>La richiesta non ha potuto essere accolta per carenza organico.</td>
-          <td>Consultare la nota del manager per i dettagli.</td>
+          <td>La richiesta non ha potuto essere accolta dalla Direzione o dal collega.</td>
+          <td>Consultare la nota esplicativa del manager.</td>
         </tr>
         <tr>
           <td><span class="badge badge-published">In Servizio</span></td>
           <td>Oggi in Sede</td>
-          <td>Il collaboratore ha il turno in corso in questo preciso orario.</td>
-          <td>Collaboratore operativo in reparto.</td>
+          <td>Il collaboratore ha il turno attivo in questo preciso orario.</td>
+          <td>Collaboratore presente e operativo in reparto.</td>
         </tr>
       </tbody>
     </table>
 
-    <h2 class="section-title" id="cap-4-3">4.3 Banner Informativi e Avvisi di Sistema</h2>
+    <h2 class="section-title" id="cap-4-3">4.3 Banner Informativi, Allarmi Criticità e Avvisi di Sistema</h2>
     <ul>
-      <li><strong>Banner Giallo "Mese in Bozza":</strong> Segnala alla Direzione che i turni visualizzati sono memorizzati localmente e non sono ancora stati distribuiti ai collaboratori.</li>
+      <li><strong>Banner Giallo "Mese in Bozza":</strong> Segnala alla Direzione che i turni visualizzati sono salvati in bozza e non sono ancora stati distribuiti ai collaboratori.</li>
       <li><strong>Banner Verde "Turni Pubblicati":</strong> Conferma che tutti i collaboratori stanno consultando la medesima versione ufficiale sincronizzata sul cloud.</li>
+      <li><strong>Banner Rosso/Ambra Allerta Criticità:</strong> Segnala alla Direzione una scopertura di reparto oraria o totale nella settimana corrente, con tasti per ignorare il presidio o trovare un sostituto.</li>
       <li><strong>Banner Arancione Richieste Pendenti:</strong> Compare in cima al tabellone per avvisare la Direzione della presenza di richieste che attendono risposta.</li>
     </ul>
 
-    <h2 class="section-title" id="cap-4-4">4.4 Notifiche Toast in Tempo Reale</h2>
+    <h2 class="section-title" id="cap-4-4">4.4 Notifiche Toast Visive in Tempo Reale</h2>
     <p>
-      L'applicazione include un sistema di notifiche push in tempo reale tramite connessione WebSocket con Supabase:
+      L'applicazione include un sistema di notifiche toast visive animate tramite connessione realtime con Supabase:
     </p>
     <ul>
-      <li>Quando la Direzione pubblica nuovi turni o modifica un turno che ti riguarda, sullo schermo compare un avviso a comparsa (Toast) con suono discreto: <em>"Il tuo turno per il giorno 12/10 è stato aggiornato"</em>.</li>
-      <li>Quando un collega ti propone uno scambio turno, vieni informato all'istante anche se stavi consultando un'altra scheda.</li>
-      <li>Quando la Direzione approva o rifiuta una tua richiesta di ferie, ricevi subito la conferma a video.</li>
+      <li>Quando la Direzione pubblica nuovi turni o modifica un tuo orario, sullo schermo compare un avviso visivo immediato con chiusura automatica a tempo.</li>
+      <li>Quando un collega ti propone uno scambio turno, vieni informato istantaneamente con un toast interattivo.</li>
+      <li>Quando una tua richiesta di ferie viene approvata o rifiutata, ricevi subito la conferma visiva a video.</li>
     </ul>
   </div>
 
@@ -977,7 +1000,7 @@ html_content = """<!DOCTYPE html>
         <div class="card-title">Su Android (Chrome o altri browser)</div>
         <ol style="font-size: 8pt; margin-left: 14px; margin-top: 4px;">
           <li>Apri il link con il browser <strong>Google Chrome</strong>.</li>
-          <li>Tocca i 3 puntini in alto a destra del browser oppure tocca il pulsante verde <em>"Installa App"</em> nell'header.</li>
+          <li>Tocca il pulsante verde <em>"Installa App"</em> nell'header oppure i 3 puntini del browser.</li>
           <li>Seleziona <strong>"Installa applicazione"</strong> o <strong>"Aggiungi a schermata Home"</strong>.</li>
           <li>L'app si installerà come una vera e propria applicazione nativa a schermo intero.</li>
         </ol>
@@ -989,18 +1012,28 @@ html_content = """<!DOCTYPE html>
       L'applicazione è progettata con tecnologia <em>Offline-First</em>:
     </p>
     <ul>
-      <li>I turni del mese corrente e l'organico di sede vengono salvati in una memoria protetta sul tuo dispositivo.</li>
-      <li>Se ti trovi in una zona del vivaio, delle serre fredde o del magazzino senza copertura Wi-Fi o 4G/5G, puoi comunque aprire l'app e consultare l'orario del tuo turno o l'elenco dei colleghi in servizio.</li>
-      <li>Non appena il dispositivo si ricollega a una connessione internet, l'indicatore nell'header torna verde e risincronizza automaticamente eventuali modifiche intervenute nel frattempo.</li>
+      <li>I turni pubblicati e l'organico di sede vengono salvati in una cache locale protetta sul tuo dispositivo.</li>
+      <li>Se ti trovi nelle serre fredde, nei vivai esterni o nel magazzino privo di connessione internet, puoi comunque consultare il tuo orario e l'elenco dei colleghi in servizio.</li>
+      <li>Non appena la rete torna disponibile, l'app risincronizza in automatico qualsiasi modifica intervenuta nel frattempo.</li>
     </ul>
 
-    <h2 class="section-title" id="cap-5-3">5.3 Smarrimento o Modifica del PIN di Accesso</h2>
+    <h2 class="section-title" id="cap-5-3">5.3 Procedura di Recupero e Modifica del PIN o Password</h2>
     <p>
       La sicurezza e la semplicità di accesso sono entrambe garantite:
     </p>
     <ul>
-      <li><strong>Se ricordi il tuo PIN e vuoi cambiarlo:</strong> Clicca sull'icona del tuo profilo in alto a destra, seleziona <em>"Modifica PIN"</em>, inserisci il tuo PIN attuale di 4 cifre e imposta quello nuovo.</li>
-      <li><strong>Se hai dimenticato il PIN:</strong> Rivolgiti direttamente al tuo Responsabile di Sede o alla Direzione. Dalla scheda <em>"Personale e Competenze"</em>, il responsabile può reimpostare un nuovo PIN provvisorio in tempo reale.</li>
+      <li><strong>Modifica Autonoma del PIN:</strong> Clicca sul tuo avatar in alto a destra, seleziona <em>"Modifica PIN"</em>, inserisci il tuo PIN attuale e imposta quello nuovo.</li>
+      <li><strong>PIN Dimenticato (Procedura Rapida Collaboratore):</strong> Dalla schermata di login, tocca <em>"Hai dimenticato il PIN?"</em>. Si aprirà una modale con un pulsante rapido per inviare un messaggio WhatsApp precompilato al titolare/responsabile. La Direzione aprirà la scheda del personale e premerà <em>"Reset PIN"</em> ripristinandolo a <code>1234</code> in 3 secondi.</li>
+      <li><strong>Password Direzione Dimenticata:</strong> Dalla schermata di login Responsabile, tocca <em>"Password dimenticata?"</em>. Se la password di default (<code>admin</code>) è stata modificata, è possibile sbloccare l'accesso tramite la Master Recovery Key aziendale o reimpostarla dal pannello cloud Supabase.</li>
+    </ul>
+
+    <h2 class="section-title" id="cap-5-4">5.4 Verifica Aggiornamenti dell'Applicazione</h2>
+    <p>
+      Per assicurarsi di utilizzare sempre l'ultimissima versione rilasciata senza cancellare le sessioni di accesso memorizzate:
+    </p>
+    <ul>
+      <li>Aprire il menu profilo in alto a destra e toccare <strong>"Verifica aggiornamenti app"</strong>.</li>
+      <li>L'applicazione controlla la versione remota, aggiorna il service worker PWA e ricarica i file più recenti in un istante.</li>
     </ul>
 
     <div style="margin-top: 30px; padding: 15px; border-top: 2px solid #0a474b; text-align: center; font-size: 8.5pt; color: #4a5568;">

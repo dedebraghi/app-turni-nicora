@@ -160,11 +160,20 @@ export interface ReplacementSuggestion {
   currentShiftType: ShiftType;
 }
 
+export interface MonthCoverageInfo {
+  isFullyCovered: boolean;
+  daysInMonth: number;
+  recordedDaysCount: number;
+  hasShifts: boolean;
+  coverageWarning?: string;
+  missingRangesText?: string;
+}
+
 export interface MonthlyEmployeeSummary {
   employee: Employee;
   workedHours: number;
   leaveHours: number;
-  totalAccountedHours: number;
+  totalAccountedHours?: number;
   departmentHours: Partial<Record<Department, number>>;
   daysCount: {
     presence: number;
@@ -172,8 +181,12 @@ export interface MonthlyEmployeeSummary {
     leave: number;
     sick: number;
   };
-  expectedMonthlyHours: number;
-  deltaHours: number;
+  isMobile?: boolean;
+  homeLocationId?: LocationId;
+  otherLocationHours?: number;
+  otherLocationName?: string;
+  expectedMonthlyHours?: number;
+  deltaHours?: number;
 }
 
 export interface MonthlyStoreSummary {
@@ -183,12 +196,13 @@ export interface MonthlyStoreSummary {
   locationId: LocationId;
   totalWorkedHours: number;
   totalLeaveHours: number;
-  totalAccountedHours: number;
+  totalAccountedHours?: number;
   departmentTotals: Partial<Record<Department, number>>;
   totalPresenceDays: number;
   totalRestDays: number;
   totalLeaveDays: number;
   totalSickDays: number;
   employeeSummaries: MonthlyEmployeeSummary[];
+  coverage?: MonthCoverageInfo;
 }
 

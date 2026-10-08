@@ -622,26 +622,25 @@ html_consuntivo = """<!DOCTYPE html>
 </head>
 <body>
 
-  <!-- Intestazione Formale -->
+  <!-- Intestazione -->
   <div class="header-box">
     <div>
-      <div class="brand-title">Registro Consuntivo Attività & Ore Lavorate</div>
-      <div class="brand-subtitle">App Gestionale Turni Nicora Garden &bull; Sedi di Gazzada e Varese</div>
+      <div class="brand-title">Prospetto Attività & Ore Lavorate</div>
+      <div class="brand-subtitle">Gestionale Turni Nicora Garden &bull; Sedi di Gazzada e Varese</div>
     </div>
     <div class="meta-box">
-      <div><strong>Committente:</strong> Nicora Verde & Paesaggi S.r.l.</div>
-      <div><strong>Referente Direzione:</strong> Vittore Nicora</div>
+      <div><strong>Referente:</strong> Vittore Nicora</div>
       <div><strong>Sviluppatore:</strong> Davide Braghiroli</div>
-      <div><strong>Data Rendicontazione:</strong> 7 Ottobre 2026</div>
+      <div><strong>Data:</strong> 8 Ottobre 2026</div>
     </div>
   </div>
 
-  <!-- Riepilogo Statistico Consuntivo -->
+  <!-- Riepilogo Consuntivo -->
   <div class="summary-card">
     <div class="metric-pod">
       <div class="metric-label">Monte Ore Totale</div>
-      <div class="metric-value">47.5 h</div>
-      <div class="metric-sub">Attività certificate</div>
+      <div class="metric-value">40.5 h</div>
+      <div class="metric-sub">Attività svolte</div>
     </div>
     <div class="metric-pod">
       <div class="metric-label">Tariffa Oraria</div>
@@ -650,13 +649,13 @@ html_consuntivo = """<!DOCTYPE html>
     </div>
     <div class="metric-pod">
       <div class="metric-label">Importo Totale</div>
-      <div class="metric-value">950,00 €</div>
+      <div class="metric-value">810,00 €</div>
       <div class="metric-sub">Consuntivo finale</div>
     </div>
     <div class="metric-pod">
-      <div class="metric-label">Stato Progetto</div>
-      <div class="metric-value" style="color: #166534; font-size: 11pt; margin-top: 4px;">Completato</div>
-      <div class="metric-sub">Pronto per rilascio</div>
+      <div class="metric-label">Stato Consegna</div>
+      <div class="metric-value" style="color: #0a474b; font-size: 11pt; margin-top: 4px;">Completato</div>
+      <div class="metric-sub">Rilascio e collaudo</div>
     </div>
   </div>
 
@@ -667,178 +666,142 @@ html_consuntivo = """<!DOCTYPE html>
         <th class="col-date">Data</th>
         <th class="col-hours">Ore</th>
         <th class="col-module">Modulo / Ambito</th>
-        <th class="col-desc">Descrizione Dettagliata delle Attività</th>
-        <th class="col-status">Stato</th>
+        <th class="col-desc">Descrizione Attività</th>
       </tr>
     </thead>
     <tbody>
       <tr>
         <td class="col-date">18/09/2026</td>
-        <td class="col-hours">4.0 h</td>
+        <td class="col-hours">3.5 h</td>
         <td class="col-module">Architettura & Core Engine</td>
         <td class="col-desc">Setup PWA React 19 + TypeScript + TailwindCSS. Modelli dati (Gazzada 10, Varese 14). Sviluppo schedulerEngine (competenze 1-10), fairnessTracker ed emergencyAdvisor. Viste PlannerGrid, presenze giornaliere e richieste.</td>
-        <td class="col-status"><span class="status-badge">&check; Validato</span></td>
-      </tr>
-      <tr>
-        <td class="col-date">19/09/2026</td>
-        <td class="col-hours">2.5 h</td>
-        <td class="col-module">Cloud Database & Auth</td>
-        <td class="col-desc">DDL SQL Supabase (locations, employees, shifts, shift_requests), indici, RLS e seed 24 dipendenti. Client Supabase, autenticazione ibrida (PIN rapido e login manager), fallback locale e indicatore cloud.</td>
-        <td class="col-status"><span class="status-badge">&check; Validato</span></td>
       </tr>
       <tr>
         <td class="col-date">19/09/2026</td>
         <td class="col-hours">2.0 h</td>
+        <td class="col-module">Cloud Database & Auth</td>
+        <td class="col-desc">DDL SQL Supabase (locations, employees, shifts, shift_requests), indici, RLS e seed 24 dipendenti. Client Supabase, autenticazione ibrida (PIN rapido e login manager), fallback locale e indicatore cloud.</td>
+      </tr>
+      <tr>
+        <td class="col-date">19/09/2026</td>
+        <td class="col-hours">1.5 h</td>
         <td class="col-module">Sync Realtime & Dati Sedi</td>
         <td class="col-desc">Canali Supabase Realtime WebSocket unificati per Gazzada e Varese con gestione turni e richieste ferie. Componente NotificationToast per notifiche mirate su smartphone collaboratore in tempo reale.</td>
-        <td class="col-status"><span class="status-badge">&check; Validato</span></td>
       </tr>
       <tr>
         <td class="col-date">20/09/2026</td>
-        <td class="col-hours">2.5 h</td>
+        <td class="col-hours">2.0 h</td>
         <td class="col-module">Mobile-First UI & Orario Continuato</td>
         <td class="col-desc">Vista smartphone touch-first (MobileDayView verticale senza scroll orizzontale). Template 'Orario Continuato / Alta Stagione' (09:00-19:00 a scaglioni). Integrazione richieste uscite anticipate e ingressi flessibili.</td>
-        <td class="col-status"><span class="status-badge">&check; Validato</span></td>
       </tr>
       <tr>
         <td class="col-date">20/09/2026</td>
-        <td class="col-hours">2.5 h</td>
+        <td class="col-hours">2.0 h</td>
         <td class="col-module">Flusso Ferie & Gestione Staff</td>
         <td class="col-desc">Pannello StaffManagement (anagrafica, nuovi assunti, soft-delete per preservare storico). PendingRequestsBanner per approvazione/rifiuto rapido dal planner, conversione immediata e ricalcolo copertura cassa.</td>
-        <td class="col-status"><span class="status-badge">&check; Validato</span></td>
       </tr>
       <tr>
         <td class="col-date">20/09/2026</td>
         <td class="col-hours">2.0 h</td>
         <td class="col-module">Personale & Ore Contratto</td>
         <td class="col-desc">Unificazione sezione Personale (competenze 1-10, ore contrattuali settimanali). Algoritmo 5gg lavorativi e 2 riposi, quadratura monte ore (40h, 30h, 24h, 20h), presidio garantito 5 reparti e computo ferie.</td>
-        <td class="col-status"><span class="status-badge">&check; Validato</span></td>
       </tr>
       <tr>
         <td class="col-date">20/09/2026</td>
         <td class="col-hours">1.5 h</td>
         <td class="col-module">Export & Report Ore Mensile</td>
         <td class="col-desc">Modulo consuntivo mensile in Personale. Aggregazione analitica ore lavorate per dipendente e reparto, conteggio presenze/ferie/malattie, saldo ore. Export CSV per consulente lavoro e stampa PDF A4 orizzontale.</td>
-        <td class="col-status"><span class="status-badge">&check; Validato</span></td>
       </tr>
       <tr>
         <td class="col-date">21/09/2026</td>
-        <td class="col-hours">2.5 h</td>
+        <td class="col-hours">2.0 h</td>
         <td class="col-module">Risoluzione Bug & UI Refactoring</td>
         <td class="col-desc">Risoluzione Bug #1-#8 (filtro archiviati in sostituzioni emergenza, correzione distribuzione presenze, contatore slider sedi dinamico, sincronizzazione banner coperture con assegnazione automatica).</td>
-        <td class="col-status"><span class="status-badge">&check; Validato</span></td>
       </tr>
       <tr>
         <td class="col-date">22/09/2026</td>
-        <td class="col-hours">3.0 h</td>
+        <td class="col-hours">2.5 h</td>
         <td class="col-module">Analisi Dati Turni Storici Reali</td>
         <td class="col-desc">Analisi documentazione storica Nicora (PDF Gazzada e Varese 2026). Estrazione reparti, mappatura presenze medie per giorno e reparto, costruzione matrice competenze reale dei 24 collaboratori.</td>
-        <td class="col-status"><span class="status-badge">&check; Validato</span></td>
       </tr>
       <tr>
         <td class="col-date">23/09/2026</td>
-        <td class="col-hours">2.0 h</td>
+        <td class="col-hours">1.5 h</td>
         <td class="col-module">Collaboratori Mobili & Bug #9</td>
         <td class="col-desc">Inserimento organico reale, modello collaboratori mobili multi-sede (isMobile) per trasferte Gazzada-Varese in caso di deficit. Badge trasferta nel tabellone e integrazione nell'algoritmo di sostituzione.</td>
-        <td class="col-status"><span class="status-badge">&check; Validato</span></td>
       </tr>
       <tr>
         <td class="col-date">25-27/09/2026</td>
-        <td class="col-hours">3.0 h</td>
+        <td class="col-hours">2.5 h</td>
         <td class="col-module">Restyling Stitch & Dual-Layout</td>
         <td class="col-desc">Restyling completo ispirato al design system Google Stitch e brand Atelier Botanico Nicora (salvia, smeraldo, arancio). Architettura separata smartphone touch-first e desktop/tablet. MobileHeader condiviso nativo.</td>
-        <td class="col-status"><span class="status-badge">&check; Validato</span></td>
       </tr>
       <tr>
         <td class="col-date">28/09/2026</td>
-        <td class="col-hours">3.5 h</td>
+        <td class="col-hours">3.0 h</td>
         <td class="col-module">Algoritmo Mensile & Sostituzioni</td>
         <td class="col-desc">Generazione tabellone mensile in blocco unico con rispetto ferie/malattie/orari concordati. Rilevamento buchi di presidio orario con allarmi rosso/giallo. Wizard sostituzioni guidate e congelamento turni storici passati.</td>
-        <td class="col-status"><span class="status-badge">&check; Validato</span></td>
       </tr>
       <tr>
         <td class="col-date">29/09/2026</td>
-        <td class="col-hours">2.5 h</td>
+        <td class="col-hours">2.0 h</td>
         <td class="col-module">Scambi Turno & Gestione Titolare</td>
         <td class="col-desc">Flusso scambi turno a doppio consenso (accettazione collega e conferma responsabile). Segnalazione malattia con numero INPS. Esclusione titolare Vittore dalla turnazione dipendenti. ClearShiftsModal con Danger Zone.</td>
-        <td class="col-status"><span class="status-badge">&check; Validato</span></td>
       </tr>
       <tr>
         <td class="col-date">30/09/2026</td>
-        <td class="col-hours">3.5 h</td>
+        <td class="col-hours">3.0 h</td>
         <td class="col-module">Bozze, Pubblicazione & Tutorial</td>
         <td class="col-desc">Gestione bozze mensili: turni in bozza riservata e pulsante esplicito 'Pubblica Turni allo Staff' sincronizzato su Supabase. Onboarding tutorial guidato a 6 slide. PWA auto-update e formattazione date in italiano.</td>
-        <td class="col-status"><span class="status-badge">&check; Validato</span></td>
       </tr>
       <tr>
         <td class="col-date">02/10/2026</td>
         <td class="col-hours">1.5 h</td>
         <td class="col-module">Realtime Push & Auto-Update</td>
         <td class="col-desc">Canale WebSocket Supabase Realtime con buffering anti-flapping (250ms). I collaboratori ricevono i turni aggiornati all'istante sullo smartphone senza dover premere 'Aggiorna'. Notifiche toast mirate.</td>
-        <td class="col-status"><span class="status-badge">&check; Validato</span></td>
       </tr>
       <tr>
         <td class="col-date">05/10/2026</td>
         <td class="col-hours">2.0 h</td>
         <td class="col-module">Batch Upsert, Recupero PIN & Master Key</td>
         <td class="col-desc">Risoluzione N+1 query login via batch upsert Supabase. Dialog 'PIN dimenticato?' al login con contatto WhatsApp rapido; tasto 'Reset PIN a 1234' per Direzione con sync cloud; Master Recovery Key e documentazione operativa.</td>
-        <td class="col-status"><span class="status-badge">&check; Validato</span></td>
       </tr>
       <tr>
         <td class="col-date">05/10/2026</td>
         <td class="col-hours">1.5 h</td>
         <td class="col-module">Manuale Operativo PDF & In-App Download</td>
         <td class="col-desc">Compilazione Manuale Operativo Ufficiale in PDF editoriale A4 (13 pag., grafica Nicora Garden, indice navigabile). Salvataggio per PWA offline e download in-app da menu account (desktop e mobile).</td>
-        <td class="col-status"><span class="status-badge">&check; Validato</span></td>
       </tr>
       <tr>
         <td class="col-date">05/10/2026</td>
         <td class="col-hours">1.0 h</td>
         <td class="col-module">Bozze Cloud Cross-Device & Sincronizzazione</td>
         <td class="col-desc">Ciclo di vita bozze centralizzato su Supabase Cloud (sys-app-config): turni in bozza accessibili e modificabili da qualsiasi responsabile su ogni dispositivo, invisibili allo staff fino alla pubblicazione.</td>
-        <td class="col-status"><span class="status-badge">&check; Validato</span></td>
       </tr>
       <tr>
         <td class="col-date">05/10/2026</td>
         <td class="col-hours">0.5 h</td>
         <td class="col-module">Privacy & Isolamento Richieste Staff (GDPR)</td>
         <td class="col-desc">Blindatura privacy schede Richieste: i collaboratori visualizzano solo le proprie richieste personali, con protezione dati sanitari e INPS. Visibilità completa riservata alla Direzione.</td>
-        <td class="col-status"><span class="status-badge">&check; Validato</span></td>
       </tr>
       <tr>
         <td class="col-date">05/10/2026</td>
         <td class="col-hours">1.5 h</td>
         <td class="col-module">Audit Funzionale & Suite Test 176 Casi</td>
         <td class="col-desc">Risoluzione root cause banner bozza, rimozione auto-pubblicazione spuria, fix su 5 difetti funzionali e costruzione suite automatizzata da 176 test (unit, integration, adversarial stress test) con pass rate 100%.</td>
-        <td class="col-status"><span class="status-badge">&check; Validato</span></td>
       </tr>
       <tr>
         <td class="col-date">07/10/2026</td>
-        <td class="col-hours">2.5 h</td>
+        <td class="col-hours">1.5 h</td>
         <td class="col-module">Copertura Oraria Mensile & Competenze Vittore</td>
         <td class="col-desc">Calcolo copertura oraria mensile (calculateMonthHourlyCoverage). Navigazione rapida alle criticità ("Risolvi Prima Criticità"), indicatori pillola e frecce. Sync cloud regole ignorate e allineamento competenze con specifiche di Vittore Nicora (179 test passati).</td>
-        <td class="col-status"><span class="status-badge">&check; Validato</span></td>
       </tr>
     </tbody>
   </table>
 
-  <!-- Firme e Note di Chiusura -->
-  <div class="signatures-box">
-    <div>
-      <strong>Per Nicora Verde & Paesaggi S.r.l.</strong><br>
-      Firma per accettazione e presa visione (Vittore Nicora)
-      <div class="sign-field"></div>
-    </div>
-    <div>
-      <strong>Per lo Sviluppatore</strong><br>
-      Davide Braghiroli
-      <div class="sign-field"></div>
-    </div>
-  </div>
-
   <div class="footer-note">
-    <span>Registro consuntivo ore a tariffa concordata di 20,00 €/h &bull; Codice sorgente e release su repository privato</span>
-    <span>Totale: 47.5 ore (950,00 €)</span>
+    <span>Prospetto consuntivo attività a tariffa concordata di 20,00 €/h</span>
+    <span>Totale: 40,5 ore &bull; Importo: 810,00 €</span>
   </div>
 
 </body>
