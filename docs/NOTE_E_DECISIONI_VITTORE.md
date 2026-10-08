@@ -80,38 +80,31 @@ Per evitare attriti e rendere l'app semplice per tutti:
 
 ---
 
-## 📌 Questione 4: Regole di Assegnazione Reparti e Priorità per Risorse Extra
+## 📌 Questione 4: Allineamento Reparti e Organico (Dicotomia "Area Tecnica" vs "Emporio" e Turnover Storico)
 
-### Il contesto
-L'algoritmo intelligente garantisce che ciascun collaboratore lavori **esattamente 5 giorni a settimana** e copra al 100% il proprio **monte ore contrattuale** (es. 40h per full-time, 24h/20h per part-time).
-Inoltre, l'algoritmo assicura come vincolo inderogabile che **nessun reparto rimanga scoperto** (almeno 1 persona qualificata in Cassa, Fioreria, Decor, Serra Calda e Serra Fredda ogni giorno).
+Dall'audit incrociato tra i **turni storici 2026** (estratti dai prospetti PDF) e le **specifiche ufficiali inviate il 07/10/2026** (file Numbers / Excel), emergono alcune differenze importanti che abbiamo già recepito nel software e che sottoponiamo a Vittore per convalida formale.
 
-Dato che a Gazzada ci sono 10 persone (~7-8 presenti al giorno) e a Varese 14 (~10 presenti al giorno), dopo aver coperto i 5 presidi minimi, **ogni giorno avanzano da 2 a 5 collaboratori** che devono comunque svolgere il loro turno e le loro ore.
+### 1. Dicotomia Reparto: "Area Tecnica" vs "Emporio" a Gazzada
+- **Nei prospetti PDF storici di Gazzada**: Il reparto è sempre stato denominato **"Area Tecnica"** (presidiato abitualmente da Ivano, Denis e Daniela).
+- **Nelle nuove tabelle Excel/Numbers di Vittore**: Lo stesso reparto viene invece denominato **"Emporio"** (uniformato sia a Gazzada che a Varese).
+- **Stato nell'applicazione**: Nel sistema i due termini sono già collegati e trattati come sinonimi (Area Tecnica = Emporio).
+- 👉 **Domanda per Vittore**: Preferisci che nell'interfaccia di Gazzada continui a comparire l'etichetta storica **"Area Tecnica"** o preferisci uniformarla a **"Emporio"** come a Varese?
 
-### Punti da definire con Vittore:
-1. **Regola della Cassa**:
-   - Confermato che la *Cassa non può mai rimanere vuota* al 100% del tempo.
-   - Quando scatta la necessità della **seconda cassa**? Solo Sabato e Domenica? Nei giorni di arrivo merci (Giovedì/Venerdì)? Oppure sempre se l'organico presente supera le 7 persone?
-2. **Priorità di allocazione dei dipendenti in più (Ordine a cascata)**:
-   - Quando tutti e 5 i reparti hanno già 1 persona assegnata, **qual è l'ordine di priorità con cui assegnare i dipendenti eccedenti?**
-   - *Esempio di opzione proposta*:
-     - **1° risorsa extra**: Seconda Cassa (se weekend o afflusso alto) oppure Scarico Merci in Serra (se Giovedì/Venerdì);
-     - **2° risorsa extra**: Raddoppio Fioreria (confezioni/composizioni) o Raddoppio Serra Calda;
-     - **3° risorsa extra**: Raddoppio Decor o supporto generico clienti in corsia.
-   - *Domanda per Vittore*: Qual è la sua scala di priorità ideale per i negozi di Gazzada e Varese? Quali reparti traggono maggior beneficio dall'avere più persone contemporaneamente e quali invece basta che ne abbiano solo 1?
-3. **Flessibilità e Sovrascritture (Ferie, Permessi, Orari Concordati)**:
-   - L'algoritmo pianifica la griglia base standard a monte.
-   - Successivamente, l'approvazione di **ferie, permessi, uscite anticipate o entrate posticipate sovrascrive a valle la pianificazione automatica**.
-   - Se un permesso o ferie lascia temporaneamente scoperto un reparto critico (es. l'unica persona in Cassa o in Fioreria), l'app segnala immediatamente l'allarme di scopertura al manager con suggeritore di sostituzione.
-   - Tutte le ore (ore lavorate, ore di ferie retribuite, permessi e orari concordati) confluiscono nella quadratura del monte ore settimanale e mensile del collaboratore.
-
----
+### 2. Differenze di Organico e Turnover rispetto ai prospetti 2026
+- **Sede di Gazzada**:
+  - *Ridenominazione*: **Teo** nei PDF storici corrisponde al nominativo anagrafico formale **Matteo F.** delle nuove tabelle.
+  - *Personale storico a rotazione*: Nei mesi primaverili (Maggio e Giugno) nei turni figurava un collaboratore in più (**Davide**, portando l'organico a 10 addetti), mentre nei mesi invernali (Gennaio e Febbraio) figurava **Mattia** al posto di Ginevra. Nelle tabelle attuali l'organico è consolidato a **9 persone fisse** (Sabrina, Eleonora, Matteo F., Marco, Daniela, Ginevra, Denis, Laura, Ivano).
+- **Sede di Varese**:
+  - *Nuovi ingressi stagionali*: Nelle tabelle compaiono **Luigi** e **Ivan** (dedicati con competenza 6 al reparto Natale), non presenti nei PDF storici dei primi 9 mesi 2026. L'organico attuale sale così a **16 collaboratori**.
+  - *Collaboratori storici non più presenti nelle tabelle*: Nei turni PDF comparivano con continuità da gennaio a maggio **Gaia** e **Claudio**, oltre a presenze stagionali estive come **Nancy** (giugno/luglio), **Sara** (aprile/maggio) e **Arianna** (aprile/maggio/agosto), che non compaiono nell'elenco ufficiale attuale.
+  - *Disambiguazione*: **Matteo** nei turni storici di Varese è censito nelle tabelle come **Matteo Z.** per distinguerlo chiaramente da Matteo F. di Gazzada.
+- **Stato nell'applicazione**: Nell'app è caricato esattamente l'organico attuale delle tabelle ufficiali (9 addetti a Gazzada e 16 a Varese). Il personale storico non più attivo resta archiviato e disattivato nel database, senza interferire nella generazione dei turni.
 
 ---
 
 ## 📌 Questione 5: Aggiornamento Specifiche e Competenze Dipendenti (File del 07/10/2026)
 
-In data 07/10/2026 Vittore Nicora ha inviato il file ufficiale di configurazione **"Specifiche dipendenti turni.xlsx"** contenente i fogli *Reparti*, *Necessità Personale* e *Competenze Personale*.
+Con l'invio delle tabelle ufficiali `Specifiche dipendenti turni.xlsx` (fogli *Reparti*, *Necessità Personale* e *Competenze Personale*), **la definizione delle priorità di reparto e delle necessità di personale è già stata risolta direttamente dalle tabelle di Vittore**: ciascun reparto ha ora la sua scala di importanza (da 0 a 3) e il fabbisogno giornaliero predefinito.
 
 ### 1. Applicazione Regola "Abilità Più Alta = Reparto Primario"
 - Ciascun collaboratore ha ora il proprio **Reparto Primario strettamente e dinamicamente legato al valore massimo** presente nella matrice delle sue competenze.
@@ -149,7 +142,8 @@ Analizzando i tre fogli del file Excel fornito da Vittore emergono le seguenti a
 - [ ] **Hosting a regime**: Scelta tra piano gratuito con riattivazione o piano low-cost sempre attivo (~5€/mese)
 - [ ] **Sottodominio**: Richiesta all'agenzia web del puntamento `turni.nicoragarden.it`
 - [ ] **Mobilità Sedi**: Definizione se i dipendenti sono ancorati a una sola sede o possono ruotare tra Gazzada e Varese
-- [x] **Validazione competenze**: Caricata la matrice ufficiale da "Specifiche dipendenti turni.xlsx" (07/10/2026) con regola Abilità Più Alta = Reparto Primario
+- [x] **Validazione competenze & priorità**: Caricata la matrice ufficiale da "Specifiche dipendenti turni.xlsx" (07/10/2026) con regola Abilità Più Alta = Reparto Primario e pesi di importanza reparto
+- [ ] **Denominazione Gazzada**: Scelta tra "Area Tecnica" (storico) ed "Emporio" (uniformato)
 - [ ] **Chiarimento Decor Gazzada**: Conferma se Decor a Gazzada ha necessità 0 o 1
 - [x] **Riposi disaccoppiati**: Implementata distribuzione riposi non consecutivi su 5 giorni lavorativi
 - [x] **Nuovi inserimenti Varese**: Integrati Luigi e Ivan a 40h dedicati al reparto Natale

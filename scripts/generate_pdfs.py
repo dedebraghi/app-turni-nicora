@@ -216,7 +216,7 @@ html_decisioni = """<!DOCTYPE html>
     </div>
     <div class="meta-box">
       <div><strong>Destinatario:</strong> Vittore Nicora</div>
-      <div><strong>Data Documento:</strong> 5 Ottobre 2026</div>
+      <div><strong>Data Documento:</strong> 8 Ottobre 2026</div>
       <div><strong>Stato:</strong> Proposte Operative & Scelte Strategiche</div>
     </div>
   </div>
@@ -361,27 +361,50 @@ html_decisioni = """<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- Questione 5: Priorità Reparti Extra -->
+  <!-- Questione 5: Allineamento Reparti e Organico -->
   <div class="question-card">
-    <div class="question-title">5. Priorità di assegnazione delle persone in più ogni giorno</div>
+    <div class="question-title">5. Allineamento Reparti e Organico: Dicotomia "Area Tecnica / Emporio" e Fogli Storici</div>
     <div class="question-desc">
-      Una volta presidiati i 5 reparti essenziali (1 cassa, 1 fioreria, 1 decor, 1 serra calda, 1 serra fredda), ogni giorno avanzano tra 2 e 5 persone che devono svolgere il proprio turno e le ore da contratto.
+      Dall'analisi incrociata tra i <strong>turni storici 2026</strong> (file PDF) e le nuove <strong>specifiche inviate il 07/10/2026</strong> (file Numbers / Excel), abbiamo allineato l'algoritmo alle tue tabelle su necessità e competenze. Ti sottoponiamo due conferme operative per completare l'allineamento.
     </div>
+    
     <div class="question-prompt">
-      La tua decisione: Ti ritrovi in queste priorità o preferisci variare l'ordine dei rinforzi?
+      Punto 1 &bull; Dicotomia nome reparto a Gazzada: Preferisci visualizzare "Area Tecnica" o "Emporio"?
     </div>
-    <div class="single-box" style="line-height: 1.5;">
-      <strong>Regola attualmente implementata nell'algoritmo (differenziata per sede in base al tuo storico):</strong><br><br>
-      <strong>A Gazzada (organico ~10 addetti):</strong><br>
-      &bull; <em>1° risorsa extra (Ven/Sab/Merci):</em> Rinforzo <strong>Serra Fredda</strong> (scarico merci e piante da esterno).<br>
-      &bull; <em>2° risorsa extra (Sabato):</em> <strong>Seconda Cassa</strong> per il picco di cassa del fine settimana.<br>
-      &bull; <em>Altre risorse:</em> Rinforzo automatico sul reparto di <strong>massima competenza</strong> del singolo collaboratore.<br><br>
-      <strong>A Varese (organico ~14 addetti):</strong><br>
-      &bull; <em>1° risorsa extra:</em> Rinforzo continuo al banco <strong>Fioreria</strong> (confezioni e bouquet).<br>
-      &bull; <em>2° risorsa extra (Sabato):</em> <strong>Seconda Cassa</strong> per smaltire l'afflusso del sabato.<br>
-      &bull; <em>3° risorsa extra:</em> Assistenza clienti e corsie in <strong>Serra Fredda</strong>.<br>
-      &bull; <em>Altre risorse:</em> Rinforzo automatico sul reparto di <strong>massima competenza</strong>.<br><br>
-      <span style="color: #64748b; font-size: 8pt;"><em>Possiamo modificare o calibrare questo ordine in qualsiasi momento (es. seconda cassa anche alla domenica o orari stagionali particolari).</em></span>
+    <div class="options-grid" style="margin-bottom: 8px;">
+      <div class="option-box">
+        <div class="option-header">
+          <span>Opzione A: Area Tecnica (Storico PDF)</span>
+          <span class="badge-alt">Abitudine Gazzada</span>
+        </div>
+        <div class="option-detail">
+          Mantiene la dicitura storica presente nei turni cartacei e PDF di Gazzada per il presidio di Ivano, Denis e Daniela.
+        </div>
+      </div>
+      <div class="option-box recommended">
+        <div class="option-header">
+          <span>Opzione B: Emporio (Nuove Specifiche)</span>
+          <span class="badge-rec">Consigliata</span>
+        </div>
+        <div class="option-detail">
+          Uniforma la nomenclatura tra le due sedi (Emporio sia a Gazzada che a Varese), rispecchiando fedelmente le tue tabelle Excel.
+        </div>
+      </div>
+    </div>
+
+    <div class="question-prompt">
+      Punto 2 &bull; Differenze di organico e turnover rispetto ai prospetti storici 2026
+    </div>
+    <div class="single-box" style="line-height: 1.45;">
+      Dall'audit tra i prospetti storici e le nuove tabelle emergono alcune variazioni di personale che abbiamo già recepito nel sistema, ma utili per un tuo riscontro:<br><br>
+      <strong>A Gazzada (9 collaboratori stabili nelle tabelle attuali):</strong><br>
+      &bull; <em>Ridenominazione:</em> <strong>Teo</strong> nei PDF storici corrisponde al nominativo anagrafico <strong>Matteo F.</strong> delle nuove tabelle.<br>
+      &bull; <em>Personale storico:</em> nei mesi primaverili compariva <strong>Davide</strong> (organico a 10) e nei mesi invernali <strong>Mattia</strong> (al posto di Ginevra). Nelle tabelle attuali l'organico è consolidato a 9.<br><br>
+      <strong>A Varese (16 collaboratori censiti nelle tabelle attuali):</strong><br>
+      &bull; <em>Nuovi ingressi:</em> Nelle tabelle sono stati inseriti <strong>Luigi</strong> e <strong>Ivan</strong> (focalizzati sul reparto Natale), non presenti nei PDF storici.<br>
+      &bull; <em>Collaboratori storici non più presenti:</em> Nei PDF figuravano collaboratori continuativi da gennaio a maggio come <strong>Gaia</strong> e <strong>Claudio</strong>, oltre a presenze estive come <strong>Nancy</strong>, <strong>Sara</strong> e <strong>Arianna</strong>, non presenti nelle tabelle attuali.<br>
+      &bull; <em>Disambiguazione:</em> <strong>Matteo</strong> nei PDF è censito come <strong>Matteo Z.</strong> per distinguerlo da Matteo F.<br><br>
+      <span style="color: #64748b; font-size: 8pt;"><em>Nell'app abbiamo caricato esattamente l'organico attuale delle tue tabelle (9 a Gazzada, 16 a Varese). I collaboratori storici non più attivi restano archiviati nel database senza interferire con la generazione automatica.</em></span>
     </div>
   </div>
 
