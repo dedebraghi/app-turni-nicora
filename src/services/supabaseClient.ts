@@ -1,5 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Employee, LocationId, Shift, ShiftRequest } from '../domain/types';
+import { normalizePin } from '../domain/pin';
 import { normalizeDepartment } from '../domain/rules';
 
 const defaultSupabaseUrl = 'https://orxvvlgaguekvdnhqqft.supabase.co';
@@ -37,7 +38,7 @@ export function mapDbToEmployee(row: any): Employee {
     avatar: row.avatar || row.name.slice(0, 2).toUpperCase(),
     email: row.email,
     phone: row.phone || undefined,
-    password: row.pin || '1234',
+    password: normalizePin(row.pin),
     isManager: Boolean(row.is_manager),
     isOwner: Boolean(row.is_owner) || row.id === 'emp-gz-4' || row.email === 'vittore@nicora.eu' || row.email === 'vittore@nicoragarden.it',
     contractHours: (row.id === 'emp-gz-4' || row.email === 'vittore@nicora.eu' || row.email === 'vittore@nicoragarden.it') ? 0 : (row.contract_hours || 40),

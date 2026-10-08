@@ -1,12 +1,11 @@
-/** PIN provvisori/predefiniti storici: chi li ha ancora deve sceglierne uno personale. */
-const PROVISIONAL_PINS = ['1234', '123'];
+/** Unico PIN provvisorio. I vecchi valori vuoti o '123' vengono trattati come '1234'. */
+export const DEFAULT_PIN = '1234';
 
-export const isProvisionalPin = (pin?: string | null): boolean =>
-  !pin || PROVISIONAL_PINS.includes(pin);
+export const normalizePin = (pin?: string | null): string =>
+  !pin || pin === '123' ? DEFAULT_PIN : pin;
 
-/**
- * Verifica il PIN inserito. Se l'account è ancora provvisorio (mai personalizzato o appena
- * resettato) accetta i codici provvisori storici; altrimenti SOLO il PIN personale.
- */
+export const isProvisionalPin = (pin?: string | null): boolean => normalizePin(pin) === DEFAULT_PIN;
+
+/** Verifica il PIN inserito: confronto semplice con il PIN normalizzato dell'account. */
 export const matchesPin = (stored: string | null | undefined, entered: string): boolean =>
-  isProvisionalPin(stored) ? PROVISIONAL_PINS.includes(entered) : stored === entered;
+  normalizePin(stored) === entered;

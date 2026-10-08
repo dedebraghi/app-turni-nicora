@@ -1,3 +1,4 @@
+import { normalizePin } from '../../domain/pin';
 import React, { useState } from 'react';
 import { Employee, LocationId } from '../../domain/types';
 import { NicoraLogo } from '../NicoraLogo';
@@ -82,7 +83,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
     const actualSecret = employee.password || defaultSecret;
     const validCurrentSecrets = isManagerAccount
       ? [actualSecret, 'admin']
-      : [actualSecret];
+      : [normalizePin(actualSecret)];
 
     if (!validCurrentSecrets.includes(currentPinInput)) {
       setPinError(

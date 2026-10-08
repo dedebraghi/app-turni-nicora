@@ -15,7 +15,7 @@ import { EditShiftModal } from './components/common/EditShiftModal';
 import { OnboardingTutorial } from './components/common/OnboardingTutorial';
 import { LoginScreen } from './components/auth/LoginScreen';
 import { ForcePinChangeModal } from './components/auth/ForcePinChangeModal';
-import { isProvisionalPin } from './domain/pin';
+import { isProvisionalPin, normalizePin } from './domain/pin';
 import { NotificationToast, ToastMessage } from './components/common/NotificationToast';
 
 import { ActiveTab, Department, Employee, LocationId, Shift, ShiftRequest, ShiftRequestStatus, ShiftType, SkillScores, UserSession } from './domain/types';
@@ -262,7 +262,7 @@ export const App: React.FC = () => {
     if (!session || session.role !== 'employee') return;
     const cloudEmp = employees.find((e) => e.id === session.user.id);
     if (!cloudEmp) return;
-    if ((cloudEmp.password || '1234') !== (session.user.password || '1234')) {
+    if (normalizePin(cloudEmp.password) !== normalizePin(session.user.password)) {
       setSession(null);
       setIsManagerMode(false);
       setActiveTab('today');

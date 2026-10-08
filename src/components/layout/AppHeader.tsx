@@ -1,3 +1,4 @@
+import { normalizePin } from '../../domain/pin';
 import React, { useState } from 'react';
 import { NicoraLogo } from '../NicoraLogo';
 import { InstallPWAButton } from '../InstallPWAButton';
@@ -72,7 +73,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
     const validCurrentSecrets = isManagerAccount
       ? [actualSecret, 'admin']
-      : [actualSecret];
+      : [normalizePin(actualSecret)];
 
     if (!validCurrentSecrets.includes(currentPinInput)) {
       setPinError(
