@@ -58,7 +58,7 @@ export function mapEmployeeToDb(emp: Employee) {
     phone: emp.phone || null,
     pin: emp.password || '1234',
     is_manager: Boolean(emp.isManager),
-    is_owner: Boolean(emp.isOwner),
+    // is_owner non è una colonna del DB: il ruolo titolare è derivato da id/email in mapDbToEmployee
     contract_hours: emp.contractHours || 40,
     is_active: emp.isActive !== false,
     updated_at: new Date().toISOString(),
