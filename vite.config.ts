@@ -13,7 +13,18 @@ export default defineConfig({
         clientsClaim: true,
         skipWaiting: true
       },
-      includeAssets: ['logo-nicora.svg', 'pwa-192x192.svg', 'pwa-512x512.svg'],
+      includeAssets: [
+        'favicon.svg',
+        'favicon.ico',
+        'favicon-32x32.png',
+        'favicon-16x16.png',
+        'apple-touch-icon.png',
+        'logo-nicora.svg',
+        'pwa-192x192.svg',
+        'pwa-512x512.svg',
+        'icon-192.png',
+        'icon-512.png'
+      ],
       manifest: {
         name: 'Nicora Garden - Turni',
         short_name: 'Turni Nicora',
@@ -23,6 +34,24 @@ export default defineConfig({
         display: 'standalone',
         orientation: 'portrait',
         icons: [
+          {
+            src: '/icon-192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: '/icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: '/icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
+          },
           {
             src: '/pwa-192x192.svg',
             sizes: '192x192',

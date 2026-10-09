@@ -27,3 +27,5 @@ brag-output/
 ~$*.xlsx
 ~$*.docx
 ~$*.pptx
+__pycache__/
+*.py[cod]
