@@ -59,6 +59,22 @@ export const loadStoredEmployees = (): Employee[] => {
         if (updated.id === 'emp-gz-4' || updated.email === 'vittore@nicora.eu' || updated.email === 'vittore@nicoragarden.it') {
           updated = { ...updated, isOwner: true, contractHours: 0 };
         }
+        if (updated.id === 'emp-gz-3' && (updated.name === 'Teo' || updated.avatar === 'TE')) {
+          updated = {
+            ...updated,
+            name: 'Matteo F.',
+            avatar: 'MF',
+            email: updated.email === 'teo@nicoragarden.it' ? 'matteo.f@nicoragarden.it' : updated.email,
+          };
+        }
+        if (updated.id === 'emp-va-6' && (updated.name === 'Matteo' || updated.avatar === 'MO')) {
+          updated = {
+            ...updated,
+            name: 'Matteo Z.',
+            avatar: 'MZ',
+            email: updated.email === 'matteo@nicoragarden.it' ? 'matteo.z@nicoragarden.it' : updated.email,
+          };
+        }
         // Riconcilia il reparto primario dinamico dall'abilità più alta
         const computedRole = computePrimaryRole(updated.skills, updated.locationId, updated.id, updated.name);
         return { ...updated, role: computedRole };
@@ -70,6 +86,9 @@ export const loadStoredEmployees = (): Employee[] => {
           updatedList.push(initEmp);
         }
       });
+
+      // Salva la versione aggiornata per persistere la migrazione
+      saveStoredEmployees(updatedList);
 
       return updatedList;
     }

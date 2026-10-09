@@ -135,7 +135,7 @@ ON CONFLICT (id) DO UPDATE SET
 INSERT INTO employees (id, name, location_id, role, skills, avatar, email, phone, pin, is_manager, contract_hours, is_active) VALUES
 ('emp-gz-1', 'Sabrina', 'gazzada', 'Cassa', '{"Cassa": 10, "Fioreria": 7, "Decor": 6, "Serra Calda": 4, "Serra Fredda": 3}', 'SA', 'sabrina@nicoragarden.it', '340 1000001', '1234', false, 40, true),
 ('emp-gz-2', 'Eleonora', 'gazzada', 'Fioreria', '{"Cassa": 6, "Fioreria": 10, "Decor": 8, "Serra Calda": 5, "Serra Fredda": 4}', 'EL', 'eleonora@nicoragarden.it', '340 1000002', '1234', false, 40, true),
-('emp-gz-3', 'Teo', 'gazzada', 'Serra Calda', '{"Cassa": 5, "Fioreria": 4, "Decor": 5, "Serra Calda": 10, "Serra Fredda": 8}', 'TE', 'teo@nicoragarden.it', '340 1000003', '1234', false, 40, true),
+('emp-gz-3', 'Matteo F.', 'gazzada', 'Fioreria', '{"Fioreria": 8, "Cassa": 7, "Serra Calda": 4, "Serra Fredda": 4}', 'MF', 'matteo.f@nicoragarden.it', '340 1000003', '1234', false, 40, true),
 ('emp-gz-4', 'Vittore Nicora', 'gazzada', 'Serra Calda', '{"Cassa": 8, "Fioreria": 8, "Decor": 8, "Serra Calda": 10, "Serra Fredda": 10}', 'VN', 'vittore@nicoragarden.it', '335 1122334', 'admin', true, 40, true),
 ('emp-gz-5', 'Daniela', 'gazzada', 'Fioreria', '{"Cassa": 7, "Fioreria": 9, "Decor": 8, "Serra Calda": 5, "Serra Fredda": 4}', 'DA', 'daniela@nicoragarden.it', '340 1000005', '1234', false, 30, true),
 ('emp-gz-6', 'Ginevra', 'gazzada', 'Serra Fredda', '{"Cassa": 4, "Fioreria": 4, "Decor": 5, "Serra Calda": 8, "Serra Fredda": 9}', 'GI', 'ginevra@nicoragarden.it', '340 1000006', '1234', false, 40, true),
@@ -159,7 +159,7 @@ INSERT INTO employees (id, name, location_id, role, skills, avatar, email, phone
 ('emp-va-3', 'Luisa', 'varese', 'Fioreria', '{"Cassa": 6, "Fioreria": 9, "Decor": 7, "Serra Calda": 6, "Serra Fredda": 4}', 'LU', 'luisa@nicoragarden.it', '340 2000003', '1234', false, 40, true),
 ('emp-va-4', 'Giancarla', 'varese', 'Decor', '{"Cassa": 6, "Fioreria": 7, "Decor": 10, "Serra Calda": 4, "Serra Fredda": 3}', 'GC', 'giancarla@nicoragarden.it', '340 2000004', '1234', false, 40, true),
 ('emp-va-5', 'Giovanna', 'varese', 'Decor', '{"Cassa": 8, "Fioreria": 6, "Decor": 9, "Serra Calda": 4, "Serra Fredda": 3}', 'GO', 'giovanna@nicoragarden.it', '340 2000005', '1234', false, 40, true),
-('emp-va-6', 'Matteo', 'varese', 'Serra Calda', '{"Cassa": 5, "Fioreria": 4, "Decor": 5, "Serra Calda": 10, "Serra Fredda": 8}', 'MO', 'matteo@nicoragarden.it', '340 2000006', '1234', false, 40, true),
+('emp-va-6', 'Matteo Z.', 'varese', 'Emporio', '{"Emporio": 10, "Natale": 10, "Decor": 4}', 'MZ', 'matteo.z@nicoragarden.it', '340 2000006', '1234', false, 40, true),
 ('emp-va-7', 'Stefano', 'varese', 'Serra Calda', '{"Cassa": 4, "Fioreria": 3, "Decor": 4, "Serra Calda": 9, "Serra Fredda": 8}', 'SO', 'stefano@nicoragarden.it', '340 2000007', '1234', false, 40, true),
 ('emp-va-8', 'Andrea', 'varese', 'Serra Fredda', '{"Cassa": 3, "Fioreria": 2, "Decor": 4, "Serra Calda": 7, "Serra Fredda": 9}', 'AN', 'andrea@nicoragarden.it', '340 2000008', '1234', false, 40, true),
 ('emp-va-9', 'Francesca', 'varese', 'Fioreria', '{"Cassa": 6, "Fioreria": 9, "Decor": 8, "Serra Calda": 4, "Serra Fredda": 3}', 'FR', 'francesca@nicoragarden.it', '340 2000009', '1234', false, 40, true),

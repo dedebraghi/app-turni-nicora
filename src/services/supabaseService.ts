@@ -86,6 +86,22 @@ export const fetchCloudEmployees = async (): Promise<Employee[]> => {
             supabase.from('employees').update({ contract_hours: 40 }).eq('id', 'emp-gz-5').then();
           }
         }
+        if (emp.id === 'emp-gz-3' && (emp.name === 'Teo' || emp.avatar === 'TE')) {
+          emp.name = 'Matteo F.';
+          emp.avatar = 'MF';
+          if (emp.email === 'teo@nicoragarden.it') emp.email = 'matteo.f@nicoragarden.it';
+          if (supabase) {
+            supabase.from('employees').update({ name: 'Matteo F.', avatar: 'MF', email: emp.email }).eq('id', 'emp-gz-3').then();
+          }
+        }
+        if (emp.id === 'emp-va-6' && (emp.name === 'Matteo' || emp.avatar === 'MO')) {
+          emp.name = 'Matteo Z.';
+          emp.avatar = 'MZ';
+          if (emp.email === 'matteo@nicoragarden.it') emp.email = 'matteo.z@nicoragarden.it';
+          if (supabase) {
+            supabase.from('employees').update({ name: 'Matteo Z.', avatar: 'MZ', email: emp.email }).eq('id', 'emp-va-6').then();
+          }
+        }
         return emp;
       });
       saveStoredEmployees(mapped);
