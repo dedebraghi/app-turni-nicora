@@ -1,7 +1,74 @@
 {
   "short_name": "Turni Nicora",
   "name": "Nicora Garden - Turni",
+  "description": "Gestione turni punto vendita Nicora Garden",
   "icons": [
+    {
+      "src": "/icon-nicora-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-nicora-256.png",
+      "type": "image/png",
+      "sizes": "256x256",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-nicora-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-nicora-128.png",
+      "type": "image/png",
+      "sizes": "128x128",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-nicora-64.png",
+      "type": "image/png",
+      "sizes": "64x64",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-nicora-48.png",
+      "type": "image/png",
+      "sizes": "48x48",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-nicora-32.png",
+      "type": "image/png",
+      "sizes": "32x32",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-nicora-16.png",
+      "type": "image/png",
+      "sizes": "16x16",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-nicora-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-nicora-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
     {
       "src": "/icon-192.png",
       "type": "image/png",
@@ -9,27 +76,15 @@
       "purpose": "any"
     },
     {
-      "src": "/icon-512.png",
-      "type": "image/png",
+      "src": "/pwa-512x512.svg",
+      "type": "image/svg+xml",
       "sizes": "512x512",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon-512.png",
-      "type": "image/png",
-      "sizes": "512x512",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     },
     {
       "src": "/pwa-192x192.svg",
       "type": "image/svg+xml",
       "sizes": "192x192",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/pwa-512x512.svg",
-      "type": "image/svg+xml",
-      "sizes": "512x512",
       "purpose": "any maskable"
     }
   ],

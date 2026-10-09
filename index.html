@@ -17,7 +17,20 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="shortcut icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Cattura immediata del prompt di installazione PWA per non perderlo al caricamento -->
+    <script>
+      window.__pwaDeferredPrompt = null;
+      window.addEventListener('beforeinstallprompt', function(e) {
+        e.preventDefault();
+        window.__pwaDeferredPrompt = e;
+        window.dispatchEvent(new Event('pwa-deferred-prompt-ready'));
+      });
+      window.addEventListener('appinstalled', function() {
+        window.__pwaDeferredPrompt = null;
+        window.dispatchEvent(new Event('pwa-app-installed'));
+      });
+    </script>
     
     <!-- Google Fonts: Source Sans 3 & Noto Serif -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

@@ -1,7 +1,7 @@
 {
   "headers": [
     {
-      "source": "/(sw.js|workbox-.*.js|manifest.webmanifest|manifest.json|version.json)",
+      "source": "/(sw.js|workbox-.*.js|manifest.webmanifest|manifest.json|version.json|.*\\.png|.*\\.svg|.*\\.ico)",
       "headers": [
         {
           "key": "Cache-Control",
