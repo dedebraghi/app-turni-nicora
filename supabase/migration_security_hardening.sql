@@ -10,11 +10,19 @@
 --    PIN collaboratori e per la password Direzione.
 -- ================================================================
 
--- 1. RIMOZIONE POLICY VULNERABILI (Wide Open)
+-- 1. RIMOZIONE E RESET POLICY (Idempotente: permette ri-esecuzioni sicure)
 DROP POLICY IF EXISTS "Gestione collaboratori per manager" ON employees;
+DROP POLICY IF EXISTS "Modifica collaboratori consentita" ON employees;
+
 DROP POLICY IF EXISTS "Modifica e salvataggio turni" ON shifts;
+DROP POLICY IF EXISTS "Inserimento turni consentito" ON shifts;
+DROP POLICY IF EXISTS "Modifica turni consentita" ON shifts;
+DROP POLICY IF EXISTS "Eliminazione turni consentita" ON shifts;
+
 DROP POLICY IF EXISTS "Aggiornamento e approvazione richieste" ON shift_requests;
 DROP POLICY IF EXISTS "Eliminazione richieste" ON shift_requests;
+DROP POLICY IF EXISTS "Aggiornamento richieste consentito" ON shift_requests;
+DROP POLICY IF EXISTS "Eliminazione richieste consentita" ON shift_requests;
 
 -- 2. POLICY GESTIONE COLLABORATORI
 -- La sola lettura pubblica per i collaboratori attivi resta permessa:
