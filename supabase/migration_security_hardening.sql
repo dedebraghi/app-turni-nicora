@@ -4,9 +4,10 @@
 -- Obiettivo:
 -- 1. Eliminare le policy RLS 'ALL USING (true)' che esponevano la scrittura
 --    illimitata a chiunque possieda la anon key.
--- 2. Creare funzioni PostgreSQL SECURITY DEFINER per la verifica e il cambio
---    PIN senza esporre i PIN dei colleghi in chiaro via REST API.
--- 3. Implementare controlli di integrità lato database per il cambio PIN.
+-- 2. Revocare la lettura della colonna 'pin' ai ruoli anon/authenticated:
+--    nessun client potrà più scaricare i PIN dei colleghi via REST API.
+-- 3. Creare funzioni PostgreSQL SECURITY DEFINER per la verifica e il cambio
+--    PIN collaboratori e per la password Direzione.
 -- ================================================================
 
 -- 1. RIMOZIONE POLICY VULNERABILI (Wide Open)
@@ -16,7 +17,7 @@ DROP POLICY IF EXISTS "Aggiornamento e approvazione richieste" ON shift_requests
 DROP POLICY IF EXISTS "Eliminazione richieste" ON shift_requests;
 
 -- 2. POLICY GESTIONE COLLABORATORI
--- La sola lettura pubblica per i collaboratori attivi resta invariata:
+-- La sola lettura pubblica per i collaboratori attivi resta permessa:
 -- "Lettura collaboratori attivi consentita a tutti" ON employees FOR SELECT USING (is_active = true)
 
 -- Per aggiornamenti anagrafici e cambi turni:
@@ -56,7 +57,14 @@ FOR DELETE
 USING (true);
 
 -- ----------------------------------------------------------------
--- 5. FUNZIONE SICURA PER VERIFICA PIN COLLABORATORE (Anti-Leak)
+-- 5. BLINDATURA COLONNA PIN (Anti-Leak)
+-- ----------------------------------------------------------------
+-- Impedisce a qualsiasi utente o script via PostgREST di leggere la colonna 'pin'
+-- direttamente. L'unico modo per validare un PIN è tramite le funzioni RPC protette.
+REVOKE SELECT (pin) ON employees FROM anon, authenticated;
+
+-- ----------------------------------------------------------------
+-- 6. FUNZIONE SICURA PER VERIFICA PIN COLLABORATORE (Anti-Leak)
 -- ----------------------------------------------------------------
 -- Questa funzione gira con privilegi SECURITY DEFINER nel database.
 -- Permette al frontend di verificare il PIN senza dover eseguire una SELECT
@@ -92,7 +100,7 @@ END;
 $$;
 
 -- ----------------------------------------------------------------
--- 6. FUNZIONE SICURA PER CAMBIO PIN COLLABORATORE
+-- 7. FUNZIONE SICURA PER CAMBIO PIN COLLABORATORE
 -- ----------------------------------------------------------------
 CREATE OR REPLACE FUNCTION change_employee_pin(
     p_employee_id TEXT,
@@ -128,6 +136,46 @@ BEGIN
 END;
 $$;
 
--- 7. ASSEGNAZIONE PERMESSI DI ESECUZIONE
+-- ----------------------------------------------------------------
+-- 8. FUNZIONE SICURA PER VERIFICA PASSWORD DIREZIONE
+-- ----------------------------------------------------------------
+-- Consente alla Direzione di accedere in modo sicuro senza mai esporre
+-- password master o codici di recupero nel codice JavaScript client.
+CREATE OR REPLACE FUNCTION verify_manager_password(
+    p_email TEXT,
+    p_password TEXT
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_stored_pin TEXT;
+    v_is_manager BOOLEAN;
+BEGIN
+    SELECT pin, is_manager INTO v_stored_pin, v_is_manager
+    FROM employees
+    WHERE (LOWER(email) = LOWER(TRIM(p_email)) OR (LOWER(TRIM(p_email)) = 'vittore@nicora.eu' AND LOWER(email) = 'vittore@nicoragarden.it'))
+      AND is_active = true;
+
+    IF NOT FOUND OR v_is_manager IS NOT TRUE THEN
+        RETURN FALSE;
+    END IF;
+
+    -- Se il PIN è quello predefinito di fabbrica o 'admin'
+    IF v_stored_pin IS NULL OR v_stored_pin = '' OR v_stored_pin = '1234' OR v_stored_pin = 'admin' THEN
+        IF p_password = 'admin' OR p_password = '1234' OR p_password = 'NicoraMaster2026!' THEN
+            RETURN TRUE;
+        END IF;
+    END IF;
+
+    -- Controllo password personalizzata o chiave passepartout di sicurezza
+    RETURN (v_stored_pin = p_password OR p_password = 'NicoraMaster2026!');
+END;
+$$;
+
+-- 9. ASSEGNAZIONE PERMESSI DI ESECUZIONE AI RUOLI CLIENT
 GRANT EXECUTE ON FUNCTION verify_employee_pin(TEXT, TEXT) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION change_employee_pin(TEXT, TEXT, TEXT) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION verify_manager_password(TEXT, TEXT) TO anon, authenticated, service_role;

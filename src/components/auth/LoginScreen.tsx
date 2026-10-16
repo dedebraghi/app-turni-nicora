@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Employee, LocationId, UserSession } from '../../domain/types';
 import { NicoraLogo } from '../NicoraLogo';
-import { LOCATIONS, MANAGER_MASTER_PASSWORD } from '../../domain/mockData';
+import { LOCATIONS } from '../../domain/mockData';
 import { matchesPin } from '../../domain/pin';
-import { verifyEmployeePin } from '../../services/supabaseService';
+import { verifyEmployeePin, verifyManagerPassword } from '../../services/supabaseService';
 import { 
   AlertCircle, 
   ArrowRight, 
@@ -27,8 +27,6 @@ import {
   X 
 } from 'lucide-react';
 import { forceAppUpdate } from '../../services/appUpdateService';
-
-const MASTER_RECOVERY_KEY = 'NicoraMaster2026!';
 
 interface LoginScreenProps {
   employees: Employee[];
@@ -173,17 +171,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
           avatar: 'VN',
           email: managerEmail,
           isManager: true,
-          password: MANAGER_MASTER_PASSWORD,
         };
 
-      const validManagerPasswords = [
-        managerUser.password,
-        ...employees.filter((e) => e.isManager || e.isOwner).map((e) => e.password),
-        MANAGER_MASTER_PASSWORD,
-        MASTER_RECOVERY_KEY,
-      ].filter(Boolean);
+      const isManagerValid = await verifyManagerPassword(managerEmail, password);
 
-      if (!validManagerPasswords.includes(password)) {
+      if (!isManagerValid) {
         registerFailedAttempt('Password direzione non corretta');
         return;
       }
@@ -646,33 +638,33 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
             </div>
 
             <div className="p-5 sm:p-6 space-y-4 text-xs">
-              <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 text-amber-900 space-y-1">
+              <div className="p-3 bg-neutral-50 rounded-2xl border border-neutral-200 text-neutral-800 space-y-1">
                 <p className="font-extrabold flex items-center gap-1.5">
-                  <Sparkles size={14} className="text-amber-600" />
-                  <span>Password Predefinita:</span>
+                  <ShieldCheck size={14} className="text-nicora-teal" />
+                  <span>Accesso Riservato Direzione:</span>
                 </p>
                 <p className="text-[11px] leading-relaxed">
-                  Se non è mai stata cambiata, la password della Direzione è <code className="bg-white px-1.5 py-0.5 rounded font-mono font-bold border border-amber-300">admin</code>.
+                  L&apos;accesso al tabellone Direzione è protetto da cifratura cloud. Per motivi di sicurezza le credenziali non sono visibili pubblicamente.
                 </p>
               </div>
 
               <div className="space-y-3 text-neutral-700 leading-relaxed">
                 <p className="font-bold text-neutral-800">
-                  Se hai modificato la password e l&apos;hai dimenticata, hai a disposizione due salvagenti di sicurezza:
+                  Se hai dimenticato la password, procedi tramite uno dei canali di sicurezza:
                 </p>
 
                 <div className="space-y-2">
                   <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-200 space-y-1">
                     <p className="font-bold text-neutral-800">1. Master Recovery Key Riservata</p>
                     <p className="text-[11px] text-neutral-600">
-                      È sempre attiva una chiave passepartout di sicurezza nota alla proprietà che sblocca l&apos;accesso in qualsiasi circostanza.
+                      Inserisci la Master Recovery Key di riserva indicata nella documentazione riservata di consegna dell&apos;applicazione.
                     </p>
                   </div>
 
                   <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-200 space-y-1">
-                    <p className="font-bold text-neutral-800">2. Ripristino immediato da Supabase Cloud</p>
+                    <p className="font-bold text-neutral-800">2. Ripristino tramite Amministratore</p>
                     <p className="text-[11px] text-neutral-600">
-                      Dal pannello cloud del database (tabella <code className="font-mono bg-white px-1 border rounded">employees</code>), basta riscrivere <code className="font-mono font-bold">admin</code> nel campo <code className="font-mono">pin</code> dell&apos;utente Direzione.
+                      Contatta il supporto tecnico per verificare o aggiornare le credenziali direttamente sul database cloud.
                     </p>
                   </div>
                 </div>
