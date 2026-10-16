@@ -3,7 +3,7 @@ import { Employee, LocationId, UserSession } from '../../domain/types';
 import { NicoraLogo } from '../NicoraLogo';
 import { LOCATIONS } from '../../domain/mockData';
 import { matchesPin } from '../../domain/pin';
-import { verifyEmployeePin, verifyManagerPassword } from '../../services/supabaseService';
+import { authenticateCloudManager, verifyEmployeePin } from '../../services/supabaseService';
 import { 
   AlertCircle, 
   ArrowRight, 
@@ -28,6 +28,8 @@ import {
 } from 'lucide-react';
 import { forceAppUpdate } from '../../services/appUpdateService';
 
+const LOCKOUT_STORAGE_KEY = 'nicora_auth_lockout_state';
+
 interface LoginScreenProps {
   employees: Employee[];
   onLoginSuccess: (session: UserSession, activeLocation: LocationId) => void;
@@ -51,11 +53,58 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
   const [error, setError] = useState<string>('');
   const [isForgotPinModalOpen, setIsForgotPinModalOpen] = useState(false);
   const [isForgotAdminPasswordModalOpen, setIsForgotAdminPasswordModalOpen] = useState(false);
-  const [failedAttempts, setFailedAttempts] = useState<number>(0);
-  const [lockoutTime, setLockoutTime] = useState<number | null>(null);
-  const [lockoutRemaining, setLockoutRemaining] = useState<number>(0);
 
-  // Timer di sblocco dopo tentativi falliti consecutivi (Anti Brute-Force)
+  const [failedAttempts, setFailedAttempts] = useState<number>(() => {
+    try {
+      const raw = localStorage.getItem(LOCKOUT_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return Number(parsed.failedAttempts) || 0;
+      }
+    } catch {
+      // ignore
+    }
+    return 0;
+  });
+
+  const [lockoutTime, setLockoutTime] = useState<number | null>(() => {
+    try {
+      const raw = localStorage.getItem(LOCKOUT_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.lockoutTime && parsed.lockoutTime > Date.now()) {
+          return Number(parsed.lockoutTime);
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  });
+
+  const [lockoutRemaining, setLockoutRemaining] = useState<number>(() => {
+    if (lockoutTime && lockoutTime > Date.now()) {
+      return Math.ceil((lockoutTime - Date.now()) / 1000);
+    }
+    return 0;
+  });
+
+  const persistLockoutState = (attempts: number, lockUntil: number | null) => {
+    try {
+      if (attempts === 0 && !lockUntil) {
+        localStorage.removeItem(LOCKOUT_STORAGE_KEY);
+      } else {
+        localStorage.setItem(
+          LOCKOUT_STORAGE_KEY,
+          JSON.stringify({ failedAttempts: attempts, lockoutTime: lockUntil })
+        );
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  // Timer di sblocco dopo tentativi falliti consecutivi (Anti Brute-Force persistente anche su F5)
   useEffect(() => {
     if (!lockoutTime) return;
     const interval = setInterval(() => {
@@ -64,6 +113,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
         setLockoutTime(null);
         setLockoutRemaining(0);
         setFailedAttempts(0);
+        persistLockoutState(0, null);
       } else {
         setLockoutRemaining(diff);
       }
@@ -116,8 +166,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
         const lockUntil = Date.now() + 30000;
         setLockoutTime(lockUntil);
         setLockoutRemaining(30);
+        persistLockoutState(next, lockUntil);
         setError('Troppi tentativi errati consecutivi. Accesso bloccato per 30 secondi.');
       } else {
+        persistLockoutState(next, null);
         setError(`${msg} (Tentativi rimasti: ${5 - next})`);
       }
     };
@@ -141,10 +193,17 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
 
       setFailedAttempts(0);
       setLockoutTime(null);
+      persistLockoutState(0, null);
+
+      const usedCustomPin = password.trim() !== '1234' && password.trim() !== '123';
 
       onLoginSuccess(
         {
-          user: emp,
+          user: {
+            ...emp,
+            hasCustomPin: usedCustomPin || Boolean(emp.hasCustomPin),
+            password: usedCustomPin ? undefined : '1234',
+          },
           role: 'employee',
         },
         emp.locationId
@@ -173,20 +232,22 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
           isManager: true,
         };
 
-      const isManagerValid = await verifyManagerPassword(managerEmail, password);
+      const authRes = await authenticateCloudManager(managerEmail, password);
 
-      if (!isManagerValid) {
-        registerFailedAttempt('Password direzione non corretta');
+      if (!authRes.success) {
+        registerFailedAttempt(authRes.error || 'Password direzione non corretta');
         return;
       }
 
       setFailedAttempts(0);
       setLockoutTime(null);
+      persistLockoutState(0, null);
 
       onLoginSuccess(
         {
           user: managerUser,
           role: 'manager',
+          managerToken: authRes.token,
         },
         activeLocation
       );

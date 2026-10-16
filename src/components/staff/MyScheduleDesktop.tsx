@@ -83,7 +83,7 @@ export const MyScheduleDesktop: React.FC<MyScheduleDesktopProps> = ({
   return (
     <div className="max-w-[1080px] w-full mx-auto space-y-6 pb-16">
       {/* Banner Promemoria PIN Predefinito */}
-      {(!currentEmployee.password || currentEmployee.password === '1234') && !currentEmployee.isManager && !currentEmployee.isOwner && (
+      {!currentEmployee.hasCustomPin && (!currentEmployee.password || currentEmployee.password === '1234') && !currentEmployee.isManager && !currentEmployee.isOwner && (
         <div className="bg-amber-50/95 border border-amber-200/90 rounded-2xl p-4 flex items-center justify-between gap-4 text-xs text-amber-900 shadow-xs animate-in fade-in">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-700 flex items-center justify-center shrink-0">

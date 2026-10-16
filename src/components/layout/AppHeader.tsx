@@ -6,6 +6,8 @@ import { LOCATIONS } from '../../domain/mockData';
 import { Employee, LocationId, UserSession } from '../../domain/types';
 import { AlertCircle, Check, ChevronDown, FileText, HelpCircle, KeyRound, LogOut, MapPin, RefreshCw, X } from 'lucide-react';
 import { forceAppUpdate } from '../../services/appUpdateService';
+import { isSupabaseConfigured } from '../../services/supabaseClient';
+import { changeCloudEmployeePin, changeCloudManagerPassword } from '../../services/supabaseService';
 
 interface AppHeaderProps {
   session: UserSession;
@@ -61,28 +63,10 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
     setIsPinModalOpen(true);
   };
 
-  const handleSavePin = (e: React.FormEvent) => {
+  const handleSavePin = async (e: React.FormEvent) => {
     e.preventDefault();
     setPinError('');
     setPinSuccess('');
-
-    const currentUser =
-      employees.find((emp) => emp.id === session.user.id) || session.user;
-    const defaultSecret = isManagerAccount ? 'admin' : '1234';
-    const actualSecret = currentUser.password || defaultSecret;
-
-    const validCurrentSecrets = isManagerAccount
-      ? [actualSecret, 'admin']
-      : [normalizePin(actualSecret)];
-
-    if (!validCurrentSecrets.includes(currentPinInput)) {
-      setPinError(
-        isManagerAccount
-          ? 'La password attuale inserita non è corretta'
-          : 'Il PIN attuale inserito non è corretto'
-      );
-      return;
-    }
 
     if (newPinInput.length < 3) {
       setPinError(
@@ -102,10 +86,45 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
       return;
     }
 
+    const currentUser =
+      employees.find((emp) => emp.id === session.user.id) || session.user;
+    const defaultSecret = isManagerAccount ? 'admin' : '1234';
+
+    if (isSupabaseConfigured) {
+      const rpcRes = isManagerAccount
+        ? await changeCloudManagerPassword(currentPinInput, newPinInput)
+        : await changeCloudEmployeePin(currentUser.id, currentPinInput, newPinInput);
+
+      if (!rpcRes.success) {
+        setPinError(
+          rpcRes.error ||
+            (isManagerAccount
+              ? 'La password attuale inserita non è corretta'
+              : 'Il PIN attuale inserito non è corretto')
+        );
+        return;
+      }
+    } else {
+      const actualSecret = currentUser.password || session.user.password || defaultSecret;
+      const validCurrentSecrets = isManagerAccount
+        ? [actualSecret, 'admin']
+        : [normalizePin(actualSecret)];
+
+      if (!validCurrentSecrets.includes(currentPinInput)) {
+        setPinError(
+          isManagerAccount
+            ? 'La password attuale inserita non è corretta'
+            : 'Il PIN attuale inserito non è corretto'
+        );
+        return;
+      }
+    }
+
     if (onSaveEmployee) {
       onSaveEmployee({
         ...currentUser,
         password: newPinInput,
+        hasCustomPin: newPinInput !== defaultSecret && newPinInput !== '123',
       });
     }
 

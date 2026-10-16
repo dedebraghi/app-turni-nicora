@@ -44,11 +44,13 @@ export interface Employee {
   isActive?: boolean;     // Se false: collaboratore archiviato/cessato (soft-delete)
   isMobile?: boolean;     // Se true: collaboratore mobile (sede primaria + trasferte nell'altra sede)
   isOwner?: boolean;      // Se true: titolare/proprietario (esente da turnazione e non conteggiato nell'organico dipendenti)
+  hasCustomPin?: boolean; // Se true: ha impostato un PIN personale diverso da '1234' (letto in sicurezza da Supabase senza esporre il PIN)
 }
 
 export interface UserSession {
   user: Employee;
   role: 'employee' | 'manager';
+  managerToken?: string;
 }
 
 export interface Shift {

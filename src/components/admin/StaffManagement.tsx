@@ -258,7 +258,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
                         )}
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-1.5 mt-1 text-xs">
+      <div className="flex flex-wrap items-center gap-1.5 mt-1 text-xs">
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${deptStyle.badge}`}>
                           {emp.role}
                         </span>
@@ -269,7 +269,12 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
                         <span className="text-neutral-400">•</span>
                         <span className="text-neutral-600 font-medium text-[11px] flex items-center gap-1">
                           <KeyRound size={11} className="text-amber-600" />
-                          <span>PIN: {!emp.password || emp.password === '1234' ? 'provvisorio (da cambiare)' : 'personale (riservato)'}</span>
+                          <span>
+                            PIN:{' '}
+                            {emp.hasCustomPin || (emp.password && emp.password !== '1234' && emp.password !== '123')
+                              ? 'personale (riservato)'
+                              : 'provvisorio (da cambiare)'}
+                          </span>
                         </span>
                       </div>
                     </div>

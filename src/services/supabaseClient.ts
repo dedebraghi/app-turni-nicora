@@ -25,6 +25,11 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured
 export function mapDbToEmployee(row: any): Employee {
   const locId = row.location_id as LocationId;
   const normalizedRole = normalizeDepartment(row.role, locId) || row.role;
+  const hasCustom =
+    typeof row.has_custom_pin === 'boolean'
+      ? row.has_custom_pin
+      : Boolean(row.pin && row.pin !== '1234' && row.pin !== '123' && row.pin !== 'admin');
+
   return {
     id: row.id,
     name: row.name,
@@ -34,7 +39,8 @@ export function mapDbToEmployee(row: any): Employee {
     avatar: row.avatar || row.name.slice(0, 2).toUpperCase(),
     email: row.email,
     phone: row.phone || undefined,
-    password: normalizePin(row.pin),
+    password: row.pin ? normalizePin(row.pin) : undefined,
+    hasCustomPin: hasCustom,
     isManager: Boolean(row.is_manager),
     isOwner: Boolean(row.is_owner) || row.id === 'emp-gz-4' || row.email === 'vittore@nicora.eu' || row.email === 'vittore@nicoragarden.it',
     contractHours: (row.id === 'emp-gz-4' || row.email === 'vittore@nicora.eu' || row.email === 'vittore@nicoragarden.it') ? 0 : (row.contract_hours || 40),
@@ -43,7 +49,7 @@ export function mapDbToEmployee(row: any): Employee {
 }
 
 export function mapEmployeeToDb(emp: Employee) {
-  return {
+  const payload: Record<string, any> = {
     id: emp.id,
     name: emp.name,
     location_id: emp.locationId,
@@ -52,13 +58,20 @@ export function mapEmployeeToDb(emp: Employee) {
     avatar: emp.avatar,
     email: emp.email,
     phone: emp.phone || null,
-    pin: emp.password || '1234',
     is_manager: Boolean(emp.isManager),
     // is_owner non è una colonna del DB: il ruolo titolare è derivato da id/email in mapDbToEmployee
     contract_hours: emp.contractHours || 40,
     is_active: emp.isActive !== false,
     updated_at: new Date().toISOString(),
   };
+
+  // Includiamo 'pin' SOLO se è stato esplicitamente valorizzato, per evitare di sovrascrivere
+  // a '1234' i PIN personalizzati sul database quando si modificano ore o competenze!
+  if (emp.password && emp.password.trim() !== '') {
+    payload.pin = emp.password.trim();
+  }
+
+  return payload;
 }
 
 export function mapDbToShift(row: any): Shift {
@@ -233,6 +246,23 @@ export function mapRequestToDb(req: ShiftRequest) {
   };
 }
 
+export function getStoredManagerToken(): string | undefined {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const raw = window.localStorage.getItem('nicora_v4_session');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed.managerToken === 'string') {
+          return parsed.managerToken;
+        }
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return undefined;
+}
+
 /**
  * Ritira la pubblicazione di un mese da Supabase Cloud (sys-app-config).
  */
@@ -254,11 +284,24 @@ export const unpublishCloudMonth = async (
       .eq('id', 'sys-app-config')
       .maybeSingle();
 
-    const currentMonths: string[] = Array.isArray(data?.skills?.published_months)
-      ? [...data.skills.published_months]
+    const currentSkills = (data?.skills as any) || {};
+    const currentMonths: string[] = Array.isArray(currentSkills.published_months)
+      ? [...currentSkills.published_months]
       : [];
 
     const updated = currentMonths.filter((m) => m !== monthKey);
+    const nextSkills = { ...currentSkills, published_months: updated };
+
+    const token = getStoredManagerToken();
+    if (token) {
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc('manager_update_app_config', {
+        p_token: token,
+        p_skills: nextSkills,
+      });
+      if (!rpcErr && rpcRes && (rpcRes as any).success) {
+        return { success: true };
+      }
+    }
 
     const { error: upsertErr } = await supabase.from('employees').upsert({
       id: 'sys-app-config',
@@ -268,7 +311,7 @@ export const unpublishCloudMonth = async (
       avatar: 'CF',
       email: 'system-config@nicoragarden.local',
       is_active: false,
-      skills: { published_months: updated },
+      skills: nextSkills,
       updated_at: new Date().toISOString(),
     });
 
@@ -297,11 +340,24 @@ export const unpublishCloudLocation = async (
       .eq('id', 'sys-app-config')
       .maybeSingle();
 
-    const currentMonths: string[] = Array.isArray(data?.skills?.published_months)
-      ? [...data.skills.published_months]
+    const currentSkills = (data?.skills as any) || {};
+    const currentMonths: string[] = Array.isArray(currentSkills.published_months)
+      ? [...currentSkills.published_months]
       : [];
 
     const updated = currentMonths.filter((m) => !m.startsWith(`${locationId}_`));
+    const nextSkills = { ...currentSkills, published_months: updated };
+
+    const token = getStoredManagerToken();
+    if (token) {
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc('manager_update_app_config', {
+        p_token: token,
+        p_skills: nextSkills,
+      });
+      if (!rpcErr && rpcRes && (rpcRes as any).success) {
+        return { success: true };
+      }
+    }
 
     const { error: upsertErr } = await supabase.from('employees').upsert({
       id: 'sys-app-config',
@@ -311,7 +367,7 @@ export const unpublishCloudLocation = async (
       avatar: 'CF',
       email: 'system-config@nicoragarden.local',
       is_active: false,
-      skills: { published_months: updated },
+      skills: nextSkills,
       updated_at: new Date().toISOString(),
     });
 

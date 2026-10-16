@@ -106,7 +106,7 @@ export const MyScheduleMobile: React.FC<MyScheduleMobileProps> = ({
       <div className="pt-[calc(6.25rem+env(safe-area-inset-top,0px))] px-4 pb-24 space-y-4">
         
         {/* Banner Promemoria PIN Predefinito */}
-        {(!currentEmployee.password || currentEmployee.password === '1234') && !currentEmployee.isManager && !currentEmployee.isOwner && (
+        {!currentEmployee.hasCustomPin && (!currentEmployee.password || currentEmployee.password === '1234') && !currentEmployee.isManager && !currentEmployee.isOwner && (
           <div className="bg-amber-50/95 border border-amber-200/90 rounded-2xl p-3 flex items-start gap-2.5 text-xs text-amber-900 shadow-xs animate-in fade-in">
             <div className="w-7 h-7 rounded-xl bg-amber-500/15 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
               <KeyRound size={15} />

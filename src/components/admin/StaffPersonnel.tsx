@@ -78,11 +78,15 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
   const [employeeToResetPin, setEmployeeToResetPin] = useState<Employee | null>(null);
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
 
+  const hasCustomPinSet = (emp: Employee) =>
+    Boolean(emp.hasCustomPin || (emp.password && emp.password !== '1234' && emp.password !== '123'));
+
   const handleConfirmResetPin = () => {
     if (!employeeToResetPin) return;
     const updated: Employee = {
       ...employeeToResetPin,
       password: '1234',
+      hasCustomPin: false,
     };
     onSaveEmployee(updated);
     setEmployeeToResetPin(null);
@@ -325,7 +329,8 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
         `${formData.name.toLowerCase().replace(/\s+/g, '.')}@nicoragarden.it`,
       phone: formData.phone.trim() || undefined,
       // Mantiene il PIN personale esistente del collaboratore o assegna il default iniziale '1234' per i nuovi assunti
-      password: editingEmployee?.password || '1234',
+      password: editingEmployee ? editingEmployee.password : '1234',
+      hasCustomPin: editingEmployee ? editingEmployee.hasCustomPin : false,
       isManager: formData.isManager,
       isMobile: formData.isMobile,
       contractHours: Number(formData.contractHours) || 40,
@@ -681,17 +686,17 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                               type="button"
                               onClick={() => setEmployeeToResetPin(emp)}
                               className={`px-3 py-2 font-bold text-xs rounded-xl border flex items-center justify-center gap-1.5 transition-colors min-h-[38px] ${
-                                emp.password && emp.password !== '1234'
+                                hasCustomPinSet(emp)
                                   ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200'
                                   : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-600 border-neutral-200'
                               }`}
                               title={
-                                emp.password && emp.password !== '1234'
+                                hasCustomPinSet(emp)
                                   ? 'PIN personale impostato: clicca per reimpostare a 1234'
                                   : 'PIN attualmente a 1234 (predefinito)'
                               }
                             >
-                              <KeyRound size={13} className={emp.password && emp.password !== '1234' ? 'text-amber-600' : 'text-neutral-400'} />
+                              <KeyRound size={13} className={hasCustomPinSet(emp) ? 'text-amber-600' : 'text-neutral-400'} />
                               <span>Reset PIN</span>
                             </button>
                           )}
@@ -1510,11 +1515,11 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                         <KeyRound size={14} className="text-amber-600" />
                         <span>Stato PIN Personale:</span>
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-                          editingEmployee.password && editingEmployee.password !== '1234'
+                          hasCustomPinSet(editingEmployee)
                             ? 'bg-emerald-100 text-emerald-800'
                             : 'bg-amber-100 text-amber-800'
                         }`}>
-                          {editingEmployee.password && editingEmployee.password !== '1234' ? 'Codice Personalizzato Attivo' : 'Predefinito (1234)'}
+                          {hasCustomPinSet(editingEmployee) ? 'Codice Personalizzato Attivo' : 'Predefinito (1234)'}
                         </span>
                       </div>
                       <p className="text-[11px] text-neutral-500">

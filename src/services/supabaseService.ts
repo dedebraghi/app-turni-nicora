@@ -1,5 +1,6 @@
 import { Employee, LocationId, Shift, ShiftRequest, ShiftRequestStatus } from '../domain/types';
 import {
+  getStoredManagerToken,
   isSupabaseConfigured,
   mapDbToEmployee,
   mapDbToRequest,
@@ -10,7 +11,6 @@ import {
   supabase,
 } from './supabaseClient';
 import {
-  generateInitialShifts,
   loadStoredEmployees,
   loadStoredRequests,
   loadStoredShifts,
@@ -40,78 +40,45 @@ export const fetchCloudEmployees = async (): Promise<Employee[]> => {
   }
 
   try {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('employees')
-      .select('id, name, location_id, role, skills, avatar, email, phone, is_manager, contract_hours, is_active')
+      .select('id, name, location_id, role, skills, avatar, email, phone, is_manager, contract_hours, is_active, has_custom_pin')
       .order('name');
+
+    // Fallback se la migrazione con has_custom_pin non fosse ancora stata applicata
+    if (error) {
+      const fallbackRes = await supabase
+        .from('employees')
+        .select('id, name, location_id, role, skills, avatar, email, phone, is_manager, contract_hours, is_active')
+        .order('name');
+      data = fallbackRes.data as any;
+      error = fallbackRes.error;
+    }
 
     if (error) throw error;
     if (data && data.length > 0) {
-      // Controllo se i dati su Supabase sono ancora quelli fittizi di prova iniziali
-      const hasMockSampleNames = data.some((e: any) =>
-        e.name === 'Cecilia T.' || e.name === 'Marco V.' || e.name === 'Alessandro N.' || e.name === 'Andrea P.'
-      );
-
-      if (hasMockSampleNames) {
-        console.info('[Supabase] Rilevati nomi fittizi nel DB: pulizia ed eliminazione definitiva...');
-        
-        // 1. Elimina da Supabase i vecchi dipendenti fittizi che non appartengono allo staff reale
-        const realIds = INITIAL_EMPLOYEES.map((e) => e.id);
-        const mockRecords = data.filter((e: any) => !realIds.includes(e.id));
-        for (const mockEmp of mockRecords) {
-          await supabase.from('employees').delete().eq('id', mockEmp.id);
-        }
-
-        // 2. Inserisci o aggiorna tutti i dipendenti reali
-        for (const emp of INITIAL_EMPLOYEES) {
-          await supabase.from('employees').upsert(mapEmployeeToDb(emp));
-        }
-
-        // 3. Ricarica la lista pulita
-        const { data: updatedData } = await supabase
-          .from('employees')
-          .select('id, name, location_id, role, skills, avatar, email, phone, is_manager, contract_hours, is_active')
-          .order('name');
-        if (updatedData && updatedData.length > 0) {
-          const mapped = updatedData.map(mapDbToEmployee);
-          saveStoredEmployees(mapped);
-          return mapped;
-        }
-      }
-
       const mapped = data
         .filter((row: any) => !row.id?.startsWith('sys-'))
         .map((row: any) => {
-        const emp = mapDbToEmployee(row);
-        if (emp.id === 'emp-gz-5' && emp.contractHours === 30) {
-          emp.contractHours = 40;
-          if (supabase) {
-            supabase.from('employees').update({ contract_hours: 40 }).eq('id', 'emp-gz-5').then();
+          const emp = mapDbToEmployee(row);
+          if (emp.id === 'emp-gz-5' && emp.contractHours === 30) {
+            emp.contractHours = 40;
           }
-        }
-        if (emp.id === 'emp-gz-3' && (emp.name === 'Teo' || emp.avatar === 'TE')) {
-          emp.name = 'Matteo F.';
-          emp.avatar = 'MF';
-          if (emp.email === 'teo@nicoragarden.it') emp.email = 'matteo.f@nicoragarden.it';
-          if (supabase) {
-            supabase.from('employees').update({ name: 'Matteo F.', avatar: 'MF', email: emp.email }).eq('id', 'emp-gz-3').then();
+          if (emp.id === 'emp-gz-3' && (emp.name === 'Teo' || emp.avatar === 'TE')) {
+            emp.name = 'Matteo F.';
+            emp.avatar = 'MF';
+            if (emp.email === 'teo@nicoragarden.it') emp.email = 'matteo.f@nicoragarden.it';
           }
-        }
-        if (emp.id === 'emp-va-6' && (emp.name === 'Matteo' || emp.avatar === 'MO')) {
-          emp.name = 'Matteo Z.';
-          emp.avatar = 'MZ';
-          if (emp.email === 'matteo@nicoragarden.it') emp.email = 'matteo.z@nicoragarden.it';
-          if (supabase) {
-            supabase.from('employees').update({ name: 'Matteo Z.', avatar: 'MZ', email: emp.email }).eq('id', 'emp-va-6').then();
+          if (emp.id === 'emp-va-6' && (emp.name === 'Matteo' || emp.avatar === 'MO')) {
+            emp.name = 'Matteo Z.';
+            emp.avatar = 'MZ';
+            if (emp.email === 'matteo@nicoragarden.it') emp.email = 'matteo.z@nicoragarden.it';
           }
-        }
-        return emp;
-      });
+          return emp;
+        });
       saveStoredEmployees(mapped);
       return mapped;
     } else {
-      // Se la tabella era vuota, inserisci i dipendenti reali in un unico batch
-      await supabase.from('employees').upsert(INITIAL_EMPLOYEES.map(mapEmployeeToDb));
       return INITIAL_EMPLOYEES;
     }
   } catch (err) {
@@ -122,7 +89,7 @@ export const fetchCloudEmployees = async (): Promise<Employee[]> => {
 };
 
 /**
- * Salva o aggiorna un collaboratore su Supabase e storage locale
+ * Salva o aggiorna un collaboratore su Supabase e storage locale (senza sovrascrivere il PIN esistente)
  */
 export const saveCloudEmployee = async (emp: Employee): Promise<{ success: boolean; error?: string }> => {
   const current = loadStoredEmployees();
@@ -138,6 +105,19 @@ export const saveCloudEmployee = async (emp: Employee): Promise<{ success: boole
 
   try {
     const row = mapEmployeeToDb(emp);
+    const token = getStoredManagerToken();
+
+    if (token) {
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc('manager_save_employee', {
+        p_token: token,
+        p_employee: row,
+      });
+      if (!rpcErr && rpcRes) {
+        if ((rpcRes as any).success) return { success: true };
+        return { success: false, error: (rpcRes as any).error || 'Sessione Direzione non autorizzata' };
+      }
+    }
+
     const { error } = await supabase
       .from('employees')
       .upsert(row, { onConflict: 'id' });
@@ -147,6 +127,132 @@ export const saveCloudEmployee = async (emp: Employee): Promise<{ success: boole
   } catch (err: any) {
     console.error('[Supabase] Errore salvataggio collaboratore:', err);
     return { success: false, error: err.message || 'Errore salvataggio collaboratore' };
+  }
+};
+
+/**
+ * Reimposta il PIN di un collaboratore a '1234' (azione riservata alla Direzione)
+ */
+export const resetCloudEmployeePin = async (
+  empId: string
+): Promise<{ success: boolean; error?: string }> => {
+  const current = loadStoredEmployees();
+  const updated = current.map((e) =>
+    e.id === empId ? { ...e, password: '1234', hasCustomPin: false } : e
+  );
+  saveStoredEmployees(updated);
+
+  if (!isSupabaseConfigured || !supabase) {
+    return { success: false, error: 'Database Supabase Cloud non raggiungibile.' };
+  }
+
+  try {
+    const token = getStoredManagerToken();
+    if (token) {
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc('manager_reset_employee_pin', {
+        p_token: token,
+        p_employee_id: empId,
+      });
+      if (!rpcErr && rpcRes) {
+        if ((rpcRes as any).success) return { success: true };
+        return { success: false, error: (rpcRes as any).error || 'Non autorizzato' };
+      }
+    }
+
+    const { error } = await supabase
+      .from('employees')
+      .update({ pin: '1234', has_custom_pin: false, updated_at: new Date().toISOString() })
+      .eq('id', empId);
+
+    if (error) throw error;
+    return { success: true };
+  } catch (err: any) {
+    console.error('[Supabase] Errore reset PIN collaboratore:', err);
+    return { success: false, error: err.message || 'Errore reset PIN' };
+  }
+};
+
+/**
+ * Cambia il PIN personale del collaboratore (verifica il vecchio PIN lato DB tramite RPC)
+ */
+export const changeCloudEmployeePin = async (
+  empId: string,
+  oldPin: string,
+  newPin: string
+): Promise<{ success: boolean; error?: string }> => {
+  if (!isSupabaseConfigured || !supabase) {
+    const current = loadStoredEmployees();
+    const updated = current.map((e) =>
+      e.id === empId ? { ...e, password: newPin.trim(), hasCustomPin: true } : e
+    );
+    saveStoredEmployees(updated);
+    return { success: true };
+  }
+
+  try {
+    const { data: rpcRes, error: rpcErr } = await supabase.rpc('change_employee_pin', {
+      p_employee_id: empId,
+      p_old_pin: oldPin,
+      p_new_pin: newPin.trim(),
+    });
+
+    if (rpcErr) throw rpcErr;
+    if (rpcRes && typeof (rpcRes as any).success === 'boolean') {
+      if ((rpcRes as any).success) {
+        const current = loadStoredEmployees();
+        const updated = current.map((e) =>
+          e.id === empId ? { ...e, password: undefined, hasCustomPin: true } : e
+        );
+        saveStoredEmployees(updated);
+        return { success: true };
+      }
+      return {
+        success: false,
+        error: (rpcRes as any).error || 'Impossibile aggiornare il PIN',
+      };
+    }
+
+    return { success: false, error: 'Risposta non valida dal server' };
+  } catch (err: any) {
+    console.error('[Supabase] Errore cambio PIN collaboratore:', err);
+    return { success: false, error: err.message || 'Errore durante il cambio PIN' };
+  }
+};
+
+/**
+ * Cambia la password della Direzione tramite RPC protetta
+ */
+export const changeCloudManagerPassword = async (
+  oldPassword: string,
+  newPassword: string
+): Promise<{ success: boolean; error?: string }> => {
+  if (!isSupabaseConfigured || !supabase) {
+    return { success: true };
+  }
+
+  try {
+    const token = getStoredManagerToken();
+    if (!token) {
+      return { success: false, error: 'Sessione Direzione non valida. Effettua nuovamente il login.' };
+    }
+
+    const { data: rpcRes, error: rpcErr } = await supabase.rpc('manager_change_password', {
+      p_token: token,
+      p_old_password: oldPassword,
+      p_new_password: newPassword.trim(),
+    });
+
+    if (rpcErr) throw rpcErr;
+    if (rpcRes && (rpcRes as any).success) {
+      return { success: true };
+    }
+    return {
+      success: false,
+      error: (rpcRes as any)?.error || 'Impossibile aggiornare la password Direzione',
+    };
+  } catch (err: any) {
+    console.error('[Supabase] Errore cambio password Direzione:', err);
+    return { success: false, error: err.message || 'Errore durante il cambio password' };
   }
 };
 
@@ -166,6 +272,19 @@ export const archiveCloudEmployee = async (
   }
 
   try {
+    const token = getStoredManagerToken();
+    if (token) {
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc('manager_archive_employee', {
+        p_token: token,
+        p_employee_id: empId,
+        p_is_active: isActive,
+      });
+      if (!rpcErr && rpcRes) {
+        if ((rpcRes as any).success) return { success: true };
+        return { success: false, error: (rpcRes as any).error || 'Sessione Direzione non valida' };
+      }
+    }
+
     const { error } = await supabase
       .from('employees')
       .update({ is_active: isActive, updated_at: new Date().toISOString() })
@@ -201,6 +320,18 @@ export const deleteCloudEmployee = async (
   }
 
   try {
+    const token = getStoredManagerToken();
+    if (token) {
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc('manager_delete_employee', {
+        p_token: token,
+        p_employee_id: empId,
+      });
+      if (!rpcErr && rpcRes) {
+        if ((rpcRes as any).success) return { success: true };
+        return { success: false, error: (rpcRes as any).error || 'Sessione Direzione non valida' };
+      }
+    }
+
     await supabase.from('shifts').delete().eq('employee_id', empId);
     await supabase
       .from('shift_requests')
@@ -257,6 +388,20 @@ export const deleteCloudShifts = async (
     return { success: false, error: 'Database Supabase Cloud non raggiungibile.' };
   }
   try {
+    const token = getStoredManagerToken();
+    if (token) {
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc('manager_delete_shifts', {
+        p_token: token,
+        p_location_id: locationId || null,
+        p_start_date: startDate || null,
+        p_end_date: endDate || null,
+      });
+      if (!rpcErr && rpcRes) {
+        if ((rpcRes as any).success) return { success: true };
+        return { success: false, error: (rpcRes as any).error || 'Sessione Direzione non valida' };
+      }
+    }
+
     let query = supabase.from('shifts').delete();
     if (locationId) query = query.eq('location_id', locationId);
     if (startDate) query = query.gte('date', startDate);
@@ -336,8 +481,24 @@ export const saveCloudShifts = async (shifts: Shift[]): Promise<{ success: boole
   try {
     const rows = normalizedShifts.map(mapShiftToDb);
     const CHUNK_SIZE = 100;
+    const token = getStoredManagerToken();
+
     for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
       const chunk = rows.slice(i, i + CHUNK_SIZE);
+
+      if (token) {
+        const { data: rpcRes, error: rpcErr } = await supabase.rpc('manager_upsert_shifts', {
+          p_token: token,
+          p_shifts: chunk,
+        });
+        if (!rpcErr && rpcRes) {
+          if (!(rpcRes as any).success) {
+            throw new Error((rpcRes as any).error || 'Sessione Direzione non valida');
+          }
+          continue;
+        }
+      }
+
       const { error } = await supabase
         .from('shifts')
         .upsert(chunk, { onConflict: 'employee_id,date' });
@@ -405,30 +566,45 @@ export const updateCloudRequestStatus = async (
 
   try {
     const targetReq = updated.find((r) => r.id === requestId);
-    if (targetReq) {
-      const row = mapRequestToDb(targetReq);
-      const { error } = await supabase
-        .from('shift_requests')
-        .upsert(row, { onConflict: 'id' });
-      if (error) throw error;
-    } else {
-      let dbStatus = status;
-      let note = managerNote || '';
-      if (status === 'pending_colleague') {
-        dbStatus = 'pending';
-        note = (note ? note + ' ' : '') + '[STATO_COLLEGA:pending]';
-      } else if (status === 'rejected_colleague') {
-        dbStatus = 'rejected';
-        note = (note ? note + ' ' : '') + '[STATO_COLLEGA:rejected]';
-      }
+    const row = targetReq
+      ? mapRequestToDb(targetReq)
+      : (() => {
+          let dbStatus = status;
+          let note = managerNote || '';
+          if (status === 'pending_colleague') {
+            dbStatus = 'pending';
+            note = (note ? note + ' ' : '') + '[STATO_COLLEGA:pending]';
+          } else if (status === 'rejected_colleague') {
+            dbStatus = 'rejected';
+            note = (note ? note + ' ' : '') + '[STATO_COLLEGA:rejected]';
+          }
+          return {
+            status: dbStatus,
+            manager_note: note.trim() || null,
+          };
+        })();
 
-      const { error } = await supabase
-        .from('shift_requests')
-        .update({ status: dbStatus, manager_note: note.trim() || null })
-        .eq('id', requestId);
+    const token = getStoredManagerToken();
+    const { data: rpcRes, error: rpcErr } = await supabase.rpc('update_shift_request_secure', {
+      p_request_id: requestId,
+      p_status: row.status,
+      p_manager_note: row.manager_note,
+      p_token: token || null,
+      p_employee_id: null,
+      p_employee_pin: null,
+    });
 
-      if (error) throw error;
+    if (!rpcErr && rpcRes) {
+      if ((rpcRes as any).success) return { success: true };
+      return { success: false, error: (rpcRes as any).error || 'Operazione non autorizzata' };
     }
+
+    const { error } = await supabase
+      .from('shift_requests')
+      .update({ status: row.status, manager_note: row.manager_note })
+      .eq('id', requestId);
+
+    if (error) throw error;
     return { success: true };
   } catch (err: any) {
     console.error('[Supabase] Errore aggiornamento richiesta:', err);
@@ -443,14 +619,9 @@ export const verifyEmployeePin = async (
   employee: Employee,
   enteredPin: string
 ): Promise<boolean> => {
-  // Se la password è già presente in memoria (es. test unitari o sessione mock locale)
-  if (employee.password && matchesPin(employee.password, enteredPin)) {
-    return true;
-  }
-
   if (isSupabaseConfigured && supabase) {
     try {
-      // Verifica via RPC protetta (Postgres SECURITY DEFINER - no leak di pin)
+      // Verifica via RPC protetta con rate-limit lato DB (Postgres SECURITY DEFINER - no leak di pin)
       const { data: rpcResult, error: rpcError } = await supabase.rpc('verify_employee_pin', {
         p_employee_id: employee.id,
         p_pin: enteredPin,
@@ -468,34 +639,85 @@ export const verifyEmployeePin = async (
 };
 
 /**
- * Verifica la password della Direzione (RPC remota sicura senza esporre credenziali nel bundle)
+ * Autentica la Direzione su Supabase restituendo il token crittografico di sessione
+ * (Nessuna master key è presente nel bundle client!)
  */
-export const verifyManagerPassword = async (
+export const authenticateCloudManager = async (
   email: string,
   enteredPassword: string
-): Promise<boolean> => {
+): Promise<{ success: boolean; token?: string; error?: string; locked?: boolean }> => {
   if (isSupabaseConfigured && supabase) {
     try {
+      const { data: authData, error: authErr } = await supabase.rpc('authenticate_manager', {
+        p_email: email.trim().toLowerCase(),
+        p_password: enteredPassword,
+      });
+
+      if (!authErr && authData && typeof (authData as any).success === 'boolean') {
+        return {
+          success: (authData as any).success,
+          token: (authData as any).token,
+          error: (authData as any).error,
+          locked: Boolean((authData as any).locked),
+        };
+      }
+
+      // Fallback se la nuova RPC authenticate_manager non è ancora stata eseguita ma c'è verify_manager_password
       const { data: rpcResult, error: rpcError } = await supabase.rpc('verify_manager_password', {
         p_email: email.trim().toLowerCase(),
         p_password: enteredPassword,
       });
 
       if (!rpcError && typeof rpcResult === 'boolean') {
-        return rpcResult;
+        return { success: rpcResult };
       }
     } catch (err) {
-      console.warn('[Supabase] Errore verifica password direzione remota:', err);
+      console.warn('[Supabase] Errore autenticazione direzione remota:', err);
     }
+  } else {
+    // Modalità test/offline senza Supabase configurato
+    const isOfflineValid = enteredPassword === MANAGER_MASTER_PASSWORD;
+    return {
+      success: isOfflineValid,
+      token: isOfflineValid ? 'local-offline-manager-token' : undefined,
+    };
   }
 
-  // Fallback per test unitari e simulazione offline
-  const validFallback = [
-    MANAGER_MASTER_PASSWORD,
-    'admin',
-    'NicoraMaster2026!',
-  ].filter(Boolean);
-  return validFallback.includes(enteredPassword);
+  return { success: false, error: 'Impossibile verificare le credenziali con il server.' };
+};
+
+/**
+ * Verifica se il token di sessione Manager salvato in localStorage è realmente valido sul server
+ */
+export const verifyManagerSessionToken = async (token?: string): Promise<boolean> => {
+  if (!isSupabaseConfigured || !supabase) {
+    return Boolean(token);
+  }
+  if (!token || token.trim().length < 16) {
+    return false;
+  }
+  try {
+    const { data, error } = await supabase.rpc('is_valid_manager_session', {
+      p_token: token.trim(),
+    });
+    if (!error && typeof data === 'boolean') {
+      return data;
+    }
+  } catch (err) {
+    console.warn('[Supabase] Errore verifica sessione manager:', err);
+  }
+  return false;
+};
+
+/**
+ * Compatibilità con chiamate booleane legacy
+ */
+export const verifyManagerPassword = async (
+  email: string,
+  enteredPassword: string
+): Promise<boolean> => {
+  const res = await authenticateCloudManager(email, enteredPassword);
+  return res.success;
 };
 
 /**
@@ -563,6 +785,19 @@ export const publishCloudMonth = async (
       currentMonths.push(monthKey);
     }
 
+    const nextSkills = { ...currentSkills, published_months: currentMonths };
+    const token = getStoredManagerToken();
+
+    if (token) {
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc('manager_update_app_config', {
+        p_token: token,
+        p_skills: nextSkills,
+      });
+      if (!rpcErr && rpcRes && (rpcRes as any).success) {
+        return { success: true };
+      }
+    }
+
     const { error: upsertErr } = await supabase.from('employees').upsert({
       id: 'sys-app-config',
       name: 'Configurazione Sistema',
@@ -571,7 +806,7 @@ export const publishCloudMonth = async (
       avatar: 'CF',
       email: 'system-config@nicoragarden.local',
       is_active: false,
-      skills: { ...currentSkills, published_months: currentMonths },
+      skills: nextSkills,
       updated_at: new Date().toISOString(),
     });
 
@@ -627,6 +862,17 @@ export const saveCloudIgnoredGaps = async (
       ...currentSkills,
       ignored_gaps: gapIds,
     };
+
+    const token = getStoredManagerToken();
+    if (token) {
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc('manager_update_app_config', {
+        p_token: token,
+        p_skills: updatedSkills,
+      });
+      if (!rpcErr && rpcRes && (rpcRes as any).success) {
+        return { success: true };
+      }
+    }
 
     const { error: upsertErr } = await supabase.from('employees').upsert({
       id: 'sys-app-config',

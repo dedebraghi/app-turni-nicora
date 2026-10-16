@@ -12,7 +12,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import { TodayPresenceMobile } from '../../src/components/staff/TodayPresenceMobile';
-import { mapRequestToDb, mapDbToRequest, unpublishCloudMonth, unpublishCloudLocation } from '../../src/services/supabaseClient';
+import { mapRequestToDb, mapDbToRequest, mapDbToEmployee, mapEmployeeToDb, unpublishCloudMonth, unpublishCloudLocation } from '../../src/services/supabaseClient';
 import {
   recordMonthPublished,
   recordMonthUnpublished,
@@ -696,6 +696,68 @@ describe('R2 Functional Audit Unit Tests', () => {
       expect(filtered).not.toContain('gazzada_2026-10');
       expect(filtered).toContain('varese_2026-10');
       expect(filtered).toContain('gazzada_2026-11');
+    });
+  });
+
+  // =========================================================================
+  // 6. PIN COLUMN REVOCATION & SECURITY INVARIANTS
+  // =========================================================================
+  describe('6. PIN Column Revocation & Security Invariants', () => {
+    test('6.1: mapDbToEmployee leaves password undefined when row.pin is omitted by Supabase RLS and sets hasCustomPin', () => {
+      const cloudRowWithoutPin = {
+        id: 'emp-gz-1',
+        name: 'Sabrina',
+        location_id: 'gazzada',
+        role: 'Cassa',
+        skills: { Cassa: 9, Fioreria: 6, Decor: 6, 'Serra Calda': 5, 'Serra Fredda': 5 },
+        avatar: 'SA',
+        email: 'sabrina@nicora.it',
+        contract_hours: 40,
+        is_active: true,
+        has_custom_pin: true,
+      };
+
+      const emp = mapDbToEmployee(cloudRowWithoutPin);
+      expect(emp.password).toBeUndefined();
+      expect(emp.hasCustomPin).toBe(true);
+    });
+
+    test('6.2: mapEmployeeToDb omits pin field when emp.password is undefined so anagrafica edits never reset custom PINs to 1234', () => {
+      const editedEmp: Employee = {
+        id: 'emp-gz-1',
+        name: 'Sabrina Aggiornata',
+        locationId: 'gazzada',
+        role: 'Cassa',
+        skills: { Cassa: 10, Fioreria: 6, Decor: 6, 'Serra Calda': 5, 'Serra Fredda': 5 },
+        avatar: 'SA',
+        email: 'sabrina@nicora.it',
+        contractHours: 36,
+        isActive: true,
+        hasCustomPin: true,
+        password: undefined,
+      };
+
+      const dbPayload = mapEmployeeToDb(editedEmp);
+      expect('pin' in dbPayload).toBe(false);
+      expect(dbPayload.contract_hours).toBe(36);
+    });
+
+    test('6.3: mapEmployeeToDb includes normalized pin when emp.password is explicitly provided (new hire or PIN reset)', () => {
+      const newHire: Employee = {
+        id: 'emp-gz-99',
+        name: 'Nuovo Assunto',
+        locationId: 'gazzada',
+        role: 'Cassa',
+        skills: { Cassa: 6, Fioreria: 5, Decor: 5, 'Serra Calda': 5, 'Serra Fredda': 5 },
+        avatar: 'NA',
+        email: 'nuovo@nicora.it',
+        contractHours: 40,
+        isActive: true,
+        password: '1234',
+      };
+
+      const dbPayload = mapEmployeeToDb(newHire);
+      expect(dbPayload.pin).toBe('1234');
     });
   });
 });

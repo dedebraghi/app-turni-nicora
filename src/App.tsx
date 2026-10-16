@@ -64,6 +64,8 @@ import {
   publishCloudMonth,
   subscribeToRealtimeChanges,
   updateCloudRequestStatus,
+  verifyManagerSessionToken,
+  changeCloudEmployeePin,
 } from './services/supabaseService';
 import { unpublishCloudMonth, unpublishCloudLocation } from './services/supabaseClient';
 
@@ -256,13 +258,37 @@ export const App: React.FC = () => {
     };
   }, [session]);
 
+  // Sicurezza Manager: verifica lato server che il token di sessione Direzione sia valido
+  // (impedisce l'escalation di privilegi manipolando 'role' in localStorage)
+  useEffect(() => {
+    if (!session || session.role !== 'manager') return;
+    let cancelled = false;
+    verifyManagerSessionToken(session.managerToken).then((isValid) => {
+      if (!cancelled && !isValid) {
+        setSession(null);
+        setIsManagerMode(false);
+        setActiveTab('today');
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [session]);
+
   // Sicurezza PIN: se il PIN del collaboratore loggato è stato cambiato altrove (altro dispositivo
   // o reset della Direzione), la sessione locale non è più valida e va rifatto il login.
   useEffect(() => {
     if (!session || session.role !== 'employee') return;
     const cloudEmp = employees.find((e) => e.id === session.user.id);
     if (!cloudEmp) return;
-    if (normalizePin(cloudEmp.password) !== normalizePin(session.user.password)) {
+    const localPasswordMismatch =
+      cloudEmp.password !== undefined &&
+      session.user.password !== undefined &&
+      normalizePin(cloudEmp.password) !== normalizePin(session.user.password);
+    const pinWasResetByManager =
+      session.user.hasCustomPin === true && cloudEmp.hasCustomPin === false;
+
+    if (localPasswordMismatch || pinWasResetByManager) {
       setSession(null);
       setIsManagerMode(false);
       setActiveTab('today');
@@ -375,9 +401,7 @@ export const App: React.FC = () => {
     // I turni vengono memorizzati su Supabase, ma poiché il mese è registrato come non pubblicato,
     // restano visibili unicamente alla Direzione su tutti i dispositivi (PC, tablet, smartphone)!
     saveCloudShifts(generatedShifts).then((res) => {
-      if (res.success) {
-        console.log('[Cloud] Bozza di', generatedShifts.length, 'turni sincronizzata su Supabase con successo.');
-      } else {
+      if (!res.success) {
         console.warn('[Cloud] Errore sincronizzazione bozza su Supabase:', res.error);
       }
     }).catch((err) => {
@@ -681,6 +705,9 @@ export const App: React.FC = () => {
       return next;
     });
     setSession((prev) => (prev && prev.user.id === empToSave.id ? { ...prev, user: empToSave } : prev));
+    if (session?.role === 'employee' && emp.id === session.user.id) {
+      return;
+    }
     const saveResult = await saveCloudEmployee(empToSave);
     if (!saveResult.success) {
       setToast({
@@ -1080,11 +1107,44 @@ export const App: React.FC = () => {
     <div className="min-h-screen bg-nicora-bg text-nicora-text flex flex-col antialiased">
       {!currentEmployee.isManager &&
         !currentEmployee.isOwner &&
+        !currentEmployee.hasCustomPin &&
         isProvisionalPin(currentEmployee.password) && (
           <ForcePinChangeModal
             employeeName={currentEmployee.name}
             onLogout={handleLogout}
-            onSave={(newPin) => handleSaveEmployee({ ...currentEmployee, password: newPin })}
+            onSave={async (newPin) => {
+              const res = await changeCloudEmployeePin(
+                currentEmployee.id,
+                currentEmployee.password || '1234',
+                newPin
+              );
+              if (!res.success) {
+                setToast({
+                  id: `toast-pin-err-${Date.now()}`,
+                  title: 'Salvataggio PIN non riuscito',
+                  message: res.error || 'Impossibile aggiornare il PIN sul server.',
+                  type: 'warning',
+                });
+                return;
+              }
+              const updatedEmp: Employee = {
+                ...currentEmployee,
+                password: newPin,
+                hasCustomPin: true,
+              };
+              setEmployees((prev) =>
+                prev.map((e) => (e.id === updatedEmp.id ? updatedEmp : e))
+              );
+              setSession((prev) =>
+                prev && prev.user.id === updatedEmp.id ? { ...prev, user: updatedEmp } : prev
+              );
+              setToast({
+                id: `toast-pin-ok-${Date.now()}`,
+                title: 'PIN Personale Impostato 🔒',
+                message: 'Il tuo nuovo PIN personale è stato salvato in sicurezza.',
+                type: 'success',
+              });
+            }}
           />
         )}
       {/* Header Superiore */}
