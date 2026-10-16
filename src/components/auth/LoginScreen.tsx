@@ -3,6 +3,7 @@ import { Employee, LocationId, UserSession } from '../../domain/types';
 import { NicoraLogo } from '../NicoraLogo';
 import { LOCATIONS, MANAGER_MASTER_PASSWORD } from '../../domain/mockData';
 import { matchesPin } from '../../domain/pin';
+import { verifyEmployeePin } from '../../services/supabaseService';
 import { 
   AlertCircle, 
   ArrowRight, 
@@ -52,6 +53,25 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
   const [error, setError] = useState<string>('');
   const [isForgotPinModalOpen, setIsForgotPinModalOpen] = useState(false);
   const [isForgotAdminPasswordModalOpen, setIsForgotAdminPasswordModalOpen] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState<number>(0);
+  const [lockoutTime, setLockoutTime] = useState<number | null>(null);
+  const [lockoutRemaining, setLockoutRemaining] = useState<number>(0);
+
+  // Timer di sblocco dopo tentativi falliti consecutivi (Anti Brute-Force)
+  useEffect(() => {
+    if (!lockoutTime) return;
+    const interval = setInterval(() => {
+      const diff = Math.ceil((lockoutTime - Date.now()) / 1000);
+      if (diff <= 0) {
+        setLockoutTime(null);
+        setLockoutRemaining(0);
+        setFailedAttempts(0);
+      } else {
+        setLockoutRemaining(diff);
+      }
+    }, 500);
+    return () => clearInterval(interval);
+  }, [lockoutTime]);
 
   // Handle location switch
   const handleLocationChange = (loc: LocationId) => {
@@ -82,9 +102,27 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
     setIsDropdownOpen(false);
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (lockoutTime && Date.now() < lockoutTime) {
+      setError(`Troppi tentativi falliti. Riprova tra ${lockoutRemaining} secondi.`);
+      return;
+    }
+
+    const registerFailedAttempt = (msg: string) => {
+      const next = failedAttempts + 1;
+      setFailedAttempts(next);
+      if (next >= 5) {
+        const lockUntil = Date.now() + 30000;
+        setLockoutTime(lockUntil);
+        setLockoutRemaining(30);
+        setError('Troppi tentativi errati consecutivi. Accesso bloccato per 30 secondi.');
+      } else {
+        setError(`${msg} (Tentativi rimasti: ${5 - next})`);
+      }
+    };
 
     if (loginRole === 'employee') {
       const emp = employees.find((e) => e.id === selectedEmployeeId);
@@ -96,11 +134,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
         setError('Inserisci il tuo PIN personale');
         return;
       }
-      // Nessun PIN jolly: i codici provvisori valgono solo per account non ancora personalizzati
-      if (!matchesPin(emp.password, password)) {
-        setError('PIN non corretto. Verifica il codice o tocca "Hai dimenticato il PIN?"');
+
+      const isValidPin = await verifyEmployeePin(emp, password);
+      if (!isValidPin) {
+        registerFailedAttempt('PIN non corretto. Verifica il codice o tocca "Hai dimenticato il PIN?"');
         return;
       }
+
+      setFailedAttempts(0);
+      setLockoutTime(null);
 
       onLoginSuccess(
         {
@@ -139,13 +181,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
         ...employees.filter((e) => e.isManager || e.isOwner).map((e) => e.password),
         MANAGER_MASTER_PASSWORD,
         MASTER_RECOVERY_KEY,
-        'admin',
       ].filter(Boolean);
 
       if (!validManagerPasswords.includes(password)) {
-        setError('Password direzione non corretta');
+        registerFailedAttempt('Password direzione non corretta');
         return;
       }
+
+      setFailedAttempts(0);
+      setLockoutTime(null);
 
       onLoginSuccess(
         {
@@ -418,13 +462,22 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
               <div className="pt-2">
                 <button
                   type="submit"
+                  disabled={lockoutRemaining > 0}
                   className={`w-full text-white font-extrabold py-3.5 rounded-xl shadow-md flex items-center justify-center gap-2 transition-transform active:scale-[0.98] touch-manipulation min-h-[48px] text-sm ${
-                    loginRole === 'manager'
+                    lockoutRemaining > 0
+                      ? 'bg-neutral-400 cursor-not-allowed opacity-80'
+                      : loginRole === 'manager'
                       ? 'bg-nicora-teal hover:bg-nicora-teal-hover'
                       : 'bg-nicora-orange hover:bg-nicora-orange-hover'
                   }`}
                 >
-                  <span>{loginRole === 'manager' ? 'Accedi al Tabellone Direzione' : 'Accedi ai Miei Turni'}</span>
+                  <span>
+                    {lockoutRemaining > 0
+                      ? `Accesso bloccato (${lockoutRemaining}s)`
+                      : loginRole === 'manager'
+                      ? 'Accedi al Tabellone Direzione'
+                      : 'Accedi ai Miei Turni'}
+                  </span>
                   <ArrowRight size={16} />
                 </button>
               </div>

@@ -440,13 +440,24 @@ export const verifyEmployeePin = async (
   employee: Employee,
   enteredPin: string
 ): Promise<boolean> => {
-  // Nessun PIN jolly: i codici provvisori valgono solo per account non ancora personalizzati
-  if (matchesPin(employee.password, enteredPin)) {
+  // Se la password è già presente in memoria (es. test unitari o sessione mock locale)
+  if (employee.password && matchesPin(employee.password, enteredPin)) {
     return true;
   }
 
   if (isSupabaseConfigured && supabase) {
     try {
+      // 1. Prova via RPC protetta (Postgres SECURITY DEFINER)
+      const { data: rpcResult, error: rpcError } = await supabase.rpc('verify_employee_pin', {
+        p_employee_id: employee.id,
+        p_pin: enteredPin,
+      });
+
+      if (!rpcError && typeof rpcResult === 'boolean') {
+        return rpcResult;
+      }
+
+      // 2. Fallback su query diretta se la migration RPC non è ancora stata applicata
       const { data, error } = await supabase
         .from('employees')
         .select('pin')
@@ -454,14 +465,14 @@ export const verifyEmployeePin = async (
         .single();
 
       if (!error && data?.pin) {
-        return data.pin === enteredPin;
+        return matchesPin(data.pin, enteredPin);
       }
     } catch (err) {
       console.warn('[Supabase] Errore verifica PIN remoto:', err);
     }
   }
 
-  return false;
+  return matchesPin(employee.password, enteredPin);
 };
 
 /**
