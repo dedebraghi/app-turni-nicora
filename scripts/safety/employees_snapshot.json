@@ -117,7 +117,7 @@
     },
     {
       "id": "emp-gz-3",
-      "name": "Teo",
+      "name": "Matteo F.",
       "location_id": "gazzada",
       "role": "Serra Calda",
       "skills": {
@@ -127,8 +127,8 @@
         "Serra Calda": 10,
         "Serra Fredda": 8
       },
-      "avatar": "TE",
-      "email": "teo@nicoragarden.it",
+      "avatar": "MF",
+      "email": "matteo.f@nicoragarden.it",
       "phone": "340 1000003",
       "pin": "123",
       "is_manager": false,
@@ -174,7 +174,7 @@
       "avatar": "DA",
       "email": "daniela@nicoragarden.it",
       "phone": "340 1000005",
-      "pin": "123",
+      "pin": "1234",
       "is_manager": false,
       "contract_hours": 40,
       "is_active": true,
@@ -285,7 +285,7 @@
       "email": "stefania@nicoragarden.it",
       "phone": "340 2000001",
       "pin": "123",
-      "is_manager": true,
+      "is_manager": false,
       "contract_hours": 40,
       "is_active": true,
       "created_at": "2026-09-20T12:36:31.630655+00:00",
@@ -623,7 +623,7 @@
     },
     {
       "id": "emp-va-6",
-      "name": "Matteo",
+      "name": "Matteo Z.",
       "location_id": "varese",
       "role": "Serra Calda",
       "skills": {
@@ -633,8 +633,8 @@
         "Serra Calda": 10,
         "Serra Fredda": 8
       },
-      "avatar": "MO",
-      "email": "matteo@nicoragarden.it",
+      "avatar": "MZ",
+      "email": "matteo.z@nicoragarden.it",
       "phone": "340 2000006",
       "pin": "123",
       "is_manager": false,

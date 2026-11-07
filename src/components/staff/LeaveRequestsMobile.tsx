@@ -964,7 +964,7 @@ export const LeaveRequestsMobile: React.FC<LeaveRequestsMobileProps> = ({
                     )}
 
                     {/* AZIONI: Approvazione Finale della Direzione (Manager Mode) */}
-                    {isManagerMode && req.status === 'pending' && (
+                    {isManagerUser && req.status === 'pending' && (
                       <div className="flex items-center justify-between gap-2 pt-2 border-t border-neutral-100">
                         <span className="text-[10px] text-neutral-500 font-medium">
                           {req.type === 'swap' ? 'Colleghi concordi • Scambia i turni' : 'In attesa Direzione'}

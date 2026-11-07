@@ -1025,7 +1025,7 @@ export const LeaveRequestsDesktop: React.FC<LeaveRequestsDesktopProps> = ({
                         )}
 
                         {/* Se sono il manager e la richiesta è pronta per approvazione finale */}
-                        {isManagerMode && req.status === 'pending' && (
+                        {isManagerUser && req.status === 'pending' && (
                           <div className="flex items-center gap-2">
                             <span className="text-[11px] text-neutral-500 mr-1">
                               {req.type === 'swap' ? 'Colleghi concordi • Scambia i turni' : 'In attesa Direzione'}

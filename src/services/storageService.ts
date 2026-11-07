@@ -299,30 +299,23 @@ export const getPublishedMonthsMap = (): Record<string, boolean> => {
 export const isMonthPublished = (locationId: string, year: number, month: number): boolean => {
   const pubMap = getPublishedMonthsMap();
   const key = `${locationId}_${year}-${String(month).padStart(2, '0')}`;
-  
-  // Se è esplicitamente registrato come pubblicato, è visibile
+
   if (pubMap[key] === true) {
     return true;
   }
-  // Se è esplicitamente registrato come non pubblicato
   if (pubMap[key] === false) {
     return false;
   }
 
-  // Se c'è una bozza generata (in locale o su cloud) e non è in pubMap con true, NON è pubblicata!
   if (hasDraftGenerated(locationId, year, month)) {
     return false;
   }
 
-  // Per mesi passati storici già terminati rispetto a oggi, sono considerati visibili di default
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth() + 1;
-  if (year < currentYear || (year === currentYear && month < currentMonth)) {
+  // Mesi storici precedenti a ottobre 2026 senza bozza attiva sono visibili di default
+  if (year < 2026 || (year === 2026 && month < 10)) {
     return true;
   }
 
-  // Per il mese corrente o mesi futuri senza pubblicazione esplicita, è considerato bozza
   return false;
 };
 

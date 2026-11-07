@@ -191,6 +191,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
         return;
       }
 
+      let managerToken: string | undefined = undefined;
+      if (emp.isManager && emp.email) {
+        const authRes = await authenticateCloudManager(emp.email, password);
+        if (authRes.success && authRes.token) {
+          managerToken = authRes.token;
+        }
+      }
+
       setFailedAttempts(0);
       setLockoutTime(null);
       persistLockoutState(0, null);
@@ -204,7 +212,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
             hasCustomPin: usedCustomPin || Boolean(emp.hasCustomPin),
             password: usedCustomPin ? undefined : '1234',
           },
-          role: 'employee',
+          role: emp.isManager ? 'manager' : 'employee',
+          managerToken,
         },
         emp.locationId
       );
@@ -213,12 +222,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
         setError('Inserisci la password di direzione');
         return;
       }
-      const managerUser =
+      const managerUser: Employee =
         employees.find(
           (e) =>
-            e.isManager &&
+            (e.isManager || e.isOwner) &&
             (e.email?.toLowerCase() === managerEmail.trim().toLowerCase() ||
-             (managerEmail.trim().toLowerCase() === 'vittore@nicora.eu' && e.email?.toLowerCase() === 'vittore@nicoragarden.it'))
+             (managerEmail.trim().toLowerCase() === 'vittore@nicora.eu' && e.email?.toLowerCase() === 'vittore@nicoragarden.it') ||
+             (managerEmail.trim().toLowerCase() === 'vittore@nicoragarden.it' && e.email?.toLowerCase() === 'vittore@nicora.eu'))
         ) ||
         employees.find((e) => e.locationId === activeLocation && e.isManager) ||
         employees.find((e) => e.isManager) || {
@@ -230,6 +240,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
           avatar: 'VN',
           email: managerEmail,
           isManager: true,
+          isOwner: true,
         };
 
       const authRes = await authenticateCloudManager(managerEmail, password);
@@ -243,13 +254,22 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ employees, onLoginSucc
       setLockoutTime(null);
       persistLockoutState(0, null);
 
+      const usedCustomPin = password.trim() !== '1234' && password.trim() !== '123';
+      const userForSession: Employee = managerUser.isOwner
+        ? managerUser
+        : {
+            ...managerUser,
+            hasCustomPin: usedCustomPin || Boolean(managerUser.hasCustomPin),
+            password: usedCustomPin ? undefined : '1234',
+          };
+
       onLoginSuccess(
         {
-          user: managerUser,
+          user: userForSession,
           role: 'manager',
           managerToken: authRes.token,
         },
-        activeLocation
+        managerUser.isOwner ? activeLocation : (managerUser.locationId || activeLocation)
       );
     }
   };

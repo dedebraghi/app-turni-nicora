@@ -86,4 +86,56 @@ describe('Tier 1: Feature F10 (PIN Login & Manager Authentication)', () => {
     expect(app.session).toBeNull();
     expect(app.isManagerMode).toBe(false);
   });
+
+  it('F10.9: employee promoted to manager (isManager: true) gets full manager capabilities and forced PIN change on 1234', () => {
+    // 1. Admin logs in and promotes Sabrina (emp-gz-1) to manager
+    app.loginAsManager('vittore@nicoragarden.it', 'admin');
+    const promo = app.setEmployeeManagerStatus('emp-gz-1', true);
+    expect(promo.success).toBe(true);
+    app.logout();
+
+    // 2. Sabrina logs in via Collaboratore with provisional PIN 1234
+    const loginRes = app.loginAsEmployee('emp-gz-1', '1234');
+    expect(loginRes.success).toBe(true);
+    expect(app.isManagerMode).toBe(true);
+    expect(app.session?.role).toBe('manager');
+    expect(app.session?.managerToken).toBeDefined();
+
+    // 3. Forced PIN change is required even though she is a manager
+    expect(app.requiresForcedPinChange()).toBe(true);
+    const pinChange = app.completeForcedPinChange('4321');
+    expect(pinChange.success).toBe(true);
+    expect(app.requiresForcedPinChange()).toBe(false);
+
+    // 4. Promoted manager can generate draft shifts, view unpublished drafts, and publish the month
+    const generated = app.generateMonthlyShifts(2026, 11, 'gazzada');
+    expect(generated.length).toBeGreaterThan(0);
+    expect(app.hasUnpublishedDraftInView('gazzada', 2026, 11)).toBe(true);
+    expect(app.isPublishBannerVisible('gazzada', 2026, 11)).toBe(true);
+    expect(app.getVisibleShifts().length).toBeGreaterThan(0);
+
+    app.publishMonth('gazzada', 2026, 11);
+    expect(app.isMonthOfficiallyPublished('gazzada', 2026, 11)).toBe(true);
+  });
+
+  it('F10.10: promoted manager logging in via Responsabile tab with 1234 is also prompted to change PIN', () => {
+    app.loginAsManager('vittore@nicoragarden.it', 'admin');
+    app.setEmployeeManagerStatus('emp-gz-1', true);
+    app.logout();
+
+    const mgrLogin = app.loginAsManager('sabrina@nicoragarden.it', '1234');
+    expect(mgrLogin.success).toBe(true);
+    expect(app.session?.user.id).toBe('emp-gz-1');
+    expect(app.isManagerMode).toBe(true);
+    expect(app.requiresForcedPinChange()).toBe(true);
+  });
+
+  it('F10.11: virgin ("brado") state has no non-owner employee checked as manager and no custom PINs', () => {
+    const nonOwners = app.employees.filter((e) => !e.isOwner);
+    expect(nonOwners.length).toBeGreaterThan(0);
+    for (const emp of nonOwners) {
+      expect(Boolean(emp.isManager)).toBe(false);
+      expect(Boolean(emp.hasCustomPin)).toBe(false);
+    }
+  });
 });

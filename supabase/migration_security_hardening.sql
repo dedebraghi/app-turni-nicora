@@ -290,7 +290,7 @@ CREATE OR REPLACE FUNCTION authenticate_manager(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
     v_stored_pin TEXT;
@@ -323,7 +323,7 @@ BEGIN
         RETURN jsonb_build_object('success', false, 'error', 'Credenziali Direzione non valide');
     END IF;
 
-    IF v_stored_pin IS NULL OR v_stored_pin = '' OR v_stored_pin = '1234' OR v_stored_pin = 'admin' THEN
+    IF v_stored_pin IS NULL OR v_stored_pin = '' OR v_stored_pin = '123' OR v_stored_pin = '1234' OR v_stored_pin = 'admin' THEN
         IF p_password = 'admin' OR p_password = '1234' OR p_password = 'NicoraMaster2026!' THEN
             v_is_valid := TRUE;
         END IF;
@@ -337,8 +337,8 @@ BEGIN
         RETURN jsonb_build_object('success', false, 'error', 'Password Direzione non corretta');
     END IF;
 
-    -- Genera un token crittografico casuale per la sessione Direzione
-    v_token := encode(gen_random_bytes(32), 'hex');
+    -- Genera un token crittografico casuale per la sessione Direzione (nativo PostgreSQL pg_catalog.gen_random_uuid)
+    v_token := replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', '');
 
     INSERT INTO manager_sessions (token, manager_email, created_at, expires_at)
     VALUES (v_token, LOWER(TRIM(p_email)), NOW(), NOW() + INTERVAL '30 days');
@@ -358,7 +358,7 @@ CREATE OR REPLACE FUNCTION verify_manager_password(
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
     v_res JSONB;
@@ -483,6 +483,7 @@ BEGIN
 
     UPDATE employees
     SET pin = TRIM(p_new_password),
+        has_custom_pin = TRUE,
         updated_at = NOW()
     WHERE (LOWER(email) = LOWER(v_email) OR (LOWER(v_email) = 'vittore@nicora.eu' AND LOWER(email) = 'vittore@nicoragarden.it'))
       AND is_manager = true;

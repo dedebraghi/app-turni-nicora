@@ -759,5 +759,36 @@ describe('R2 Functional Audit Unit Tests', () => {
       const dbPayload = mapEmployeeToDb(newHire);
       expect(dbPayload.pin).toBe('1234');
     });
+
+    test('6.4: saveCloudEmployee and resetCloudEmployeePin succeed cleanly when a manager session token is active', async () => {
+      const { saveCloudEmployee, resetCloudEmployeePin } = await import('../../src/services/supabaseService');
+      storageMock.setItem(
+        'nicora_v4_session',
+        JSON.stringify({
+          user: { id: 'emp-gz-4', name: 'Vittore Nicora', isManager: true, isOwner: true },
+          role: 'manager',
+          managerToken: 'local-fallback-mgr-test-token',
+        })
+      );
+
+      const empToPromote: Employee = {
+        id: 'emp-gz-1',
+        name: 'Sabrina',
+        locationId: 'gazzada',
+        role: 'Cassa',
+        skills: { Cassa: 10, Fioreria: 7, Decor: 6, 'Serra Calda': 4, 'Serra Fredda': 3 },
+        avatar: 'SA',
+        email: 'sabrina@nicoragarden.it',
+        isManager: true,
+        contractHours: 40,
+        isActive: true,
+      };
+
+      const saveRes = await saveCloudEmployee(empToPromote);
+      expect(saveRes.success).toBe(true);
+
+      const resetRes = await resetCloudEmployeePin('emp-gz-1');
+      expect(resetRes.success).toBe(true);
+    });
   });
 });

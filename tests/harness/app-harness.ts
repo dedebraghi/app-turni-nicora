@@ -105,12 +105,25 @@ export class AppHarness {
     if (!emp) {
       return { success: false, error: 'Collaboratore non trovato' };
     }
-    const validPins = [emp.password, '1234', '123'].filter(Boolean);
+    const validPins = emp.hasCustomPin
+      ? [emp.password].filter(Boolean)
+      : [emp.password, '1234', '123'].filter(Boolean);
     if (!validPins.includes(pin)) {
       return { success: false, error: 'PIN non corretto' };
     }
-    this.session = { user: emp, role: 'employee' };
-    this.isManagerMode = false;
+    const usedCustomPin = pin.trim() !== '1234' && pin.trim() !== '123';
+    const sessionUser: Employee = {
+      ...emp,
+      hasCustomPin: usedCustomPin || Boolean(emp.hasCustomPin),
+      password: usedCustomPin ? pin.trim() : '1234',
+    };
+    const isMgr = Boolean(emp.isManager || emp.isOwner);
+    this.session = {
+      user: sessionUser,
+      role: isMgr ? 'manager' : 'employee',
+      managerToken: isMgr ? 'local-offline-manager-token' : undefined,
+    };
+    this.isManagerMode = isMgr;
     this.activeLocation = emp.locationId;
     return { success: true };
   }
@@ -119,6 +132,7 @@ export class AppHarness {
     const validManagerPasswords = [
       MANAGER_MASTER_PASSWORD,
       'admin',
+      '1234',
       'NicoraMaster2026!',
       ...this.employees.filter((e) => e.isManager || e.isOwner).map((e) => e.password),
     ].filter(Boolean);
@@ -145,11 +159,74 @@ export class AppHarness {
         avatar: 'VN',
         email,
         isManager: true,
+        isOwner: true,
         password: MANAGER_MASTER_PASSWORD,
       };
 
-    this.session = { user: managerUser, role: 'manager' };
+    const usedCustomPin = pin.trim() !== '1234' && pin.trim() !== '123';
+    const userForSession: Employee = managerUser.isOwner
+      ? managerUser
+      : {
+          ...managerUser,
+          hasCustomPin: usedCustomPin || Boolean(managerUser.hasCustomPin),
+          password: usedCustomPin ? pin.trim() : '1234',
+        };
+
+    this.session = {
+      user: userForSession,
+      role: 'manager',
+      managerToken: 'local-offline-manager-token',
+    };
     this.isManagerMode = true;
+    if (!managerUser.isOwner && managerUser.locationId) {
+      this.activeLocation = managerUser.locationId;
+    }
+    return { success: true };
+  }
+
+  setEmployeeManagerStatus(employeeId: string, isManager: boolean): { success: boolean; error?: string } {
+    if (!this.isManagerMode) {
+      return { success: false, error: 'Non autorizzato' };
+    }
+    const emp = this.employees.find((e) => e.id === employeeId);
+    if (!emp) {
+      return { success: false, error: 'Collaboratore non trovato' };
+    }
+    emp.isManager = isManager;
+    this.storage.setItem('nicora_v5_employees', JSON.stringify(this.employees));
+    return { success: true };
+  }
+
+  requiresForcedPinChange(): boolean {
+    if (!this.session) return false;
+    const u = this.session.user;
+    const isProvisional = !u.password || u.password === '1234' || u.password === '123';
+    return Boolean(!u.isOwner && !u.hasCustomPin && isProvisional);
+  }
+
+  completeForcedPinChange(newPin: string): { success: boolean; error?: string } {
+    if (!this.session) {
+      return { success: false, error: 'Nessuna sessione attiva' };
+    }
+    const cleanPin = newPin.trim();
+    if (cleanPin.length < 4 || cleanPin === '1234' || cleanPin === '123') {
+      return { success: false, error: 'Scegli un PIN personale diverso da 1234' };
+    }
+    const empId = this.session.user.id;
+    const emp = this.employees.find((e) => e.id === empId);
+    if (emp) {
+      emp.password = cleanPin;
+      emp.hasCustomPin = true;
+    }
+    this.session = {
+      ...this.session,
+      user: {
+        ...this.session.user,
+        password: cleanPin,
+        hasCustomPin: true,
+      },
+    };
+    this.storage.setItem('nicora_v5_employees', JSON.stringify(this.employees));
     return { success: true };
   }
 
@@ -171,6 +248,7 @@ export class AppHarness {
     const emp = this.employees.find((e) => e.id === employeeId);
     if (!emp) return false;
     emp.password = newPin;
+    emp.hasCustomPin = newPin !== '1234' && newPin !== '123';
     return true;
   }
 

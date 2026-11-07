@@ -212,7 +212,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     email: 'stefania@nicoragarden.it',
     phone: '340 2000001',
     password: '123',
-    isManager: true,
+    isManager: false,
     contractHours: 40,
     color: '#dc2626', // Red (Cassa VA)
     isActive: true,

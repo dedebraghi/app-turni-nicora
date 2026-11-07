@@ -46,6 +46,7 @@ interface StaffPersonnelProps {
   onChangeLocation?: (loc: LocationId) => void;
   onLogout?: () => void;
   onSaveEmployee: (employee: Employee) => void;
+  onResetEmployeePin?: (employeeId: string) => void;
   onArchiveEmployee: (employeeId: string, isActive: boolean) => void;
   onDeleteEmployee?: (employeeId: string) => void;
   onUpdateSkillsAndHours?: (
@@ -64,6 +65,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
   onChangeLocation,
   onLogout,
   onSaveEmployee,
+  onResetEmployeePin,
   onArchiveEmployee,
   onDeleteEmployee,
   onUpdateSkillsAndHours,
@@ -83,12 +85,16 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
 
   const handleConfirmResetPin = () => {
     if (!employeeToResetPin) return;
-    const updated: Employee = {
-      ...employeeToResetPin,
-      password: '1234',
-      hasCustomPin: false,
-    };
-    onSaveEmployee(updated);
+    if (onResetEmployeePin) {
+      onResetEmployeePin(employeeToResetPin.id);
+    } else {
+      const updated: Employee = {
+        ...employeeToResetPin,
+        password: '1234',
+        hasCustomPin: false,
+      };
+      onSaveEmployee(updated);
+    }
     setEmployeeToResetPin(null);
   };
 
@@ -681,7 +687,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                           </button>
 
                           {/* Pulsante Reset PIN per sblocco rapido dipendente */}
-                          {!emp.isOwner && !emp.isManager && (
+                          {!emp.isOwner && (
                             <button
                               type="button"
                               onClick={() => setEmployeeToResetPin(emp)}
@@ -1508,7 +1514,7 @@ export const StaffPersonnel: React.FC<StaffPersonnelProps> = ({
                 </div>
 
                 {/* Box Gestione PIN / Reset Credenziali (Visibile solo per collaboratori esistenti) */}
-                {editingEmployee && !editingEmployee.isOwner && !editingEmployee.isManager && (
+                {editingEmployee && !editingEmployee.isOwner && (
                   <div className="p-3.5 bg-neutral-50 rounded-2xl border border-neutral-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                     <div className="space-y-0.5">
                       <div className="flex items-center gap-1.5 font-bold text-neutral-800">

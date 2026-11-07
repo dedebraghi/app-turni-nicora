@@ -50,6 +50,7 @@ import {
 } from './services/storageService';
 import {
   archiveCloudEmployee,
+  authenticateCloudManager,
   deleteCloudEmployee,
   fetchCloudEmployees,
   fetchCloudRequests,
@@ -62,6 +63,7 @@ import {
   saveCloudShifts,
   saveCloudIgnoredGaps,
   publishCloudMonth,
+  resetCloudEmployeePin,
   subscribeToRealtimeChanges,
   updateCloudRequestStatus,
   verifyManagerSessionToken,
@@ -85,7 +87,9 @@ export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('today');
   
   // Modalità Responsabile / Manager
-  const [isManagerMode, setIsManagerMode] = useState<boolean>(() => session?.role === 'manager');
+  const [isManagerMode, setIsManagerMode] = useState<boolean>(() =>
+    Boolean(session?.role === 'manager' || session?.user?.isManager || session?.user?.isOwner)
+  );
 
   // Modali
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
@@ -249,6 +253,17 @@ export const App: React.FC = () => {
             ? prev.map((e) => (e.id === cloudEmp.id ? cloudEmp : e))
             : prev
         );
+        setSession((prev) => {
+          if (!prev || prev.user.id !== cloudEmp.id) return prev;
+          return {
+            ...prev,
+            user: {
+              ...cloudEmp,
+              password: prev.user.password,
+              hasCustomPin: cloudEmp.hasCustomPin ?? prev.user.hasCustomPin,
+            },
+          };
+        });
       },
     });
 
@@ -278,7 +293,7 @@ export const App: React.FC = () => {
   // Sicurezza PIN: se il PIN del collaboratore loggato è stato cambiato altrove (altro dispositivo
   // o reset della Direzione), la sessione locale non è più valida e va rifatto il login.
   useEffect(() => {
-    if (!session || session.role !== 'employee') return;
+    if (!session || session.user.isOwner) return;
     const cloudEmp = employees.find((e) => e.id === session.user.id);
     if (!cloudEmp) return;
     const localPasswordMismatch =
@@ -341,20 +356,22 @@ export const App: React.FC = () => {
     if (!isManagerMode && (activeTab === 'personnel' || activeTab === 'skills' || activeTab === 'staff')) {
       setActiveTab('today');
     }
-    if (isManagerMode && activeTab === 'my-shifts') {
+    if (isManagerMode && session?.user?.isOwner && activeTab === 'my-shifts') {
       setActiveTab('today');
     }
-  }, [isManagerMode, activeTab]);
+  }, [isManagerMode, activeTab, session]);
 
   const handleLoginSuccess = (newSession: UserSession, userLocation: LocationId) => {
     setSession(newSession);
     setActiveLocation(userLocation);
-    const isMgr = newSession.role === 'manager';
+    const isMgr = Boolean(
+      newSession.role === 'manager' || newSession.user.isManager || newSession.user.isOwner
+    );
     setIsManagerMode(isMgr);
     if (!isMgr && (activeTab === 'personnel' || activeTab === 'skills' || activeTab === 'staff')) {
       setActiveTab('today');
     }
-    if (isMgr && activeTab === 'my-shifts') {
+    if (isMgr && newSession.user.isOwner && activeTab === 'my-shifts') {
       setActiveTab('today');
     }
   };
@@ -722,6 +739,29 @@ export const App: React.FC = () => {
       id: `toast-${Date.now()}`,
       title: 'Anagrafica Collaboratore Salvata',
       message: `${empToSave.name} è stato aggiornato correttamente (Reparto primario: ${empToSave.role}).`,
+      type: 'info',
+    });
+  };
+
+  const handleResetEmployeePin = async (empId: string) => {
+    const emp = employees.find((e) => e.id === empId);
+    setEmployees((prev) =>
+      prev.map((e) => (e.id === empId ? { ...e, password: '1234', hasCustomPin: false } : e))
+    );
+    const res = await resetCloudEmployeePin(empId);
+    if (!res.success) {
+      setToast({
+        id: `toast-reset-err-${Date.now()}`,
+        title: 'Reset PIN non riuscito',
+        message: res.error || `Impossibile reimpostare il PIN di ${emp?.name || 'collaboratore'} sul cloud.`,
+        type: 'warning',
+      });
+      return;
+    }
+    setToast({
+      id: `toast-reset-ok-${Date.now()}`,
+      title: 'PIN Reimpostato a 1234 🔑',
+      message: `Il PIN di ${emp?.name || 'collaboratore'} è stato riportato a 1234. Al prossimo accesso dovrà sceglierne uno nuovo.`,
       type: 'info',
     });
   };
@@ -1105,8 +1145,7 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-nicora-bg text-nicora-text flex flex-col antialiased">
-      {!currentEmployee.isManager &&
-        !currentEmployee.isOwner &&
+      {!currentEmployee.isOwner &&
         !currentEmployee.hasCustomPin &&
         isProvisionalPin(currentEmployee.password) && (
           <ForcePinChangeModal
@@ -1127,6 +1166,13 @@ export const App: React.FC = () => {
                 });
                 return;
               }
+              let refreshedToken = session.managerToken;
+              if (currentEmployee.isManager && currentEmployee.email) {
+                const authRes = await authenticateCloudManager(currentEmployee.email, newPin);
+                if (authRes.success && authRes.token) {
+                  refreshedToken = authRes.token;
+                }
+              }
               const updatedEmp: Employee = {
                 ...currentEmployee,
                 password: newPin,
@@ -1136,7 +1182,14 @@ export const App: React.FC = () => {
                 prev.map((e) => (e.id === updatedEmp.id ? updatedEmp : e))
               );
               setSession((prev) =>
-                prev && prev.user.id === updatedEmp.id ? { ...prev, user: updatedEmp } : prev
+                prev && prev.user.id === updatedEmp.id
+                  ? {
+                      ...prev,
+                      user: updatedEmp,
+                      role: updatedEmp.isManager ? 'manager' : prev.role,
+                      managerToken: refreshedToken,
+                    }
+                  : prev
               );
               setToast({
                 id: `toast-pin-ok-${Date.now()}`,
@@ -1267,6 +1320,7 @@ export const App: React.FC = () => {
             onChangeLocation={setActiveLocation}
             onLogout={handleLogout}
             onSaveEmployee={handleSaveEmployee}
+            onResetEmployeePin={handleResetEmployeePin}
             onArchiveEmployee={handleArchiveEmployee}
             onDeleteEmployee={handleDeleteEmployee}
             onOpenTutorial={() => setIsTutorialManualOpen(true)}

@@ -73,6 +73,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
   };
 
   const isManagerAccount = Boolean(employee?.isOwner || employee?.isManager);
+  const isOwnerAccount = Boolean(employee?.isOwner);
 
   const handleSavePin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,7 +84,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
 
     if (newPinInput.length < 3) {
       setPinError(
-        isManagerAccount
+        isOwnerAccount
           ? 'La nuova password deve contenere almeno 3 caratteri'
           : 'Il nuovo PIN deve contenere almeno 3 cifre'
       );
@@ -92,24 +93,24 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
 
     if (newPinInput !== confirmPinInput) {
       setPinError(
-        isManagerAccount
+        isOwnerAccount
           ? 'Le due password inserite non coincidono'
           : 'I due PIN inseriti non coincidono'
       );
       return;
     }
 
-    const defaultSecret = isManagerAccount ? 'admin' : '1234';
+    const defaultSecret = isOwnerAccount ? 'admin' : '1234';
 
     if (isSupabaseConfigured) {
-      const rpcRes = isManagerAccount
+      const rpcRes = isOwnerAccount
         ? await changeCloudManagerPassword(currentPinInput, newPinInput)
         : await changeCloudEmployeePin(employee.id, currentPinInput, newPinInput);
 
       if (!rpcRes.success) {
         setPinError(
           rpcRes.error ||
-            (isManagerAccount
+            (isOwnerAccount
               ? 'La password attuale inserita non è corretta'
               : 'Il PIN attuale inserito non è corretto')
         );
@@ -117,13 +118,13 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
       }
     } else {
       const actualSecret = employee.password || defaultSecret;
-      const validCurrentSecrets = isManagerAccount
+      const validCurrentSecrets = isOwnerAccount
         ? [actualSecret, 'admin']
         : [normalizePin(actualSecret)];
 
       if (!validCurrentSecrets.includes(currentPinInput)) {
         setPinError(
-          isManagerAccount
+          isOwnerAccount
             ? 'La password attuale inserita non è corretta'
             : 'Il PIN attuale inserito non è corretto'
         );
@@ -140,7 +141,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
     }
 
     setPinSuccess(
-      isManagerAccount ? 'Password modificata con successo!' : 'PIN modificato con successo!'
+      isOwnerAccount ? 'Password modificata con successo!' : 'PIN modificato con successo!'
     );
     setTimeout(() => {
       setIsPinModalOpen(false);
@@ -272,7 +273,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
                             className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-semibold transition-colors cursor-pointer"
                           >
                             <KeyRound size={14} className="text-[#a73a00]" />
-                            <span>{isManagerAccount ? 'Modifica Password' : 'Modifica PIN'}</span>
+                            <span>{isOwnerAccount ? 'Modifica Password' : 'Modifica PIN'}</span>
                           </button>
                         )}
 
@@ -351,7 +352,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
               <div className="flex items-center gap-2">
                 <KeyRound size={18} className="text-amber-300" />
                 <h3 className="font-serif text-sm font-semibold">
-                  {isManagerAccount ? 'Modifica Password Direzione' : 'Modifica PIN Personale'}
+                  {isOwnerAccount ? 'Modifica Password Direzione' : 'Modifica PIN Personale'}
                 </h3>
               </div>
               <button onClick={() => setIsPinModalOpen(false)} className="text-white hover:opacity-80">
@@ -375,14 +376,14 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
 
               <div>
                 <label className="block font-semibold text-neutral-700 mb-0.5">
-                  {isManagerAccount ? 'Password Attuale:' : 'PIN Attuale:'}
+                  {isOwnerAccount ? 'Password Attuale:' : 'PIN Attuale:'}
                 </label>
                 <input
                   type="password"
                   value={currentPinInput}
                   onChange={(e) => setCurrentPinInput(e.target.value)}
-                  placeholder={isManagerAccount ? 'Password attuale' : 'PIN attuale'}
-                  maxLength={isManagerAccount ? 32 : 6}
+                  placeholder={isOwnerAccount ? 'Password attuale' : 'PIN attuale'}
+                  maxLength={isOwnerAccount ? 32 : 6}
                   className="w-full bg-neutral-50 border border-[#e2e8e4] rounded-xl px-3 py-2 text-sm font-bold"
                   required
                 />
@@ -390,14 +391,14 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
 
               <div>
                 <label className="block font-semibold text-neutral-700 mb-0.5">
-                  {isManagerAccount ? 'Nuova Password:' : 'Nuovo PIN (min. 3 cifre):'}
+                  {isOwnerAccount ? 'Nuova Password:' : 'Nuovo PIN (min. 3 cifre):'}
                 </label>
                 <input
                   type="password"
                   value={newPinInput}
                   onChange={(e) => setNewPinInput(e.target.value)}
-                  placeholder={isManagerAccount ? 'Nuova password' : 'Nuovo PIN'}
-                  maxLength={isManagerAccount ? 32 : 6}
+                  placeholder={isOwnerAccount ? 'Nuova password' : 'Nuovo PIN'}
+                  maxLength={isOwnerAccount ? 32 : 6}
                   className="w-full bg-neutral-50 border border-[#e2e8e4] rounded-xl px-3 py-2 text-sm font-bold"
                   required
                 />
@@ -405,14 +406,14 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
 
               <div>
                 <label className="block font-semibold text-neutral-700 mb-0.5">
-                  {isManagerAccount ? 'Conferma Nuova Password:' : 'Conferma Nuovo PIN:'}
+                  {isOwnerAccount ? 'Conferma Nuova Password:' : 'Conferma Nuovo PIN:'}
                 </label>
                 <input
                   type="password"
                   value={confirmPinInput}
                   onChange={(e) => setConfirmPinInput(e.target.value)}
-                  placeholder={isManagerAccount ? 'Ripeti nuova password' : 'Ripeti nuovo PIN'}
-                  maxLength={isManagerAccount ? 32 : 6}
+                  placeholder={isOwnerAccount ? 'Ripeti nuova password' : 'Ripeti nuovo PIN'}
+                  maxLength={isOwnerAccount ? 32 : 6}
                   className="w-full bg-neutral-50 border border-[#e2e8e4] rounded-xl px-3 py-2 text-sm font-bold"
                   required
                 />
@@ -430,7 +431,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
                   type="submit"
                   className="px-4 py-2 bg-[#002f32] text-white font-bold rounded-xl shadow-xs"
                 >
-                  {isManagerAccount ? 'Salva Password' : 'Salva PIN'}
+                  {isOwnerAccount ? 'Salva Password' : 'Salva PIN'}
                 </button>
               </div>
             </form>
